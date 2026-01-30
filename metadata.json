@@ -1,0 +1,7 @@
+{
+  "name": "RightNow Fitness",
+  "description": "AI-powered fitness evolution app visualizing your future self.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
