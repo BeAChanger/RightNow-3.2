@@ -15,9 +15,43 @@ const data = [
 
 interface Props {
     onNavigate?: (view: View) => void;
+    isProfileComplete?: boolean;
 }
 
-const Dashboard: React.FC<Props> = ({ onNavigate }) => {
+const Dashboard: React.FC<Props> = ({ onNavigate, isProfileComplete = true }) => {
+    // Incomplete State View
+    if (!isProfileComplete) {
+        return (
+            <div className="min-h-screen bg-bg-dark flex flex-col justify-center items-center p-6 relative overflow-hidden">
+                {/* Background Ambience */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] pointer-events-none"></div>
+
+                <div className="z-10 text-center space-y-6 animate-fade-in">
+                    {/* Big RightNow Logo */}
+                    <div>
+                        <h1 className="text-6xl font-black font-serif italic text-white mb-2">Right<span className="text-primary">Now</span></h1>
+                        <p className="text-sm text-gray-400 tracking-[0.5em] uppercase">Believe is Seeing</p>
+                    </div>
+
+                    <div className="w-16 h-1 bg-white/10 mx-auto rounded-full"></div>
+
+                    <p className="text-gray-400 max-w-xs mx-auto text-sm leading-relaxed">
+                        您尚未完成身体档案配置。<br />
+                        完善数据，让 AI 为您生成未来的理想形态。
+                    </p>
+
+                    <button
+                        onClick={() => onNavigate?.(View.Onboarding)}
+                        className="bg-primary text-black font-bold text-lg px-10 py-4 rounded-full shadow-[0_0_25px_rgba(184,255,0,0.3)] active:scale-[0.98] transition-all flex items-center gap-2 mx-auto hover:bg-primary-dark"
+                    >
+                        <span>继续配置档案</span>
+                        <span className="material-icons-round">arrow_forward</span>
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-screen pb-24 relative overflow-hidden bg-bg-dark">
             {/* Header */}

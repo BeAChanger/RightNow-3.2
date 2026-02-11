@@ -2,10 +2,21 @@ import React, { useState, useRef, useEffect } from 'react';
 
 interface Props {
   userImage?: string | null;
+  userFaceImage?: string | null;
+  bodyStyle?: string;
   onComplete: () => void;
 }
 
-const EvolutionEngine: React.FC<Props> = ({ userImage, onComplete }) => {
+const bodyStyleLabels: Record<string, string> = {
+  'slim_idol': '纤细女团风',
+  'supermodel': '维密超模风',
+  'power_female': '力量风',
+  'eddie_peng': '彭于晏式精干',
+  'slim_muscular': '穿衣显瘦/脱衣有肉',
+  'classic_beast': '古典健美巨兽',
+};
+
+const EvolutionEngine: React.FC<Props> = ({ userImage, userFaceImage, bodyStyle, onComplete }) => {
   const [sliderVal, setSliderVal] = useState(50);
   const [isChatOpen, setIsChatOpen] = useState(true);
   const [inputValue, setInputValue] = useState("");
@@ -26,6 +37,21 @@ const EvolutionEngine: React.FC<Props> = ({ userImage, onComplete }) => {
 
   // Simulate initial analysis
   useEffect(() => {
+    // If face image is provided, acknowledge it
+    const initialMsgs = [];
+    if (userFaceImage) {
+      initialMsgs.push({
+        id: 1.5,
+        text: "已接收正脸照，将在生成过程中强化面部特征保留。",
+        sender: 'ai',
+        image: userFaceImage
+      });
+    }
+
+    if (initialMsgs.length > 0) {
+      setMessages(prev => [...prev, ...initialMsgs]);
+    }
+
     setTimeout(() => {
       setMessages(prev => [...prev, {
         id: 2,
@@ -34,23 +60,94 @@ const EvolutionEngine: React.FC<Props> = ({ userImage, onComplete }) => {
         tags: ['✨ 腿部线条', '💪 腰腹更紧致', '🍑 提升臀线']
       }]);
     }, 1000);
-  }, []);
+  }, [userFaceImage]);
 
-  const handleSend = (text: string) => {
+
+  // API Key from environment
+  const API_KEY = process.env.GEMINI_API_KEY;
+
+  // Helper to call Gemini API
+  const callGeminiAPI = async (userText: string, imageBase64?: string | null) => {
+    if (!API_KEY || API_KEY === 'PLACEHOLDER_API_KEY') {
+      return "请先在 .env.local 中配置有效的 GEMINI_API_KEY。";
+    }
+
+    try {
+      const contents = [];
+      if (imageBase64) {
+        // Extract base64 part if it has prefix
+        const base64Data = imageBase64.split(',')[1] || imageBase64;
+        const mimeType = imageBase64.split(';')[0].split(':')[1] || 'image/jpeg';
+
+        contents.push({
+          role: "user",
+          parts: [
+            { text: userText },
+            { inline_data: { mime_type: mimeType, data: base64Data } }
+          ]
+        });
+      } else {
+        contents.push({
+          role: "user",
+          parts: [{ text: userText }]
+        });
+      }
+
+      // Add system instruction via system_instruction (if supported) or just prompt engineering
+      // Start of turn
+
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          contents: contents,
+          system_instruction: {
+            parts: [{ text: `你是 RightNow Fitness 的 AI 健身教练。你的任务通过分析用户的描述或照片，调整他们的 3D 进化模型。请用简短、专业但更有激励性的语气回答。不要解释太多技术细节，而是关注用户的感受和目标。如果是关于身体部位的调整（如腿、手、脸），请确认你正在调整。如果用户上传了照片，请基于照片给予正向反馈。${bodyStyle ? `用户选择的理想身材方向是「${bodyStyleLabels[bodyStyle] || bodyStyle}」，请在回答中围绕这个风格给出建议和反馈。` : ''}` }]
+          }
+        })
+      });
+
+      const data = await response.json();
+      if (data.error) {
+        console.error("Gemini API Error:", data.error);
+        return "AI 连接遇到问题，请检查 API Key 或网络。";
+      }
+
+      const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      return aiText || "收到，正在调整中...";
+    } catch (error) {
+      console.error("Network Error:", error);
+      return "网络连接失败，请稍后重试。";
+    }
+  };
+
+  const handleSend = async (text: string) => {
     if (!text.trim()) return;
     const userMsg = { id: Date.now(), text: text, sender: 'user' };
     setMessages(prev => [...prev, userMsg]);
     setInputValue(""); // Clear input
 
-    // Simulate AI response
-    setTimeout(() => {
-      let response = "收到。正在调整模型参数...";
-      if (text.includes("腿") || text.includes("脚") || text.includes("瘦")) response = "正在针对腿部线条进行微调，拉伸肌肉比例...";
-      if (text.includes("肌") || text.includes("线") || text.includes("肩")) response = "已增强肌群渲染，提升光影质感...";
-      if (text.includes("脸") || text.includes("面")) response = "正在优化面部特征融合...";
+    // Real API Call
+    // If there's a face image freshly uploaded in context, ideally we'd send it too, 
+    // but for now, we just stick to the text chat logic or re-send the face image if it was the *last* action
+    // For simplicity, let's just send text unless we want to support multi-modal chat history.
+    // We will send the face image ONLY if this is the very first interaction after upload, or we can just send text.
+    // Let's send text only for now to keep it simple, as the image was "uploading" separate event.
+    // Or optimize: userFaceImage is available in props.
 
-      setMessages(prev => [...prev, { id: Date.now() + 1, text: response, sender: 'ai' }]);
-    }, 1000);
+    // Show loading indicator (simulated by delay or specific UI state, here just waiting)
+    // We can add a temporary "typing..." message
+    const tempId = Date.now() + 1;
+    setMessages(prev => [...prev, { id: tempId, text: "...", sender: 'ai', isTyping: true }]);
+
+    const aiResponse = await callGeminiAPI(text, null); // Pass null image for text-only turns for now
+
+    setMessages(prev => {
+      const filtered = prev.filter(msg => msg.id !== tempId);
+      return [...filtered, { id: Date.now() + 2, text: aiResponse, sender: 'ai' }];
+    });
   };
 
   const handleMicClick = () => {

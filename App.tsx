@@ -24,17 +24,34 @@ const App: React.FC = () => {
 
   // Lifted state to persist user data across views
   const [userImage, setUserImage] = useState<string | null>(null);
+  const [userFaceImage, setUserFaceImage] = useState<string | null>(null);
+  const [isProfileComplete, setIsProfileComplete] = useState(false);
+  const [gender, setGender] = useState<'male' | 'female'>('male');
+  const [bodyStyle, setBodyStyle] = useState<string>('');
 
   const handleSplashComplete = () => {
     setCurrentView(View.Onboarding);
   };
 
-  const handleOnboardingComplete = (image: string | null) => {
+  const handleOnboardingComplete = (image: string | null, faceImage: string | null, isComplete: boolean = true, userGender: 'male' | 'female' = 'male', userBodyStyle: string = '') => {
     if (image) {
       setUserImage(image);
     }
-    // Navigate to Evolution Engine for co-creation instead of Dashboard
-    setCurrentView(View.Evolution);
+    if (faceImage) {
+      setUserFaceImage(faceImage);
+    }
+
+    setIsProfileComplete(isComplete);
+    setGender(userGender);
+    setBodyStyle(userBodyStyle);
+
+    if (isComplete) {
+      // Normal flow: Co-creation
+      setCurrentView(View.Evolution);
+    } else {
+      // Skipped flow: Go to Dashboard (Incomplete State)
+      setCurrentView(View.Dashboard);
+    }
   };
 
   const renderView = () => {
@@ -44,9 +61,9 @@ const App: React.FC = () => {
       case View.Onboarding:
         return <Onboarding onComplete={handleOnboardingComplete} />;
       case View.Dashboard:
-        return <Dashboard onNavigate={setCurrentView} />;
+        return <Dashboard onNavigate={setCurrentView} isProfileComplete={isProfileComplete} />;
       case View.Evolution:
-        return <EvolutionEngine userImage={userImage} onComplete={() => setCurrentView(View.Dashboard)} />;
+        return <EvolutionEngine userImage={userImage} userFaceImage={userFaceImage} bodyStyle={bodyStyle} onComplete={() => setCurrentView(View.Dashboard)} />;
       case View.Stats:
         return <DataDashboard onNavigate={setCurrentView} />;
       case View.Diet:
