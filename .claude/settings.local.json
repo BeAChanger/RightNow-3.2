@@ -40,7 +40,12 @@
       "Bash(do git:*)",
       "Bash(cat:*)",
       "Bash(npx vite:*)",
-      "Bash(du:*)"
+      "Bash(du:*)",
+      "Bash(gh pr:*)",
+      "Bash(winget install:*)",
+      "Bash(export:*)",
+      "Bash(head:*)",
+      "Bash(npm run:*)"
     ]
   }
 }

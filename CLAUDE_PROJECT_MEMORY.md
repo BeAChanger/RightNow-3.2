@@ -195,3 +195,52 @@
 ## 12. Update Log (2026-03-02)
 
 - Codex: fixed the Onboarding custom ideal image picker by switching from hidden-input `ref.click()` to native `label` / `input[type=file]` binding for more reliable mobile uploads.
+
+## 13. AI Coach Architecture Sync (2026-03-02)
+
+- `AI_COACH_ARCHITECTURE.md` is already present and is now the active handoff contract for AI Coach implementation.
+- Codex starts with the non-UI slices: `public/knowledge/*`, `api/ai-coach.ts`, `api/index.ts`, `services/gemini.ts`, then backend `ai-coach` module and Prisma changes.
+- Antigravity owns the UI state machine and coach cards; backend/API work should preserve the documented contract and adapt to the locked UI.
+
+## 14. AI Coach Bootstrap Implementation (2026-03-02)
+
+- Completed in code: `public/knowledge/*`, `api/ai-coach.ts`, `api/index.ts`, `services/gemini.ts` coach helpers, `rightnow-api/src/ai-coach/ai-coach.module.ts`, `rightnow-api/src/app.module.ts`, and `vite.config.ts` proxy support.
+- The temporary `FitnessPlan.aiSummary` bootstrap path has been replaced: AI Coach now uses dedicated Prisma models in `rightnow-api/prisma/schema.prisma`.
+- Prisma client types were regenerated with `npx prisma generate --no-engine` because the Windows query engine DLL was locked; frontend and backend builds both pass after that.
+- The schema change has now been applied to the local PostgreSQL database with `prisma db push`; the remaining step is runtime endpoint verification.
+
+## 15. AI Coach Runtime Verification (2026-03-02)
+
+- The old API process on port `3000` was stopping Prisma client regeneration by locking `query_engine-windows.dll.node`; stopping and restarting the process resolved it.
+- `prisma generate` now succeeds normally again, the backend is restarted on `3000`, and runtime smoke checks pass.
+- Verified behavior: authenticated `assessment`, `progress`, `intake`, and `first-plan` endpoints respond; `trainingDaysPerWeek <= 2` is rejected with HTTP `400`.
+- Compatibility fix added: legacy `User.currentPhase` values like `A/B/C/D` are normalized into the new `foundation/build/cut/maintain` stage contract.
+
+## 16. AI Coach Profile Engine (2026-03-02)
+
+- Added persistent profile models in Prisma: `AiCoachProfile` (latest profile) and `AiCoachProfileSnapshot` (history archive), and added `AiCoachIntake.extraAnswers` to absorb future form payloads.
+- Extended `rightnow-api/src/ai-coach/ai-coach.module.ts` with:
+  - profile generation logic (fitness/hydration/meal recommendations),
+  - `GET /api/ai-coach/profile`,
+  - `POST /api/ai-coach/profile/refresh`,
+  - scheduler-based auto refresh every 6 hours.
+- Extended frontend API contract only at type/API layer (`api/ai-coach.ts`, `api/index.ts`) without changing any UI component or style.
+- Verified locally on `http://localhost:3000`: profile generation works, manual refresh increments `profileVersion`, and intake hard rejection rule remains effective.
+
+## 17. AI Chat Re-entry Fix (2026-03-02)
+
+- Fixed repeat-intake bug in `views/AIChat.tsx`: after user has already completed intake/plan creation, re-entering coach now checks backend progress and goes directly to existing first-day plan instead of asking intake again.
+- The fix is logic-only and does not modify component styles or visual layout classes.
+
+## 18. AI Chat Feedback Fix (2026-03-02)
+
+- Fixed Gemini chat 404 resilience in `services/gemini.ts` by adding model fallback (`gemini-2.0-flash` -> `gemini-1.5-flash-latest` -> `gemini-3-flash-preview`) when model-not-found occurs.
+- Updated free chat behavior in `views/AIChat.tsx`: prompt now explicitly requires concise responses and a post-processor removes `*` and hard-limits assistant replies to 100 characters.
+- Scope is minimal and logic-only; no UI style/layout changes were introduced.
+
+## 19. Gemini 503 Resilience Fix (2026-03-02)
+
+- Updated `services/gemini.ts` request fallback to treat transient HTTP statuses (`429/500/502/503/504`) as retryable.
+- Added short per-model retry (`2` attempts with incremental backoff) before switching to the next chat model candidate.
+- This prevents one temporary `503 Service Unavailable` from immediately surfacing as a hard chat failure in Evolution Engine text refinement.
+- Verified frontend integrity with `npm run build` at repo root.

@@ -135,3 +135,34 @@ cd .. && npm run dev  # 端口 5173
 - JWT token 存储在 localStorage（key: `rightnow_token`）
 - 前端 Axios 拦截器自动附加 Bearer token
 - Demo 账号：demo@rightnow.fit / password123
+
+## 10. AI Coach Architecture Sync (2026-03-02)
+
+- `AI_COACH_ARCHITECTURE.md` has been created and now serves as the implementation contract for the AI Coach module.
+- Codex execution scope for the current round: `public/knowledge/*`, `api/ai-coach.ts`, `api/index.ts`, `services/gemini.ts`, and backend `ai-coach` module / Prisma groundwork.
+- Antigravity execution scope for the current round: `views/AIChat.tsx`, `components/coach/*`, `components/FloatingAdvisor.tsx`, and `App.tsx` coach trigger wiring.
+- Current delivery order: knowledge base first, then frontend API and Gemini support, then backend module and schema, then integration.
+
+## 11. AI Coach Progress Snapshot (2026-03-02)
+
+- Completed: `public/knowledge/*` phase-1 files, `api/ai-coach.ts`, `api/index.ts`, `services/gemini.ts` coach helpers, `rightnow-api/src/ai-coach/ai-coach.module.ts`, `rightnow-api/src/app.module.ts`, and Vite proxy route registration.
+- Completed: dedicated Prisma models were added in `rightnow-api/prisma/schema.prisma` and the backend `ai-coach` module now reads and writes `AiCoachAssessment`, `AiCoachCalibration`, `AiCoachIntake`, and `AiCoachProgress`.
+- Completed: the local PostgreSQL schema has been synced with `prisma db push`.
+- Note: Prisma's Windows engine file-lock issue was caused by the old running API process; after restarting that process, normal `prisma generate` works again.
+- Completed: runtime smoke verification on `http://localhost:3000` is now passing after restarting the API; login + `assessment` + `progress` + `intake` + `first-plan` work, and the 1-2 day intake hard-reject returns `400` as expected.
+
+## 12. AI Coach Backend Iteration 2 (2026-03-02)
+
+- Backend-only iteration completed without touching UI files or frontend styles.
+- Added profile persistence models and history snapshots: `AiCoachProfile` + `AiCoachProfileSnapshot`, plus `AiCoachIntake.extraAnswers` for future form data collection.
+- Implemented profile generation pipeline in `ai-coach` module: aggregate assessment + intake -> generate personalized training plan, hydration plan, meal recommendation, and summary text.
+- Added profile APIs: `GET /api/ai-coach/profile` and `POST /api/ai-coach/profile/refresh`.
+- Added scheduled profile refresh (every 6 hours) to keep user archives and recommendations updated.
+- Runtime smoke test passed for login + assessment + intake + profile + profile refresh; profile version increments correctly and 1-2 day frequency still hard-rejected with `400`.
+
+## 13. Intake Re-entry Bug Fix (2026-03-02)
+
+- Fixed AI coach intake completion flow in `views/AIChat.tsx` without changing UI styles.
+- Root cause: the final `finally` branch used stale React state (`sending`) and could still show "first-day-plan" UI after intake save failure.
+- Fix: use a local `saved` success flag; only show first-day-plan when both intake save and first-plan save succeed.
+- Result: when backend rejects intake (for example 1-2 training days), UI now correctly re-prompts intake frequency instead of showing a fake completed plan.
