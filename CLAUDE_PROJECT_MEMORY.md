@@ -30,18 +30,30 @@
 
 ---
 
-## 3. Git 协作模式（2026-03-02 建立）
+## 3. 协作模式与分工（2026-03-02 更新）
 
+本项目有三类协作者，文档和 PR 需同时面向人类和 AI Agent 可读。
+
+### 负责人（用户）+ AI Agent
+- **负责模块**：AI 教练（`views/AIChat.tsx`）、数据看板（`views/DataDashboard.tsx`）、待办/TODO 功能
+- **工作方式**：用户定方向 → Claude Code 架构设计 → Codex 代码实现
+- **工作分支**：`feat/ai-chat`、`dev`
+
+### 技术团队（人类开发者）
+- **负责模块**：饮食拍摄（`views/DietLog.tsx`）、社区功能（`views/Community.tsx`）
+- **参考文档**：`COMMUNITY_FEATURE_SPEC.md`（社区功能规格书，已在项目中）
+- **工作分支**：`feat/diet-camera`、`feat/community`
+
+### UI/前端优化
+- **负责方**：Antigravity Agent
+- **工作分支**：`feat/ui-polish`
+
+### Git 工作流
 - **仓库**：`BeAChanger/RightNow-3.2`（Private，GitHub）
 - **分支策略**：
   - `main` — 稳定版，只通过 PR 合入
   - `dev` — 集成分支，所有 feature 先合到这里
-  - `feat/evolution-engine` — Claude + Codex：AI 体型进化
-  - `feat/ai-chat` — Claude + Codex：AI 对话
-  - `feat/diet-camera` — 技术团队：饮食拍摄 + 卡路里计算
-  - `feat/community` — 技术团队：社区功能
-  - `feat/ui-polish` — Antigravity：前端 UI/UX 优化
-  - `bugfix/*` — Codex：Bug 修复
+  - `feat/*` — 功能分支，按模块划分
 - **合并流程**：feature → PR → dev（集成测试）→ PR → main
 - **详细规则**：见 `GIT_WORKFLOW.md`
 
@@ -105,15 +117,25 @@
 | 2026-03-01 | Codex | 协作 | 将 `skills/skill-co-learn/SKILL.md` 升级为 v4.0 全局/项目智能版，新增强制 Scope 判断与路径智能适配规则 |
 | 2026-03-02 | Claude Code | 配置 | 建立 Git 多人多 Agent 协作模式：新建 Private 仓库 BeAChanger/RightNow-3.2，创建 dev + 5 个 feat/* 分支，编写 GIT_WORKFLOW.md |
 | 2026-03-02 | Claude Code | 协作 | 统一技能系统：新建 SKILL_REGISTRY.md 注册表，合并 shared-skills/ → skills/，4 个核心技能全局安装到 Claude Code / Codex / Antigravity，入口文件统一指向注册表 |
+| 2026-03-02 | Claude Code | 文档 | 明确三方协作分工：负责人+Agent（AI教练/数据看板/TODO）、技术团队（饮食拍摄/社区）、Antigravity（UI），删除已解决的问题反馈文件夹，更新所有协作文档保持一致 |
 
 ---
 
 ## 7. 当前待办
 
+### 负责人 + AI Agent（当前执行中）
+- [ ] AI 教练功能完善（`AIChat.tsx`） — 对话体验、上下文记忆、训练建议
+- [ ] 数据看板功能完善（`DataDashboard.tsx`） — 统计图表、趋势分析
+- [ ] 待办/TODO 功能 — 用户训练计划管理
+
+### 技术团队（人类开发者负责）
+- [ ] 饮食拍摄功能（`feat/diet-camera`） — 拍照识别、卡路里计算
+- [ ] 社区功能（`feat/community`） — 详见 `COMMUNITY_FEATURE_SPEC.md`
+
+### 基础联调
 - [ ] 本地联调测试（后端 `start:dev` + 前端 `dev`）
 - [ ] 注册/登录流程端到端验证
 - [ ] Onboarding 数据提交到后端验证
-- [ ] 体重、饮食、打卡、进化记录等 API 模块联调
 
 ---
 

@@ -83,7 +83,24 @@ npm run preview   # 预览生产构建
 - **分支策略**：`main`（稳定）← `dev`（集成）← `feat/*`（功能）
 - **详细规则**：见 `GIT_WORKFLOW.md`
 - **合并流程**：feature → PR → dev → PR → main
-- **协作角色**：Claude Code（架构）、Codex（实现）、Antigravity（前端/仓库管理）、技术团队（饮食/社区）
+
+## 协作分工（当前阶段）
+
+本项目有三类协作者，所有文档和 PR 需同时面向人类和 AI Agent 可读。
+
+### 负责人（用户）+ AI Agent
+- **负责模块**：AI 教练（`AIChat.tsx`）、数据看板（`DataDashboard.tsx`）、待办/TODO 功能
+- **工作分支**：`feat/ai-chat`、`dev`
+- **Agent 角色**：Claude Code（架构设计、方案规划）、Codex（代码实现、Bug 修复）
+
+### 技术团队（人类开发者）
+- **负责模块**：饮食拍摄（`DietLog.tsx`、`feat/diet-camera`）、社区功能（`Community.tsx`、`feat/community`）
+- **参考文档**：社区功能详见 `COMMUNITY_FEATURE_SPEC.md`（已在项目中）
+- **工作分支**：`feat/diet-camera`、`feat/community`
+
+### UI/前端优化
+- **负责方**：Antigravity Agent
+- **工作分支**：`feat/ui-polish`
 
 ## Shared Agent Memory Contract
 

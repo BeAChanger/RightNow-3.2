@@ -15,12 +15,14 @@ main（稳定版，只通过 PR 合入）
 
 ## 角色分工
 
-| 角色 | 分支 | 职责 |
-|------|------|------|
-| Claude Code | 所有分支 | 架构设计、方案规划、代码审查 |
-| Codex | feat/evolution-engine, feat/ai-chat, bugfix/* | 代码实现、Bug 修复 |
-| Antigravity | feat/ui-polish | 视觉设计、前端工程化、仓库管理 |
-| 技术团队 | feat/diet-camera, feat/community | 饮食拍摄、社区功能开发 |
+| 角色 | 负责模块 | 分支 |
+|------|----------|------|
+| 负责人 + Claude Code + Codex | AI 教练、数据看板、TODO | feat/ai-chat, dev |
+| 技术团队（人类开发者） | 饮食拍摄、社区功能 | feat/diet-camera, feat/community |
+| Antigravity | UI/UX 优化 | feat/ui-polish |
+| Codex | Bug 修复 | bugfix/* |
+
+> 社区功能详细规格见 `COMMUNITY_FEATURE_SPEC.md`
 
 ## 合并流程
 
