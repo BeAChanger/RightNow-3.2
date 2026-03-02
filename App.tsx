@@ -31,10 +31,12 @@ const IDEAL_BODY_IMAGE_KEY = 'rightnow_ideal_body_image';
 const App: React.FC = () => {
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
-  const [currentView, setCurrentView] = useState<View>(View.Splash);
+  
+  const hasSeenSplash = typeof localStorage !== 'undefined' ? localStorage.getItem('rightnow_has_seen_splash') === 'true' : false;
+  const [currentView, setCurrentView] = useState<View>(hasSeenSplash ? View.Login : View.Splash);
 
   // Lifted state to persist user data across views
-  const [userImage, setUserImage] = useState<string | null>(() => localStorage.getItem(USER_IMAGE_KEY));
+  const [userImage, setUserImage] = useState<string | null>(() => typeof localStorage !== 'undefined' ? localStorage.getItem(USER_IMAGE_KEY) : null);
   const [userFaceImage, setUserFaceImage] = useState<string | null>(() => localStorage.getItem(USER_FACE_IMAGE_KEY));
   const [isProfileComplete, setIsProfileComplete] = useState(false);
   const [gender, setGender] = useState<'male' | 'female'>('male');
@@ -130,6 +132,7 @@ const App: React.FC = () => {
   };
 
   const handleSplashComplete = () => {
+    localStorage.setItem('rightnow_has_seen_splash', 'true');
     // Already logged in → skip login, go to Onboarding
     if (authUser) {
       setCurrentView(getPostAuthView(authUser));

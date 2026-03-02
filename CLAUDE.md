@@ -93,9 +93,9 @@ npm run preview   # 预览生产构建
 - Store durable project knowledge there instead of splitting memory across multiple agent-specific files.
 - `.claude/commands/*.md` can be reused as workflow prompts, but project state should still be written back to `CLAUDE_PROJECT_MEMORY.md`.
 
-## Shared Skills
+## 技能系统
 
-- Prefer repository-local shared skills under `shared-skills/` so Claude Code and Codex can follow the same workflow.
-- `shared-skills/project-orchestrator/SKILL.md`: for planning, phased execution, and report-driven collaboration.
-- `shared-skills/fankui/SKILL.md`: for issue-feedback-driven debugging and minimal-change fixes.
-- `.claude/commands/*.md` remain the detailed reference prompts behind those shared skills.
+- 所有共享技能统一注册在 `SKILL_REGISTRY.md`，Agent 启动时读取即可获得全部可用技能。
+- 技能文件统一存放在 `skills/<name>/SKILL.md`（项目级）。
+- 4 个核心技能已全局安装到各 Agent 默认路径，跨项目可用。
+- `.claude/commands/*.md` 仍可作为详细参考，但技能发现以 `SKILL_REGISTRY.md` 为准。

@@ -69,8 +69,8 @@
 ### 协作约定
 
 - 本文件是项目状态唯一共享事实源，不再拆分为多个代理专用记忆文件
-- 规划型任务优先参考 `shared-skills/project-orchestrator/SKILL.md`
-- 反馈修复型任务优先参考 `shared-skills/fankui/SKILL.md`
+- 所有共享技能统一注册在 `SKILL_REGISTRY.md`，技能文件存放于 `skills/<name>/SKILL.md`
+- 4 个核心技能（fankui、project-orchestrator、feature-co-creation-socratic-frontend、skill-co-learn）已全局安装到各 Agent 默认路径
 - 高价值经验沉淀与三体 Agent 共学优先参考 `skills/skill-co-learn/SKILL.md`
 - 产品功能共创与 `/function-talk` 优先参考 `skills/feature-co-creation-socratic-frontend/SKILL.md`
 - 详细参考可回看 `.claude/commands/*.md`，但项目状态应回写到本文件
@@ -104,6 +104,7 @@
 | 2026-03-01 | Codex | 文档 | 检查并恢复本地开发环境，确认 `5173` 与 `3000` 可访问，并新增 `LOCAL_DEV_STARTUP.md` 启动指南 |
 | 2026-03-01 | Codex | 协作 | 将 `skills/skill-co-learn/SKILL.md` 升级为 v4.0 全局/项目智能版，新增强制 Scope 判断与路径智能适配规则 |
 | 2026-03-02 | Claude Code | 配置 | 建立 Git 多人多 Agent 协作模式：新建 Private 仓库 BeAChanger/RightNow-3.2，创建 dev + 5 个 feat/* 分支，编写 GIT_WORKFLOW.md |
+| 2026-03-02 | Claude Code | 协作 | 统一技能系统：新建 SKILL_REGISTRY.md 注册表，合并 shared-skills/ → skills/，4 个核心技能全局安装到 Claude Code / Codex / Antigravity，入口文件统一指向注册表 |
 
 ---
 
@@ -137,11 +138,11 @@
 在开始非琐碎任务前：
 
 - 先阅读本文件
-- 再判断是否需要使用 `shared-skills/` 下的工作流
+- 查看 `SKILL_REGISTRY.md` 了解可用技能
 
 在完成有意义的改动后：
 
-- 更新本文件的“最近重要变更 / 当前待办 / 风险与阻塞”相关栏目
+- 更新本文件的”最近重要变更 / 当前待办 / 风险与阻塞”相关栏目
 - 如果是阶段性推进，同时更新 `PROJECT_REPORT.md`
 
 ---
@@ -168,3 +169,7 @@
 - 如果是新增待办，优先同步到“当前待办”
 - 如果是新发现的问题，优先同步到“风险与阻塞”
 - 如果是长期规则变化，优先同步到“当前稳定决策”或“协作偏好”
+
+## 12. Update Log (2026-03-02)
+
+- Codex: fixed the Onboarding custom ideal image picker by switching from hidden-input `ref.click()` to native `label` / `input[type=file]` binding for more reliable mobile uploads.

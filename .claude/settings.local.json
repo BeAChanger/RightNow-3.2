@@ -28,7 +28,19 @@
       "Bash(python3:*)",
       "Bash(python:*)",
       "Bash(gh auth:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(where gh:*)",
+      "Bash(cmd.exe:*)",
+      "Bash(powershell.exe:*)",
+      "Bash(git commit:*)",
+      "Bash(git remote:*)",
+      "Bash(git push:*)",
+      "Bash(git fetch:*)",
+      "Bash(git:*)",
+      "Bash(do git:*)",
+      "Bash(cat:*)",
+      "Bash(npx vite:*)",
+      "Bash(du:*)"
     ]
   }
 }
