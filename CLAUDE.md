@@ -77,6 +77,14 @@ npm run preview   # 预览生产构建
 - UI 语言：中文
 - 移动端优先，支持安全区域适配
 
+## Git 协作模式
+
+- **仓库**：`BeAChanger/RightNow-3.2`（Private）
+- **分支策略**：`main`（稳定）← `dev`（集成）← `feat/*`（功能）
+- **详细规则**：见 `GIT_WORKFLOW.md`
+- **合并流程**：feature → PR → dev → PR → main
+- **协作角色**：Claude Code（架构）、Codex（实现）、Antigravity（前端/仓库管理）、技术团队（饮食/社区）
+
 ## Shared Agent Memory Contract
 
 - `CLAUDE_PROJECT_MEMORY.md` is the canonical repository memory for Claude Code, Codex, and other coding agents.
