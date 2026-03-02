@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Temp/unpacked feedback files
+问题反馈/extracted.txt
+问题反馈/unpacked/

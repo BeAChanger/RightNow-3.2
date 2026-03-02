@@ -77,6 +77,31 @@ npm run preview   # 预览生产构建
 - UI 语言：中文
 - 移动端优先，支持安全区域适配
 
+## Git 协作模式
+
+- **仓库**：`BeAChanger/RightNow-3.2`（Private）
+- **分支策略**：`main`（稳定）← `dev`（集成）← `feat/*`（功能）
+- **详细规则**：见 `GIT_WORKFLOW.md`
+- **合并流程**：feature → PR → dev → PR → main
+
+## 协作分工（当前阶段）
+
+本项目有三类协作者，所有文档和 PR 需同时面向人类和 AI Agent 可读。
+
+### 负责人（用户）+ AI Agent
+- **负责模块**：AI 教练（`AIChat.tsx`）、数据看板（`DataDashboard.tsx`）、待办/TODO 功能
+- **工作分支**：`feat/ai-chat`、`dev`
+- **Agent 角色**：Claude Code（架构设计、方案规划）、Codex（代码实现、Bug 修复）
+
+### 技术团队（人类开发者）
+- **负责模块**：饮食拍摄（`DietLog.tsx`、`feat/diet-camera`）、社区功能（`Community.tsx`、`feat/community`）
+- **参考文档**：社区功能详见 `COMMUNITY_FEATURE_SPEC.md`（已在项目中）
+- **工作分支**：`feat/diet-camera`、`feat/community`
+
+### UI/前端优化
+- **负责方**：Antigravity Agent
+- **工作分支**：`feat/ui-polish`
+
 ## Shared Agent Memory Contract
 
 - `CLAUDE_PROJECT_MEMORY.md` is the canonical repository memory for Claude Code, Codex, and other coding agents.
@@ -85,9 +110,9 @@ npm run preview   # 预览生产构建
 - Store durable project knowledge there instead of splitting memory across multiple agent-specific files.
 - `.claude/commands/*.md` can be reused as workflow prompts, but project state should still be written back to `CLAUDE_PROJECT_MEMORY.md`.
 
-## Shared Skills
+## 技能系统
 
-- Prefer repository-local shared skills under `shared-skills/` so Claude Code and Codex can follow the same workflow.
-- `shared-skills/project-orchestrator/SKILL.md`: for planning, phased execution, and report-driven collaboration.
-- `shared-skills/fankui/SKILL.md`: for issue-feedback-driven debugging and minimal-change fixes.
-- `.claude/commands/*.md` remain the detailed reference prompts behind those shared skills.
+- 所有共享技能统一注册在 `SKILL_REGISTRY.md`，Agent 启动时读取即可获得全部可用技能。
+- 技能文件统一存放在 `skills/<name>/SKILL.md`（项目级）。
+- 4 个核心技能已全局安装到各 Agent 默认路径，跨项目可用。
+- `.claude/commands/*.md` 仍可作为详细参考，但技能发现以 `SKILL_REGISTRY.md` 为准。

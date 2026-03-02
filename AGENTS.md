@@ -12,20 +12,12 @@
 - If a Claude command file contains a reusable process, follow it as guidance instead of inventing a parallel workflow.
 - Keep shared project conventions in repository files, not in model-only memory.
 
-## Shared Skills
+## 技能系统
 
-- Shared skill directory: `shared-skills/`.
-- If the request is about project planning, staged execution, roadmap design, or report updates, use `shared-skills/project-orchestrator/SKILL.md`.
-- If the request is about bug feedback, screenshots, logs, `/fankui`, or the `问题反馈/` folder, use `shared-skills/fankui/SKILL.md`.
-- These skills are repository-local wrappers around the existing Claude command prompts, so both Codex and Claude can follow the same workflow.
-
-## Formal Skills
-
-- Formal skill directory: `skills/`.
-- For `/fankui`-style feedback analysis and bug fixing, prefer `skills/fankui/SKILL.md`.
-- `shared-skills/fankui/SKILL.md` remains the lightweight shared workflow wrapper; `skills/fankui/SKILL.md` is the fuller reusable skill entry.
-- For cross-agent knowledge capture, skill extraction, `/skill-co-learn`, `/skill-colearn`, or requests like “记住这个”“保存成skill”“让其他Agent也学会”, prefer `skills/skill-co-learn/SKILL.md`.
-- For `/function-talk` or requests to co-create, plan, or design a feature conversationally, prefer `skills/feature-co-creation-socratic-frontend/SKILL.md`.
+- 所有共享技能统一注册在 `SKILL_REGISTRY.md`，Agent 启动时读取即可获得全部可用技能。
+- 技能文件统一存放在 `skills/<name>/SKILL.md`（项目级）。
+- 4 个核心技能已全局安装到各 Agent 默认路径，跨项目可用。
+- 新增技能时必须同步更新 `SKILL_REGISTRY.md` 注册表。
 
 ## Memory Update Rules
 
