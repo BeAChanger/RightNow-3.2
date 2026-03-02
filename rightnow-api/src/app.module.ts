@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { AiCoachModule } from './ai-coach/ai-coach.module';
 import { AuthModule } from './auth/auth.module';
 import { ChatModule } from './chat/chat.module';
 import { ImageGenModule } from './image-gen/image-gen.module';
@@ -23,6 +24,7 @@ import { WeightModule } from './weight/weight.module';
       envFilePath: ['.env.local', '.env'],
     }),
     PrismaModule,
+    AiCoachModule,
     AuthModule,
     UsersModule,
     WeightModule,

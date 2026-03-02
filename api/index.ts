@@ -13,6 +13,7 @@ export { uploadApi } from './upload';
 export { userApi } from './user';
 export { imageGenApi } from './image-gen';
 export { fitnessPlanApi } from './fitness-plan';
+export { aiCoachApi } from './ai-coach';
 
 // Re-export types
 export type { AuthUser, AuthResponse } from './auth';
@@ -29,3 +30,20 @@ export type { UploadResult } from './upload';
 export type { UserProfile } from './user';
 export type { ImageGenTask } from './image-gen';
 export type { FitnessPlan } from './fitness-plan';
+export type {
+  CoachAssessment,
+  CoachAssessmentCalibrationInput,
+  CoachGoalDirection,
+  CoachIntake,
+  CoachMealPlan,
+  CoachHydrationPlan,
+  CoachProfile,
+  CoachProfilePlan,
+  CoachIntakePayload,
+  CoachProgress,
+  CoachStage,
+  CoachTask,
+  FirstDayPlan,
+  FirstDayPlanContext,
+  FirstPlanSaveResult,
+} from './ai-coach';

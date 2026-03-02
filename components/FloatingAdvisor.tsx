@@ -5,6 +5,9 @@ interface Props {
   onChatClick?: () => void;
   hasNotification?: boolean;
   currentView?: View;
+  coachReady?: boolean;
+  coachMessage?: string;
+  onCoachStart?: () => void;
 }
 
 const VIEW_TIPS: Partial<Record<View, string>> = {
@@ -15,7 +18,7 @@ const VIEW_TIPS: Partial<Record<View, string>> = {
 };
 const DEFAULT_TIP = '有什么健身问题，随时问我';
 
-const FloatingAdvisor: React.FC<Props> = ({ onChatClick, hasNotification = false, currentView }) => {
+const FloatingAdvisor: React.FC<Props> = ({ onChatClick, hasNotification = false, currentView, coachReady = false, coachMessage, onCoachStart }) => {
   const [position, setPosition] = useState({ x: window.innerWidth - 80, y: window.innerHeight - 150 });
   const [isDragging, setIsDragging] = useState(false);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
@@ -25,7 +28,11 @@ const FloatingAdvisor: React.FC<Props> = ({ onChatClick, hasNotification = false
 
   // Show contextual tip based on current page
   useEffect(() => {
-    const tip = (currentView && VIEW_TIPS[currentView]) || DEFAULT_TIP;
+    const tip = coachReady
+      ? (coachMessage || '我已经分析了你的数据，点我开始你的教练之旅！')
+      : hasNotification
+        ? '欢迎！我是你的专属AI教练，点击我获取你的首日训练计划！'
+        : ((currentView && VIEW_TIPS[currentView]) || DEFAULT_TIP);
     setMessage(null);
     if (hideTimerRef.current) {
       window.clearTimeout(hideTimerRef.current);
@@ -37,8 +44,8 @@ const FloatingAdvisor: React.FC<Props> = ({ onChatClick, hasNotification = false
       hideTimerRef.current = window.setTimeout(() => {
         setMessage(null);
         hideTimerRef.current = null;
-      }, 8000);
-    }, 3000);
+      }, coachReady ? 20000 : hasNotification ? 15000 : 8000);
+    }, 1000);
 
     return () => {
       window.clearTimeout(show);
@@ -81,8 +88,12 @@ const FloatingAdvisor: React.FC<Props> = ({ onChatClick, hasNotification = false
   };
 
   const handleClick = () => {
-    if (!isDragging && !dragMovedRef.current && onChatClick) {
-      onChatClick();
+    if (!isDragging && !dragMovedRef.current) {
+      if (coachReady && onCoachStart) {
+        onCoachStart();
+      } else if (onChatClick) {
+        onChatClick();
+      }
     }
     dragMovedRef.current = false;
   };

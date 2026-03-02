@@ -43,6 +43,8 @@ const App: React.FC = () => {
   const [bodyStyle, setBodyStyle] = useState<string>('');
   const [hasUnreadAI, setHasUnreadAI] = useState<boolean>(false);
   const [idealBodyImage, setIdealBodyImage] = useState<string | null>(() => localStorage.getItem(IDEAL_BODY_IMAGE_KEY));
+  const [coachTrigger, setCoachTrigger] = useState(false);
+  const [visualAssessment, setVisualAssessment] = useState<{ currentBodyFat: number; targetBodyFat: number } | null>(null);
 
   const [customPhotos, setCustomPhotos] = useState<string[]>([]);
 
@@ -70,6 +72,8 @@ const App: React.FC = () => {
     setBodyStyle('');
     setHasUnreadAI(false);
     setIdealBodyImage(null);
+    setCoachTrigger(false);
+    setVisualAssessment(null);
     setCustomPhotos([]);
     localStorage.removeItem(USER_IMAGE_KEY);
     localStorage.removeItem(USER_FACE_IMAGE_KEY);
@@ -205,13 +209,16 @@ const App: React.FC = () => {
           bodyStyle={bodyStyle}
           gender={gender}
           authUser={authUser}
-          onComplete={(generatedImg?: string | null) => {
+          onComplete={(generatedImg?: string | null, assessment?: { currentBodyFat: number; targetBodyFat: number } | null) => {
             if (generatedImg) {
               setIdealBodyImage(generatedImg);
             } else if (userFaceImage) {
               setIdealBodyImage(userFaceImage);
             } else if (userImage) {
               setIdealBodyImage(userImage);
+            }
+            if (assessment) {
+              setVisualAssessment(assessment);
             }
             setHasUnreadAI(true);
             setCurrentView(View.Dashboard);
@@ -225,7 +232,7 @@ const App: React.FC = () => {
       case View.Community:
         return <Community />;
       case View.AIChat:
-        return <AIChat onBack={() => setCurrentView(View.Dashboard)} />;
+        return <AIChat onBack={() => { setCoachTrigger(false); setCurrentView(View.Dashboard); }} coachTrigger={coachTrigger} />;
       case View.EvolutionRecord:
         return <EvolutionRecord onBack={() => setCurrentView(View.Stats)} onNavigate={setCurrentView} customPhotos={customPhotos} onUploadPhoto={handleSaveActionCenter} />;
       case View.EvolutionProgress:
@@ -297,12 +304,31 @@ const App: React.FC = () => {
     );
   }
 
+  const coachMessage = visualAssessment
+    ? (() => {
+        const weeks = Math.max(8, Math.ceil((visualAssessment.currentBodyFat - visualAssessment.targetBodyFat) / 0.5));
+        return `当前约 ${visualAssessment.currentBodyFat}%，目标约 ${visualAssessment.targetBodyFat}%，大约需要 ${weeks} 周。点我开始你的教练之旅！`;
+      })()
+    : undefined;
+
   return (
     <div className="antialiased bg-black text-white min-h-screen">
-      {!shouldHideAdvisor && <FloatingAdvisor currentView={currentView} hasNotification={hasUnreadAI} onChatClick={() => {
-        setHasUnreadAI(false);
-        setCurrentView(View.AIChat);
-      }} />}
+      {!shouldHideAdvisor && <FloatingAdvisor
+        currentView={currentView}
+        hasNotification={hasUnreadAI}
+        coachReady={hasUnreadAI}
+        coachMessage={coachMessage}
+        onCoachStart={() => {
+          setHasUnreadAI(false);
+          setCoachTrigger(true);
+          setCurrentView(View.AIChat);
+        }}
+        onChatClick={() => {
+          setHasUnreadAI(false);
+          setCoachTrigger(false);
+          setCurrentView(View.AIChat);
+        }}
+      />}
       {renderView()}
       {!shouldHideBottomNav && <BottomNav currentView={currentView} setView={setCurrentView} />}
     </div>

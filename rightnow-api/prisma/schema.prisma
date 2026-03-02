@@ -38,6 +38,12 @@ model User {
   friendshipsRecv   Friendship[]      @relation("FriendshipReceiver")
   imageGenTasks     ImageGenTask[]
   fitnessPlans      FitnessPlan[]
+  aiCoachAssessment AiCoachAssessment?
+  aiCoachCalibration AiCoachCalibration?
+  aiCoachIntake     AiCoachIntake?
+  aiCoachProgress   AiCoachProgress?
+  aiCoachProfile    AiCoachProfile?
+  aiCoachProfileSnapshots AiCoachProfileSnapshot[]
 }
 
 model WeightRecord {
@@ -220,4 +226,108 @@ model FitnessPlan {
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+model AiCoachAssessment {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  bodyFatEstimate Float?
+  targetBodyFatEstimate Float?
+  bmi             Float
+  bmr             Int
+  tdee            Int
+  goalDirection   String
+  targetWeeks     Int
+  stage           String
+  notes           String?
+  isVisualAssessment Boolean @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AiCoachCalibration {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  bodyFatEstimate Float?
+  targetBodyFatEstimate Float?
+  bmi             Float?
+  bmr             Int?
+  tdee            Int?
+  goalDirection   String?
+  targetWeeks     Int?
+  stage           String?
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AiCoachIntake {
+  id                     String   @id @default(cuid())
+  userId                 String   @unique
+  trainingExperience     String
+  injuryHistory          String
+  trainingEnvironment    String?
+  equipmentList          String[] @default([])
+  trainingDaysPerWeek    Int
+  sessionDurationMinutes Int
+  timePreference         String?
+  timePreferenceOther    String?
+  dietPreference         String?
+  dietRestrictions       String?
+  extraAnswers           Json?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  user                   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AiCoachProgress {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  dayIndex         Int      @default(1)
+  streakDays       Int      @default(0)
+  completedTasks   Int      @default(0)
+  totalTasks       Int      @default(0)
+  activePlan       Json?
+  weekSummary      Json?
+  weekSummaryReady Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AiCoachProfile {
+  id                   String   @id @default(cuid())
+  userId               String   @unique
+  profileVersion       Int      @default(1)
+  assessmentSnapshot   Json
+  intakeSnapshot       Json?
+  fitnessPlan          Json
+  hydrationPlan        Json
+  mealPlan             Json
+  recommendationSummary String?
+  refreshReason        String?
+  lastRefreshedAt      DateTime @default(now())
+  nextRefreshAt        DateTime
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AiCoachProfileSnapshot {
+  id                   String   @id @default(cuid())
+  userId               String
+  profileVersion       Int
+  assessmentSnapshot   Json
+  intakeSnapshot       Json?
+  fitnessPlan          Json
+  hydrationPlan        Json
+  mealPlan             Json
+  recommendationSummary String?
+  refreshReason        String?
+  createdAt            DateTime @default(now())
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
 }

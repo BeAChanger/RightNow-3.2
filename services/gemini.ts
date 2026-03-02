@@ -7,9 +7,75 @@
 const API_KEY = () => import.meta.env.VITE_GEMINI_API_KEY || '';
 
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta';
-const CHAT_MODEL = 'gemini-3-flash-preview';
+const CHAT_MODEL_CANDIDATES = [
+  'gemini-2.0-flash',
+  'gemini-1.5-flash-latest',
+  'gemini-3-flash-preview',
+];
 const IMAGE_MODEL = 'gemini-3.1-flash-image-preview';
+const RETRYABLE_STATUS_CODES = new Set([429, 500, 502, 503, 504]);
+const MAX_RETRIES_PER_MODEL = 2;
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const SAFE_BG_PROMPT = '采用深炭灰色（Dark charcoal grey）无缝纯色背景。背景要求干净、沉稳且光线均匀，没有任何渐变、杂乱的光斑、阴影堆积或环境纹理。';
+
+async function requestGeminiContentWithFallback(
+  key: string,
+  payload: Record<string, unknown>,
+  modelCandidates: string[] = CHAT_MODEL_CANDIDATES,
+) {
+  let lastErrorMessage = 'Gemini request failed';
+
+  for (const model of modelCandidates) {
+    for (let attempt = 1; attempt <= MAX_RETRIES_PER_MODEL; attempt += 1) {
+      let res: Response;
+      try {
+        res = await fetch(
+          `${GEMINI_BASE}/models/${model}:generateContent?key=${key}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          },
+        );
+      } catch (error) {
+        lastErrorMessage = error instanceof Error ? error.message : 'Network request failed';
+        if (attempt < MAX_RETRIES_PER_MODEL) {
+          await sleep(300 * attempt);
+          continue;
+        }
+        break;
+      }
+
+      let data: any = null;
+      try {
+        data = await res.json();
+      } catch {
+        data = null;
+      }
+
+      if (res.ok) {
+        return data;
+      }
+
+      lastErrorMessage = data?.error?.message || `HTTP ${res.status}`;
+      if (res.status === 404) {
+        break;
+      }
+
+      if (RETRYABLE_STATUS_CODES.has(res.status)) {
+        if (attempt < MAX_RETRIES_PER_MODEL) {
+          await sleep(300 * attempt);
+          continue;
+        }
+        break;
+      }
+
+      throw new Error(lastErrorMessage);
+    }
+  }
+
+  throw new Error(lastErrorMessage);
+}
 
 // 健身教练 system prompt
 export const FITNESS_COACH_PROMPT = `你是 RightNow Fitness 的 AI 健身教练「显化引擎」。
@@ -71,22 +137,13 @@ export async function chatWithGemini(
       { role: 'user', parts: [{ text: userText }] },
     ];
 
-    const res = await fetch(
-      `${GEMINI_BASE}/models/${CHAT_MODEL}:generateContent?key=${key}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents,
-          system_instruction: { parts: [{ text: systemPrompt }] },
-        }),
-      },
-    );
-
-    const data = await res.json();
+    const data = await requestGeminiContentWithFallback(key, {
+      contents,
+      system_instruction: { parts: [{ text: systemPrompt }] },
+    });
     return data.candidates?.[0]?.content?.parts?.[0]?.text || '收到，让我想想...';
   } catch {
-    return '网络连接失败，请稍后重试。';
+    return 'AI服务暂不可用，请稍后重试。';
   }
 }
 
@@ -111,28 +168,19 @@ export async function chatWithImage(
       ? imageBase64.split(';')[0].split(':')[1]
       : 'image/jpeg';
 
-    const res = await fetch(
-      `${GEMINI_BASE}/models/${CHAT_MODEL}:generateContent?key=${key}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{
-            role: 'user',
-            parts: [
-              { text: userText },
-              { inline_data: { mime_type: mimeType, data: base64Data } },
-            ],
-          }],
-          system_instruction: { parts: [{ text: systemPrompt }] },
-        }),
-      },
-    );
-
-    const data = await res.json();
+    const data = await requestGeminiContentWithFallback(key, {
+      contents: [{
+        role: 'user',
+        parts: [
+          { text: userText },
+          { inline_data: { mime_type: mimeType, data: base64Data } },
+        ],
+      }],
+      system_instruction: { parts: [{ text: systemPrompt }] },
+    });
     return data.candidates?.[0]?.content?.parts?.[0]?.text || '收到，让我分析一下...';
   } catch {
-    return '网络连接失败，请稍后重试。';
+    return 'AI服务暂不可用，请稍后重试。';
   }
 }
 
@@ -418,4 +466,215 @@ export async function generateDataInsights(context: {
     if (Array.isArray(arr)) return arr.map(String).slice(0, 3);
   } catch { /* fallback */ }
   return ['记录今日饮食，让 AI 为你生成个性化建议'];
+}
+export const COACH_ASSESSMENT_PROMPT = [
+  '你是 RightNow Fitness 的 AI 教练体测评估引擎。',
+  '使用确定性的健康与运动科学逻辑进行推算。',
+  '所有输出内容使用简体中文，除非明确要求返回 JSON。',
+  '如果用户设定的目标周期不切实际，自动修正为更安全的范围。',
+].join(' ');
+
+const COACH_KNOWLEDGE_INTRO = [
+  '你正在基于 RightNow Fitness 专业知识库生成教练回复。',
+  '以下方知识内容作为默认的事实依据，优先使用。',
+  '如果用户提供的实测数据与估算值冲突，以用户实测数据为准。',
+].join(' ');
+
+type CoachKnowledgeDomain = 'nutrition' | 'exercise' | 'training' | 'metrics';
+
+export interface CoachPlanTask {
+  id: string;
+  title: string;
+  category: 'training' | 'nutrition' | 'recovery' | 'habit';
+  detail: string;
+  completed?: boolean;
+}
+
+export interface CoachFirstDayPlan {
+  headline: string;
+  tasks: CoachPlanTask[];
+  nutritionNote: string;
+  recoveryNote: string;
+  coachMessage: string;
+}
+
+export interface CoachPlanGenerationContext {
+  assessmentSummary: string;
+  intakeSummary?: string;
+  dayIndex?: number;
+  constraints?: string[];
+}
+
+async function loadKnowledgeFile(path: string): Promise<string> {
+  try {
+    const res = await fetch(path);
+    if (!res.ok) {
+      return '';
+    }
+    return await res.text();
+  } catch {
+    return '';
+  }
+}
+
+export async function buildCoachKnowledgePrompt(
+  domains: CoachKnowledgeDomain[] = ['nutrition', 'exercise', 'training', 'metrics'],
+): Promise<string> {
+  const pathMap: Record<CoachKnowledgeDomain, string> = {
+    nutrition: '/knowledge/nutrition.md',
+    exercise: '/knowledge/exercise-science.md',
+    training: '/knowledge/training-templates.md',
+    metrics: '/knowledge/body-metrics.md',
+  };
+
+  const sections = await Promise.all(
+    domains.map(async (domain) => {
+      const content = await loadKnowledgeFile(pathMap[domain]);
+      if (!content.trim()) {
+        return '';
+      }
+      return `[${domain}]\n${content.trim()}`;
+    }),
+  );
+
+  const availableSections = sections.filter(Boolean);
+  if (availableSections.length === 0) {
+    return COACH_KNOWLEDGE_INTRO;
+  }
+
+  return `${COACH_KNOWLEDGE_INTRO}\n\n${availableSections.join('\n\n')}`;
+}
+
+export async function generateFirstDayPlan(
+  context: CoachPlanGenerationContext,
+): Promise<CoachFirstDayPlan> {
+  const knowledgePrompt = await buildCoachKnowledgePrompt(['nutrition', 'exercise', 'training', 'metrics']);
+  const prompt = [
+    '根据用户评估数据，生成一份实用的首日教练计划，以严格 JSON 格式返回。',
+    '所有文字内容必须使用简体中文。',
+    '返回一个纯 JSON 对象，包含以下字段：headline（标题）、tasks（任务列表）、nutritionNote（饮食提醒）、recoveryNote（恢复建议）、coachMessage（教练寄语）。',
+    '每个 task 必须包含：id、title（中文标题）、category（分类：training/nutrition/recovery/habit）、detail（中文描述）。',
+    `用户体测摘要：${context.assessmentSummary}`,
+    context.intakeSummary ? `用户问卷摘要：${context.intakeSummary}` : '',
+    context.constraints?.length ? `约束条件：${context.constraints.join(' | ')}` : '',
+  ].filter(Boolean).join('\n');
+
+  const reply = await chatWithGemini(prompt, knowledgePrompt);
+  try {
+    const cleaned = reply.replace(/```json?\s*/g, '').replace(/```/g, '').trim();
+    const parsed = JSON.parse(cleaned) as CoachFirstDayPlan;
+    if (parsed && Array.isArray(parsed.tasks)) {
+      return parsed;
+    }
+  } catch {
+    // fall through to deterministic fallback
+  }
+
+  return {
+    headline: '第一天先把节奏建立起来',
+    tasks: [
+      { id: 'train-1', title: '完成一次基础训练', category: 'training', detail: '控制强度，优先动作质量。' },
+      { id: 'eat-1', title: '保证三次蛋白摄入', category: 'nutrition', detail: '每餐先保证蛋白来源。' },
+      { id: 'sleep-1', title: '今晚提前休息', category: 'recovery', detail: '保证恢复，为第 2 天留出余量。' },
+    ],
+    nutritionNote: '今天先追求稳定，不追求极端节食。',
+    recoveryNote: '训练后补水，今晚优先保证睡眠。',
+    coachMessage: '先把第一天完成，比做得完美更重要。',
+  };
+}
+
+export async function generateCoachFollowUp(
+  dayIndex: number,
+  context: CoachPlanGenerationContext,
+): Promise<string> {
+  const knowledgePrompt = await buildCoachKnowledgePrompt(['nutrition', 'exercise', 'training']);
+  const prompt = [
+    '生成一条简洁的中文每日教练跟进消息，用于 AI 教练每日签到。',
+    `当前是第 ${dayIndex} 天`,
+    `用户体测摘要：${context.assessmentSummary}`,
+    context.intakeSummary ? `用户问卷摘要：${context.intakeSummary}` : '',
+  ].filter(Boolean).join('\n');
+
+  const reply = await chatWithGemini(prompt, knowledgePrompt);
+  return reply.trim() || '今天继续按计划推进，先完成最关键的一项。';
+}
+
+export async function generateWeekSummary(
+  context: CoachPlanGenerationContext,
+): Promise<string> {
+  const knowledgePrompt = await buildCoachKnowledgePrompt(['nutrition', 'exercise', 'training', 'metrics']);
+  const prompt = [
+    '生成一段简洁的中文周总结，回顾用户本周表现。',
+    '重点突出执行势头、坚持程度，以及下周最值得微调的一个方向。',
+    `用户体测摘要：${context.assessmentSummary}`,
+    context.intakeSummary ? `用户问卷摘要：${context.intakeSummary}` : '',
+    context.constraints?.length ? `约束条件：${context.constraints.join(' | ')}` : '',
+  ].filter(Boolean).join('\n');
+
+  const reply = await chatWithGemini(prompt, knowledgePrompt);
+  return reply.trim() || '这一周你已经完成了从目标到执行的第一轮建立，下一周继续稳住节奏。';
+}
+
+// ─── 视觉体脂评估 ───
+
+export interface VisualBodyFatResult {
+  currentBodyFat: number;
+  targetBodyFat: number;
+}
+
+const VISUAL_ASSESSMENT_PROMPT = `你是专业的体脂评估师。通过分析人体照片来估算体脂率。
+要求：
+- 根据照片中的体态特征（腰腹脂肪、肌肉线条、面部轮廓等）估算体脂率
+- 第一张是用户当前身材照片，第二张是用户的理想身材照片
+- 体脂率范围：男性 8-35%，女性 15-42%
+- 必须返回纯 JSON（不要 markdown 代码块），格式：
+{"currentBodyFat": 数字, "targetBodyFat": 数字}
+- 数字保留一位小数`;
+
+/**
+ * 基于两张照片（当前身材 + 理想身材）进行视觉体脂评估
+ */
+export async function assessBodyFatFromImages(
+  currentImageBase64: string,
+  idealImageBase64: string,
+  gender: string,
+): Promise<VisualBodyFatResult | null> {
+  const key = API_KEY();
+  if (!key || key === 'PLACEHOLDER_API_KEY') return null;
+
+  try {
+    const parts: Array<{ text?: string; inline_data?: { mime_type: string; data: string } }> = [];
+
+    parts.push({ text: `用户性别：${gender === 'male' ? '男' : '女'}。请分析以下两张照片，估算各自的体脂率。第一张是当前身材，第二张是理想身材。` });
+
+    // Current photo
+    const current64 = currentImageBase64.includes(',') ? currentImageBase64.split(',')[1] : currentImageBase64;
+    const currentMime = currentImageBase64.includes(';') ? currentImageBase64.split(';')[0].split(':')[1] : 'image/jpeg';
+    parts.push({ inline_data: { mime_type: currentMime, data: current64 } });
+
+    // Ideal photo
+    const ideal64 = idealImageBase64.includes(',') ? idealImageBase64.split(',')[1] : idealImageBase64;
+    const idealMime = idealImageBase64.includes(';') ? idealImageBase64.split(';')[0].split(':')[1] : 'image/jpeg';
+    parts.push({ inline_data: { mime_type: idealMime, data: ideal64 } });
+
+    const data = await requestGeminiContentWithFallback(key, {
+      contents: [{ role: 'user', parts }],
+      system_instruction: { parts: [{ text: VISUAL_ASSESSMENT_PROMPT }] },
+    });
+
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const cleaned = text.replace(/```json?\s*/g, '').replace(/```/g, '').trim();
+    const parsed = JSON.parse(cleaned);
+
+    if (typeof parsed.currentBodyFat === 'number' && typeof parsed.targetBodyFat === 'number') {
+      return {
+        currentBodyFat: Math.round(parsed.currentBodyFat * 10) / 10,
+        targetBodyFat: Math.round(parsed.targetBodyFat * 10) / 10,
+      };
+    }
+    return null;
+  } catch (err) {
+    console.error('[assessBodyFatFromImages] failed:', err);
+    return null;
+  }
 }

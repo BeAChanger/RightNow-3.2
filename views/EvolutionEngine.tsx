@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { View } from '../types';
-import { chatWithGemini, chatWithImage, generateIdealBody, FITNESS_COACH_PROMPT } from '../services/gemini';
+import { chatWithGemini, chatWithImage, generateIdealBody, FITNESS_COACH_PROMPT, assessBodyFatFromImages } from '../services/gemini';
+import { aiCoachApi } from '../api';
 import type { AuthUser } from '../api';
 
 interface Props {
@@ -9,7 +10,7 @@ interface Props {
   bodyStyle?: string;
   gender?: 'male' | 'female';
   authUser?: AuthUser | null;
-  onComplete: (generatedImage?: string | null) => void;
+  onComplete: (generatedImage?: string | null, visualAssessment?: { currentBodyFat: number; targetBodyFat: number } | null) => void;
   onNavigate?: (view: View) => void;
 }
 
@@ -39,6 +40,7 @@ const EvolutionEngine: React.FC<Props> = ({
   const [inputValue, setInputValue] = useState('');
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [isGenerating, setIsGenerating] = useState(true);
+  const [isAssessing, setIsAssessing] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [faceImage, setFaceImage] = useState<string | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -65,6 +67,38 @@ const EvolutionEngine: React.FC<Props> = ({
   const removeTyping = useCallback((typingId: number) => {
     setMessages(prev => prev.filter(m => m.id !== typingId));
   }, []);
+
+  const handleConfirmComplete = async () => {
+    if (!userImage || !generatedImage) {
+      onComplete(generatedImage, null);
+      return;
+    }
+
+    setIsAssessing(true);
+    addMsg({ text: '正在进行视觉体脂评估...', sender: 'ai' });
+
+    let assessmentResult: { currentBodyFat: number; targetBodyFat: number } | null = null;
+    try {
+      assessmentResult = await assessBodyFatFromImages(userImage, generatedImage, gender || 'male');
+      if (assessmentResult) {
+        try {
+          await aiCoachApi.updateAssessment({
+            bodyFatEstimate: assessmentResult.currentBodyFat,
+            targetBodyFatEstimate: assessmentResult.targetBodyFat,
+            isVisualAssessment: true,
+          });
+        } catch {
+          // Backend save is best-effort
+        }
+        addMsg({ text: `评估完成！当前体脂约 ${assessmentResult.currentBodyFat}%，目标约 ${assessmentResult.targetBodyFat}%。`, sender: 'ai' });
+      }
+    } catch {
+      // Visual assessment is best-effort
+    }
+
+    setIsAssessing(false);
+    onComplete(generatedImage, assessmentResult);
+  };
 
   // Initial AI analysis on mount — focus on "PS yourself"
   useEffect(() => {
@@ -225,15 +259,15 @@ const EvolutionEngine: React.FC<Props> = ({
 
       {/* Confirm button */}
       <button
-        onClick={() => onComplete(generatedImage)}
-        disabled={isGenerating}
+        onClick={handleConfirmComplete}
+        disabled={isGenerating || isAssessing}
         className={`w-full py-3 rounded-full text-sm font-bold flex items-center justify-center gap-2 transition-all ${
-          isGenerating
+          isGenerating || isAssessing
             ? 'bg-white/10 text-white/30 cursor-not-allowed'
             : 'bg-[#B8FF00] text-black shadow-[0_0_25px_rgba(184,255,0,0.3)]'
         }`}
       >
-        <span>{isGenerating ? '显化中' : '满意了，开始显化之旅'}</span>
+        <span>{isGenerating ? '显化中' : isAssessing ? '正在评估体脂...' : '满意了，开始显化之旅'}</span>
         <span className="material-icons-round text-lg">arrow_forward</span>
       </button>
     </div>
