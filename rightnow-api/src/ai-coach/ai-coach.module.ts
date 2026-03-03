@@ -61,6 +61,20 @@ interface CoachIntakeResponse {
   updatedAt: string;
 }
 
+interface CoachIntakeInput {
+  trainingExperience?: string;
+  injuryHistory?: string;
+  trainingDaysPerWeek?: number;
+  sessionDurationMinutes?: number;
+  trainingEnvironment?: string;
+  equipmentList?: string[];
+  timePreference?: string;
+  timePreferenceOther?: string;
+  dietPreference?: string;
+  dietRestrictions?: string;
+  extraAnswers?: Prisma.JsonValue;
+}
+
 interface CoachTask {
   id: string;
   title: string;
@@ -219,6 +233,40 @@ class AiCoachService {
       return null;
     }
     return value as unknown as CoachPlan;
+  }
+
+  private buildIntakeExtraAnswers(body: CoachIntakeInput): Prisma.InputJsonValue {
+    const base =
+      body.extraAnswers && typeof body.extraAnswers === 'object' && !Array.isArray(body.extraAnswers)
+        ? { ...(body.extraAnswers as Record<string, Prisma.JsonValue>) }
+        : {};
+
+    return {
+      ...base,
+      trainingEnvironment: body.trainingEnvironment ?? null,
+      equipmentList: body.equipmentList ?? [],
+      timePreference: body.timePreference ?? null,
+      timePreferenceOther: body.timePreferenceOther ?? null,
+      dietPreference: body.dietPreference ?? null,
+      dietRestrictions: body.dietRestrictions ?? null,
+    } as Prisma.InputJsonValue;
+  }
+
+  private async getIntakeCompat(userId: string) {
+    // Use a minimal select so old local DBs (without newly added optional columns) still work.
+    return this.prisma.aiCoachIntake.findUnique({
+      where: { userId },
+      select: {
+        id: true,
+        trainingExperience: true,
+        injuryHistory: true,
+        trainingDaysPerWeek: true,
+        sessionDurationMinutes: true,
+        extraAnswers: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
   }
 
   private mapAssessment(
@@ -530,23 +578,13 @@ class AiCoachService {
     return this.mapAssessment(assessment, calibration);
   }
 
-  async saveIntake(userId: string, body: {
-    trainingExperience?: string;
-    injuryHistory?: string;
-    trainingDaysPerWeek?: number;
-    sessionDurationMinutes?: number;
-    trainingEnvironment?: string;
-    equipmentList?: string[];
-    timePreference?: string;
-    timePreferenceOther?: string;
-    dietPreference?: string;
-    dietRestrictions?: string;
-    extraAnswers?: Prisma.JsonValue;
-  }): Promise<CoachIntakeResponse> {
+  async saveIntake(userId: string, body: CoachIntakeInput): Promise<CoachIntakeResponse> {
     const trainingDaysPerWeek = Number(body.trainingDaysPerWeek ?? 0);
     if (trainingDaysPerWeek <= 2) {
       throw new BadRequestException('AI 教练至少要求每周 3 天训练频率。');
     }
+
+    const extraAnswers = this.buildIntakeExtraAnswers(body);
 
     const intake = await this.prisma.aiCoachIntake.upsert({
       where: { userId },
@@ -556,30 +594,14 @@ class AiCoachService {
         injuryHistory: body.injuryHistory?.trim() || '无',
         trainingDaysPerWeek,
         sessionDurationMinutes: Number(body.sessionDurationMinutes ?? 45),
-        trainingEnvironment: body.trainingEnvironment ?? null,
-        equipmentList: body.equipmentList ?? [],
-        timePreference: body.timePreference ?? null,
-        timePreferenceOther: body.timePreferenceOther ?? null,
-        dietPreference: body.dietPreference ?? null,
-        dietRestrictions: body.dietRestrictions ?? null,
-        extraAnswers: body.extraAnswers === undefined
-          ? undefined
-          : (body.extraAnswers as Prisma.InputJsonValue),
+        extraAnswers,
       },
       update: {
         trainingExperience: body.trainingExperience?.trim() || '未填写',
         injuryHistory: body.injuryHistory?.trim() || '无',
         trainingDaysPerWeek,
         sessionDurationMinutes: Number(body.sessionDurationMinutes ?? 45),
-        trainingEnvironment: body.trainingEnvironment ?? undefined,
-        equipmentList: body.equipmentList ?? undefined,
-        timePreference: body.timePreference ?? undefined,
-        timePreferenceOther: body.timePreferenceOther ?? undefined,
-        dietPreference: body.dietPreference ?? undefined,
-        dietRestrictions: body.dietRestrictions ?? undefined,
-        extraAnswers: body.extraAnswers === undefined
-          ? undefined
-          : (body.extraAnswers as Prisma.InputJsonValue),
+        extraAnswers,
       },
     });
 
@@ -597,9 +619,7 @@ class AiCoachService {
 
   async prepareFirstPlan(userId: string) {
     const assessment = await this.getAssessment(userId);
-    const intake = await this.prisma.aiCoachIntake.findUnique({
-      where: { userId },
-    });
+    const intake = await this.getIntakeCompat(userId);
 
     return {
       assessment,
@@ -695,9 +715,7 @@ class AiCoachService {
 
   async refreshProfile(userId: string, reason = 'manual'): Promise<CoachProfileResponse> {
     const assessment = await this.getAssessment(userId);
-    const intake = await this.prisma.aiCoachIntake.findUnique({
-      where: { userId },
-    });
+    const intake = await this.getIntakeCompat(userId);
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) {
       throw new BadRequestException('User not found');
@@ -902,19 +920,7 @@ class AiCoachController {
   saveIntake(
     @CurrentUser() user: { sub: string },
     @Body()
-    body: {
-      trainingExperience?: string;
-      injuryHistory?: string;
-      trainingDaysPerWeek?: number;
-      sessionDurationMinutes?: number;
-      trainingEnvironment?: string;
-      equipmentList?: string[];
-      timePreference?: string;
-      timePreferenceOther?: string;
-      dietPreference?: string;
-      dietRestrictions?: string;
-      extraAnswers?: Prisma.JsonValue;
-    },
+    body: CoachIntakeInput,
   ) {
     return this.service.saveIntake(user.sub, body);
   }

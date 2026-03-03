@@ -1,0 +1,1785 @@
+<user_portraits_kb>
+<summary>共生成48个分层典型用户画像通用模板骨架，专为下游Agent搜索知识库设计，RAG匹配逻辑：精确维度→相似度</summary>
+<portraits>
+[
+  {
+    "portrait_id": "P001",
+    "description": "该用户当前体脂高，目标体脂中，BMI为超重，BMR为中，方向是减脂塑形。训练基础新手，健康状态无明显疾病史。常在家里训练，器械为徒手+瑜伽垫。每周约180分钟，单次45分钟，频次4次，时段以晚饭后为主。饮食均衡饮食，职业久坐办公。计划需兼顾安全边界、动作替代、恢复监测与执行稳定，并支持按周复盘调整。",
+    "dimensions_snapshot": {
+      "body_assessment": {
+        "body_fat_band": "high",
+        "target_body_fat_band": "mid",
+        "bmi_band": "overweight",
+        "bmr_band": "medium",
+        "goal_direction": "fat_loss"
+      },
+      "exercise_level": "novice",
+      "medical_history": "none",
+      "training_context": {
+        "location": "home",
+        "equipment_profile": "bodyweight+mat"
+      },
+      "weekly_commitment": {
+        "weekly_total_minutes": 180,
+        "session_minutes": 45,
+        "frequency_per_week": 4,
+        "time_window": "after_dinner_evening"
+      },
+      "diet_habit": "balanced",
+      "occupation_type": "sedentary"
+    },
+    "template_skeleton": {
+      "knowledge_fill_points": [
+        "为P001（新手|家里|减脂塑形|久坐办公）搜索3天参考三餐示例菜单模板：按mediumBMR与fat_loss目标分配热量和宏营养，输出早餐/午餐/晚餐+加餐可替换项。",
+        "为P001（新手|家里|减脂塑形|久坐办公）搜索外食与在家双场景三餐替换清单：结合balanced饮食习惯和sedentary职业节奏，给出一周可循环食材与份量模板。",
+        "为P001（新手|家里|减脂塑形|久坐办公）搜索每日喝水目标计算模板：结合体重区间、训练日/休息日差异，生成ToDo清单与推送文案（早9/午12/晚18/睡前）。",
+        "为P001（新手|家里|减脂塑形|久坐办公）搜索喝水提醒失败补救策略：基于after_dinner_evening时段习惯，生成漏喝后补水分配、避免夜间影响睡眠的推送规则。",
+        "为P001（新手|家里|减脂塑形|久坐办公）搜索4周健身框架模板：适配home与器械bodyweight+mat，并满足每周4次、每次45分钟。",
+        "为P001（新手|家里|减脂塑形|久坐办公）搜索每天ToDo动作列表模板：按novice训练水平与none医学约束，输出动作顺序、组数、时长、RPE和注意事项。"
+      ]
+    }
+  },
+  {
+    "portrait_id": "P002",
+    "description": "该用户当前体脂中，目标体脂低，BMI为正常，BMR为中，方向是体态重塑。训练基础中级，健康状态有旧伤需规避。常在家里训练，器械为哑铃+弹力带。每周约150分钟，单次30分钟，频次5次，时段以早餐前清晨为主。饮食高蛋白取向，职业学生。计划需兼顾安全边界、动作替代、恢复监测与执行稳定，并支持按周复盘调整。",
+    "dimensions_snapshot": {
+      "body_assessment": {
+        "body_fat_band": "mid",
+        "target_body_fat_band": "low",
+        "bmi_band": "normal",
+        "bmr_band": "medium",
+        "goal_direction": "recomposition"
+      },
+      "exercise_level": "intermediate",
+      "medical_history": "old_injury",
+      "training_context": {
+        "location": "home",
+        "equipment_profile": "dumbbell+resistance_band"
+      },
+      "weekly_commitment": {
+        "weekly_total_minutes": 150,
+        "session_minutes": 30,
+        "frequency_per_week": 5,
+        "time_window": "early_morning_before_breakfast"
+      },
+      "diet_habit": "high_protein",
+      "occupation_type": "student"
+    },
+    "template_skeleton": {
+      "knowledge_fill_points": [
+        "为P002（中级|家里|体态重塑|学生）搜索3天参考三餐示例菜单模板：按mediumBMR与recomposition目标分配热量和宏营养，输出早餐/午餐/晚餐+加餐可替换项。",
+        "为P002（中级|家里|体态重塑|学生）搜索外食与在家双场景三餐替换清单：结合high_protein饮食习惯和student职业节奏，给出一周可循环食材与份量模板。",
+        "为P002（中级|家里|体态重塑|学生）搜索每日喝水目标计算模板：结合体重区间、训练日/休息日差异，生成ToDo清单与推送文案（早9/午12/晚18/睡前）。",
+        "为P002（中级|家里|体态重塑|学生）搜索喝水提醒失败补救策略：基于early_morning_before_breakfast时段习惯，生成漏喝后补水分配、避免夜间影响睡眠的推送规则。",
+        "为P002（中级|家里|体态重塑|学生）搜索4周健身框架模板：适配home与器械dumbbell+resistance_band，并满足每周5次、每次30分钟。",
+        "为P002（中级|家里|体态重塑|学生）搜索每天ToDo动作列表模板：按intermediate训练水平与old_injury医学约束，输出动作顺序、组数、时长、RPE和注意事项。"
+      ]
+    }
+  },
+  {
+    "portrait_id": "P003",
+    "description": "该用户当前体脂低，目标体脂低，BMI为正常，BMR为高，方向是增肌构建。训练基础高级，健康状态无明显疾病史。常在健身房训练，器械为杠铃+器械+有氧区。每周约240分钟，单次60分钟，频次4次，时段以晚饭前为主。饮食饮食不规律，职业体力劳动。计划需兼顾安全边界、动作替代、恢复监测与执行稳定，并支持按周复盘调整。",
+    "dimensions_snapshot": {
+      "body_assessment": {
+        "body_fat_band": "low",
+        "target_body_fat_band": "low",
+        "bmi_band": "normal",
+        "bmr_band": "high",
+        "goal_direction": "muscle_gain"
+      },
+      "exercise_level": "advanced",
+      "medical_history": "none",
+      "training_context": {
+        "location": "gym",
+        "equipment_profile": "barbell+machine+cardio_zone"
+      },
+      "weekly_commitment": {
+        "weekly_total_minutes": 240,
+        "session_minutes": 60,
+        "frequency_per_week": 4,
+        "time_window": "before_dinner_evening"
+      },
+      "diet_habit": "irregular",
+      "occupation_type": "physical_work"
+    },
+    "template_skeleton": {
+      "knowledge_fill_points": [
+        "为P003（高级|健身房|增肌构建|体力劳动）搜索3天参考三餐示例菜单模板：按highBMR与muscle_gain目标分配热量和宏营养，输出早餐/午餐/晚餐+加餐可替换项。",
+        "为P003（高级|健身房|增肌构建|体力劳动）搜索外食与在家双场景三餐替换清单：结合irregular饮食习惯和physical_work职业节奏，给出一周可循环食材与份量模板。",
+        "为P003（高级|健身房|增肌构建|体力劳动）搜索每日喝水目标计算模板：结合体重区间、训练日/休息日差异，生成ToDo清单与推送文案（早9/午12/晚18/睡前）。",
+        "为P003（高级|健身房|增肌构建|体力劳动）搜索喝水提醒失败补救策略：基于before_dinner_evening时段习惯，生成漏喝后补水分配、避免夜间影响睡眠的推送规则。",
+        "为P003（高级|健身房|增肌构建|体力劳动）搜索4周健身框架模板：适配gym与器械barbell+machine+cardio_zone，并满足每周4次、每次60分钟。",
+        "为P003（高级|健身房|增肌构建|体力劳动）搜索每天ToDo动作列表模板：按advanced训练水平与none医学约束，输出动作顺序、组数、时长、RPE和注意事项。"
+      ]
+    }
+  },
+  {
+    "portrait_id": "P004",
+    "description": "该用户当前体脂高，目标体脂中，BMI为肥胖I级，BMR为高，方向是减脂塑形。训练基础新手，健康状态有慢性病管理需求。常在健身房训练，器械为固定器械为主。每周约210分钟，单次35分钟，频次6次，时段以午饭后为主。饮食有明确忌口/限制，职业轮班/夜班。计划需兼顾安全边界、动作替代、恢复监测与执行稳定，并支持按周复盘调整。",
+    "dimensions_snapshot": {
+      "body_assessment": {
+        "body_fat_band": "high",
+        "target_body_fat_band": "mid",
+        "bmi_band": "obese_class_1",
+        "bmr_band": "high",
+        "goal_direction": "fat_loss"
+      },
+      "exercise_level": "novice",
+      "medical_history": "chronic_condition",
+      "training_context": {
+        "location": "gym",
+        "equipment_profile": "machine_priority+guided_equipment"
+      },
+      "weekly_commitment": {
+        "weekly_total_minutes": 210,
+        "session_minutes": 35,
+        "frequency_per_week": 6,
+        "time_window": "after_lunch_afternoon"
+      },
+      "diet_habit": "restriction_based",
+      "occupation_type": "shift_worker"
+    },
+    "template_skeleton": {
+      "knowledge_fill_points": [
+        "为P004（新手|健身房|减脂塑形|轮班/夜班）搜索3天参考三餐示例菜单模板：按highBMR与fat_loss目标分配热量和宏营养，输出早餐/午餐/晚餐+加餐可替换项。",
+        "为P004（新手|健身房|减脂塑形|轮班/夜班）搜索外食与在家双场景三餐替换清单：结合restriction_based饮食习惯和shift_worker职业节奏，给出一周可循环食材与份量模板。",
+        "为P004（新手|健身房|减脂塑形|轮班/夜班）搜索每日喝水目标计算模板：结合体重区间、训练日/休息日差异，生成ToDo清单与推送文案（早9/午12/晚18/睡前）。",
+        "为P004（新手|健身房|减脂塑形|轮班/夜班）搜索喝水提醒失败补救策略：基于after_lunch_afternoon时段习惯，生成漏喝后补水分配、避免夜间影响睡眠的推送规则。",
+        "为P004（新手|健身房|减脂塑形|轮班/夜班）搜索4周健身框架模板：适配gym与器械machine_priority+guided_equipment，并满足每周6次、每次35分钟。",
+        "为P004（新手|健身房|减脂塑形|轮班/夜班）搜索每天ToDo动作列表模板：按novice训练水平与chronic_condition医学约束，输出动作顺序、组数、时长、RPE和注意事项。"
+      ]
+    }
+  },
+  {
+    "portrait_id": "P005",
+    "description": "该用户当前体脂中，目标体脂中偏低，BMI为正常偏高，BMR为低，方向是减脂塑形。训练基础中级，健康状态有旧伤需规避。常在户外训练，器械为跑步+楼梯+公园单杠。每周约160分钟，单次40分钟，频次4次，时段以午饭前为主。饮食素食为主，职业高频出差。计划需兼顾安全边界、动作替代、恢复监测与执行稳定，并支持按周复盘调整。",
+    "dimensions_snapshot": {
+      "body_assessment": {
+        "body_fat_band": "mid",
+        "target_body_fat_band": "mid_low",
+        "bmi_band": "normal_high",
+        "bmr_band": "low",
+        "goal_direction": "fat_loss"
+      },
+      "exercise_level": "intermediate",
+      "medical_history": "old_injury",
+      "training_context": {
+        "location": "outdoor",
+        "equipment_profile": "running+stairs+park_bar"
+      },
+      "weekly_commitment": {
+        "weekly_total_minutes": 160,
+        "session_minutes": 40,
+        "frequency_per_week": 4,
+        "time_window": "before_lunch_midday"
+      },
+      "diet_habit": "vegetarian",
+      "occupation_type": "frequent_travel"
+    },
+    "template_skeleton": {
+      "knowledge_fill_points": [
+        "为P005（中级|户外|减脂塑形|高频出差）搜索3天参考三餐示例菜单模板：按lowBMR与fat_loss目标分配热量和宏营养，输出早餐/午餐/晚餐+加餐可替换项。",
+        "为P005（中级|户外|减脂塑形|高频出差）搜索外食与在家双场景三餐替换清单：结合vegetarian饮食习惯和frequent_travel职业节奏，给出一周可循环食材与份量模板。",
+        "为P005（中级|户外|减脂塑形|高频出差）搜索每日喝水目标计算模板：结合体重区间、训练日/休息日差异，生成ToDo清单与推送文案（早9/午12/晚18/睡前）。",
+        "为P005（中级|户外|减脂塑形|高频出差）搜索喝水提醒失败补救策略：基于before_lunch_midday时段习惯，生成漏喝后补水分配、避免夜间影响睡眠的推送规则。",
+        "为P005（中级|户外|减脂塑形|高频出差）搜索4周健身框架模板：适配outdoor与器械running+stairs+park_bar，并满足每周4次、每次40分钟。",
+        "为P005（中级|户外|减脂塑形|高频出差）搜索每天ToDo动作列表模板：按intermediate训练水平与old_injury医学约束，输出动作顺序、组数、时长、RPE和注意事项。"
+      ]
+    }
+  },
+  {
+    "portrait_id": "P006",
+    "description": "该用户当前体脂中偏低，目标体脂低，BMI为正常，BMR为中偏高，方向是体态重塑。训练基础高级，健康状态无明显疾病史。常在家里训练，器械为可调哑铃+训练凳。每周约200分钟，单次50分钟，频次4次，时段以早餐后上午为主。饮食高蛋白取向，职业久坐办公。计划需兼顾安全边界、动作替代、恢复监测与执行稳定，并支持按周复盘调整。",
+    "dimensions_snapshot": {
+      "body_assessment": {
+        "body_fat_band": "mid_low",
+        "target_body_fat_band": "low",
+        "bmi_band": "normal",
+        "bmr_band": "medium_high",
+        "goal_direction": "recomposition"
+      },
+      "exercise_level": "advanced",
+      "medical_history": "none",
+      "training_context": {
+        "location": "home",
+        "equipment_profile": "adjustable_dumbbell+bench"
+      },
+      "weekly_commitment": {
+        "weekly_total_minutes": 200,
+        "session_minutes": 50,
+        "frequency_per_week": 4,
+        "time_window": "after_breakfast_morning"
+      },
+      "diet_habit": "high_protein",
+      "occupation_type": "sedentary"
+    },
+    "template_skeleton": {
+      "knowledge_fill_points": [
+        "为P006（高级|家里|体态重塑|久坐办公）搜索3天参考三餐示例菜单模板：按medium_highBMR与recomposition目标分配热量和宏营养，输出早餐/午餐/晚餐+加餐可替换项。",
+        "为P006（高级|家里|体态重塑|久坐办公）搜索外食与在家双场景三餐替换清单：结合high_protein饮食习惯和sedentary职业节奏，给出一周可循环食材与份量模板。",
+        "为P006（高级|家里|体态重塑|久坐办公）搜索每日喝水目标计算模板：结合体重区间、训练日/休息日差异，生成ToDo清单与推送文案（早9/午12/晚18/睡前）。",
+        "为P006（高级|家里|体态重塑|久坐办公）搜索喝水提醒失败补救策略：基于after_breakfast_morning时段习惯，生成漏喝后补水分配、避免夜间影响睡眠的推送规则。",
+        "为P006（高级|家里|体态重塑|久坐办公）搜索4周健身框架模板：适配home与器械adjustable_dumbbell+bench，并满足每周4次、每次50分钟。",
+        "为P006（高级|家里|体态重塑|久坐办公）搜索每天ToDo动作列表模板：按advanced训练水平与none医学约束，输出动作顺序、组数、时长、RPE和注意事项。"
+      ]
+    }
+  },
+  {
+    "portrait_id": "P007",
+    "description": "该用户当前体脂高，目标体脂中，BMI为超重，BMR为中，方向是减脂塑形。训练基础新手，健康状态无明显疾病史。常在家里训练，器械为徒手+瑜伽垫。每周约180分钟，单次45分钟，频次4次，时段以晚饭后为主。饮食均衡饮食，职业久坐办公。计划需兼顾安全边界、动作替代、恢复监测与执行稳定，并支持按周复盘调整。",
+    "dimensions_snapshot": {
+      "body_assessment": {
+        "body_fat_band": "high",
+        "target_body_fat_band": "mid",
+        "bmi_band": "overweight",
+        "bmr_band": "medium",
+        "goal_direction": "fat_loss"
+      },
+      "exercise_level": "novice",
+      "medical_history": "none",
+      "training_context": {
+        "location": "home",
+        "equipment_profile": "bodyweight+mat"
+      },
+      "weekly_commitment": {
+        "weekly_total_minutes": 180,
+        "session_minutes": 45,
+        "frequency_per_week": 4,
+        "time_window": "after_dinner_evening"
+      },
+      "diet_habit": "balanced",
+      "occupation_type": "sedentary"
+    },
+    "template_skeleton": {
+      "knowledge_fill_points": [
+        "为P007（新手|家里|减脂塑形|久坐办公）搜索3天参考三餐示例菜单模板：按mediumBMR与fat_loss目标分配热量和宏营养，输出早餐/午餐/晚餐+加餐可替换项。",
+        "为P007（新手|家里|减脂塑形|久坐办公）搜索外食与在家双场景三餐替换清单：结合balanced饮食习惯和sedentary职业节奏，给出一周可循环食材与份量模板。",
+        "为P007（新手|家里|减脂塑形|久坐办公）搜索每日喝水目标计算模板：结合体重区间、训练日/休息日差异，生成ToDo清单与推送文案（早9/午12/晚18/睡前）。",
+        "为P007（新手|家里|减脂塑形|久坐办公）搜索喝水提醒失败补救策略：基于after_dinner_evening时段习惯，生成漏喝后补水分配、避免夜间影响睡眠的推送规则。",
+        "为P007（新手|家里|减脂塑形|久坐办公）搜索4周健身框架模板：适配home与器械bodyweight+mat，并满足每周4次、每次45分钟。",
+        "为P007（新手|家里|减脂塑形|久坐办公）搜索每天ToDo动作列表模板：按novice训练水平与none医学约束，输出动作顺序、组数、时长、RPE和注意事项。"
+      ]
+    }
+  },
+  {
+    "portrait_id": "P008",
+    "description": "该用户当前体脂中，目标体脂低，BMI为正常，BMR为中，方向是体态重塑。训练基础中级，健康状态有旧伤需规避。常在家里训练，器械为哑铃+弹力带。每周约150分钟，单次30分钟，频次5次，时段以早餐前清晨为主。饮食高蛋白取向，职业学生。计划需兼顾安全边界、动作替代、恢复监测与执行稳定，并支持按周复盘调整。",
+    "dimensions_snapshot": {
+      "body_assessment": {
+        "body_fat_band": "mid",
+        "target_body_fat_band": "low",
+        "bmi_band": "normal",
+        "bmr_band": "medium",
+        "goal_direction": "recomposition"
+      },
+      "exercise_level": "intermediate",
+      "medical_history": "old_injury",
+      "training_context": {
+        "location": "home",
+        "equipment_profile": "dumbbell+resistance_band"
+      },
+      "weekly_commitment": {
+        "weekly_total_minutes": 150,
+        "session_minutes": 30,
+        "frequency_per_week": 5,
+        "time_window": "early_morning_before_breakfast"
+      },
+      "diet_habit": "high_protein",
+      "occupation_type": "student"
+    },
+    "template_skeleton": {
+      "knowledge_fill_points": [
+        "为P008（中级|家里|体态重塑|学生）搜索3天参考三餐示例菜单模板：按mediumBMR与recomposition目标分配热量和宏营养，输出早餐/午餐/晚餐+加餐可替换项。",
+        "为P008（中级|家里|体态重塑|学生）搜索外食与在家双场景三餐替换清单：结合high_protein饮食习惯和student职业节奏，给出一周可循环食材与份量模板。",
+        "为P008（中级|家里|体态重塑|学生）搜索每日喝水目标计算模板：结合体重区间、训练日/休息日差异，生成ToDo清单与推送文案（早9/午12/晚18/睡前）。",
+        "为P008（中级|家里|体态重塑|学生）搜索喝水提醒失败补救策略：基于early_morning_before_breakfast时段习惯，生成漏喝后补水分配、避免夜间影响睡眠的推送规则。",
+        "为P008（中级|家里|体态重塑|学生）搜索4周健身框架模板：适配home与器械dumbbell+resistance_band，并满足每周5次、每次30分钟。",
+        "为P008（中级|家里|体态重塑|学生）搜索每天ToDo动作列表模板：按intermediate训练水平与old_injury医学约束，输出动作顺序、组数、时长、RPE和注意事项。"
+      ]
+    }
+  },
+  {
+    "portrait_id": "P009",
+    "description": "该用户当前体脂低，目标体脂低，BMI为正常，BMR为高，方向是增肌构建。训练基础高级，健康状态无明显疾病史。常在健身房训练，器械为杠铃+器械+有氧区。每周约240分钟，单次60分钟，频次4次，时段以晚饭前为主。饮食饮食不规律，职业体力劳动。计划需兼顾安全边界、动作替代、恢复监测与执行稳定，并支持按周复盘调整。",
+    "dimensions_snapshot": {
+      "body_assessment": {
+        "body_fat_band": "low",
+        "target_body_fat_band": "low",
+        "bmi_band": "normal",
+        "bmr_band": "high",
+        "goal_direction": "muscle_gain"
+      },
+      "exercise_level": "advanced",
+      "medical_history": "none",
+      "training_context": {
+        "location": "gym",
+        "equipment_profile": "barbell+machine+cardio_zone"
+      },
+      "weekly_commitment": {
+        "weekly_total_minutes": 240,
+        "session_minutes": 60,
+        "frequency_per_week": 4,
+        "time_window": "before_dinner_evening"
+      },
+      "diet_habit": "irregular",
+      "occupation_type": "physical_work"
+    },
+    "template_skeleton": {
+      "knowledge_fill_points": [
+        "为P009（高级|健身房|增肌构建|体力劳动）搜索3天参考三餐示例菜单模板：按highBMR与muscle_gain目标分配热量和宏营养，输出早餐/午餐/晚餐+加餐可替换项。",
+        "为P009（高级|健身房|增肌构建|体力劳动）搜索外食与在家双场景三餐替换清单：结合irregular饮食习惯和physical_work职业节奏，给出一周可循环食材与份量模板。",
+        "为P009（高级|健身房|增肌构建|体力劳动）搜索每日喝水目标计算模板：结合体重区间、训练日/休息日差异，生成ToDo清单与推送文案（早9/午12/晚18/睡前）。",
+        "为P009（高级|健身房|增肌构建|体力劳动）搜索喝水提醒失败补救策略：基于before_dinner_evening时段习惯，生成漏喝后补水分配、避免夜间影响睡眠的推送规则。",
+        "为P009（高级|健身房|增肌构建|体力劳动）搜索4周健身框架模板：适配gym与器械barbell+machine+cardio_zone，并满足每周4次、每次60分钟。",
+        "为P009（高级|健身房|增肌构建|体力劳动）搜索每天ToDo动作列表模板：按advanced训练水平与none医学约束，输出动作顺序、组数、时长、RPE和注意事项。"
+      ]
+    }
+  },
+  {
+    "portrait_id": "P010",
+    "description": "该用户当前体脂高，目标体脂中，BMI为肥胖I级，BMR为高，方向是减脂塑形。训练基础新手，健康状态有慢性病管理需求。常在健身房训练，器械为固定器械为主。每周约210分钟，单次35分钟，频次6次，时段以午饭后为主。饮食有明确忌口/限制，职业轮班/夜班。计划需兼顾安全边界、动作替代、恢复监测与执行稳定，并支持按周复盘调整。",
+    "dimensions_snapshot": {
+      "body_assessment": {
+        "body_fat_band": "high",
+        "target_body_fat_band": "mid",
+        "bmi_band": "obese_class_1",
+        "bmr_band": "high",
+        "goal_direction": "fat_loss"
+      },
+      "exercise_level": "novice",
+      "medical_history": "chronic_condition",
+      "training_context": {
+        "location": "gym",
+        "equipment_profile": "machine_priority+guided_equipment"
+      },
+      "weekly_commitment": {
+        "weekly_total_minutes": 210,
+        "session_minutes": 35,
+        "frequency_per_week": 6,
+        "time_window": "after_lunch_afternoon"
+      },
+      "diet_habit": "restriction_based",
+      "occupation_type": "shift_worker"
+    },
+    "template_skeleton": {
+      "knowledge_fill_points": [
+        "为P010（新手|健身房|减脂塑形|轮班/夜班）搜索3天参考三餐示例菜单模板：按highBMR与fat_loss目标分配热量和宏营养，输出早餐/午餐/晚餐+加餐可替换项。",
+        "为P010（新手|健身房|减脂塑形|轮班/夜班）搜索外食与在家双场景三餐替换清单：结合restriction_based饮食习惯和shift_worker职业节奏，给出一周可循环食材与份量模板。",
+        "为P010（新手|健身房|减脂塑形|轮班/夜班）搜索每日喝水目标计算模板：结合体重区间、训练日/休息日差异，生成ToDo清单与推送文案（早9/午12/晚18/睡前）。",
+        "为P010（新手|健身房|减脂塑形|轮班/夜班）搜索喝水提醒失败补救策略：基于after_lunch_afternoon时段习惯，生成漏喝后补水分配、避免夜间影响睡眠的推送规则。",
+        "为P010（新手|健身房|减脂塑形|轮班/夜班）搜索4周健身框架模板：适配gym与器械machine_priority+guided_equipment，并满足每周6次、每次35分钟。",
+        "为P010（新手|健身房|减脂塑形|轮班/夜班）搜索每天ToDo动作列表模板：按novice训练水平与chronic_condition医学约束，输出动作顺序、组数、时长、RPE和注意事项。"
+      ]
+    }
+  },
+  {
+    "portrait_id": "P011",
+    "description": "该用户当前体脂中，目标体脂中偏低，BMI为正常偏高，BMR为低，方向是减脂塑形。训练基础中级，健康状态有旧伤需规避。常在户外训练，器械为跑步+楼梯+公园单杠。每周约160分钟，单次40分钟，频次4次，时段以午饭前为主。饮食素食为主，职业高频出差。计划需兼顾安全边界、动作替代、恢复监测与执行稳定，并支持按周复盘调整。",
+    "dimensions_snapshot": {
+      "body_assessment": {
+        "body_fat_band": "mid",
+        "target_body_fat_band": "mid_low",
+        "bmi_band": "normal_high",
+        "bmr_band": "low",
+        "goal_direction": "fat_loss"
+      },
+      "exercise_level": "intermediate",
+      "medical_history": "old_injury",
+      "training_context": {
+        "location": "outdoor",
+        "equipment_profile": "running+stairs+park_bar"
+      },
+      "weekly_commitment": {
+        "weekly_total_minutes": 160,
+        "session_minutes": 40,
+        "frequency_per_week": 4,
+        "time_window": "before_lunch_midday"
+      },
+      "diet_habit": "vegetarian",
+      "occupation_type": "frequent_travel"
+    },
+    "template_skeleton": {
+      "knowledge_fill_points": [
+        "为P011（中级|户外|减脂塑形|高频出差）搜索3天参考三餐示例菜单模板：按lowBMR与fat_loss目标分配热量和宏营养，输出早餐/午餐/晚餐+加餐可替换项。",
+        "为P011（中级|户外|减脂塑形|高频出差）搜索外食与在家双场景三餐替换清单：结合vegetarian饮食习惯和frequent_travel职业节奏，给出一周可循环食材与份量模板。",
+        "为P011（中级|户外|减脂塑形|高频出差）搜索每日喝水目标计算模板：结合体重区间、训练日/休息日差异，生成ToDo清单与推送文案（早9/午12/晚18/睡前）。",
+        "为P011（中级|户外|减脂塑形|高频出差）搜索喝水提醒失败补救策略：基于before_lunch_midday时段习惯，生成漏喝后补水分配、避免夜间影响睡眠的推送规则。",
+        "为P011（中级|户外|减脂塑形|高频出差）搜索4周健身框架模板：适配outdoor与器械running+stairs+park_bar，并满足每周4次、每次40分钟。",
+        "为P011（中级|户外|减脂塑形|高频出差）搜索每天ToDo动作列表模板：按intermediate训练水平与old_injury医学约束，输出动作顺序、组数、时长、RPE和注意事项。"
+      ]
+    }
+  },
+  {
+    "portrait_id": "P012",
+    "description": "该用户当前体脂中偏低，目标体脂低，BMI为正常，BMR为中偏高，方向是体态重塑。训练基础高级，健康状态无明显疾病史。常在家里训练，器械为可调哑铃+训练凳。每周约200分钟，单次50分钟，频次4次，时段以早餐后上午为主。饮食高蛋白取向，职业久坐办公。计划需兼顾安全边界、动作替代、恢复监测与执行稳定，并支持按周复盘调整。",
+    "dimensions_snapshot": {
+      "body_assessment": {
+        "body_fat_band": "mid_low",
+        "target_body_fat_band": "low",
+        "bmi_band": "normal",
+        "bmr_band": "medium_high",
+        "goal_direction": "recomposition"
+      },
+      "exercise_level": "advanced",
+      "medical_history": "none",
+      "training_context": {
+        "location": "home",
+        "equipment_profile": "adjustable_dumbbell+bench"
+      },
+      "weekly_commitment": {
+        "weekly_total_minutes": 200,
+        "session_minutes": 50,
+        "frequency_per_week": 4,
+        "time_window": "after_breakfast_morning"
+      },
+      "diet_habit": "high_protein",
+      "occupation_type": "sedentary"
+    },
+    "template_skeleton": {
+      "knowledge_fill_points": [
+        "为P012（高级|家里|体态重塑|久坐办公）搜索3天参考三餐示例菜单模板：按medium_highBMR与recomposition目标分配热量和宏营养，输出早餐/午餐/晚餐+加餐可替换项。",
+        "为P012（高级|家里|体态重塑|久坐办公）搜索外食与在家双场景三餐替换清单：结合high_protein饮食习惯和sedentary职业节奏，给出一周可循环食材与份量模板。",
+        "为P012（高级|家里|体态重塑|久坐办公）搜索每日喝水目标计算模板：结合体重区间、训练日/休息日差异，生成ToDo清单与推送文案（早9/午12/晚18/睡前）。",
+        "为P012（高级|家里|体态重塑|久坐办公）搜索喝水提醒失败补救策略：基于after_breakfast_morning时段习惯，生成漏喝后补水分配、避免夜间影响睡眠的推送规则。",
+        "为P012（高级|家里|体态重塑|久坐办公）搜索4周健身框架模板：适配home与器械adjustable_dumbbell+bench，并满足每周4次、每次50分钟。",
+        "为P012（高级|家里|体态重塑|久坐办公）搜索每天ToDo动作列表模板：按advanced训练水平与none医学约束，输出动作顺序、组数、时长、RPE和注意事项。"
+      ]
+    }
+  },
+  {
+    "portrait_id": "P013",
+    "description": "该用户当前体脂高，目标体脂中，BMI为超重，BMR为中，方向是减脂塑形。训练基础新手，健康状态无明显疾病史。常在家里训练，器械为徒手+瑜伽垫。每周约180分钟，单次45分钟，频次4次，时段以晚饭后为主。饮食均衡饮食，职业久坐办公。计划需兼顾安全边界、动作替代、恢复监测与执行稳定，并支持按周复盘调整。",
+    "dimensions_snapshot": {
+      "body_assessment": {
+        "body_fat_band": "high",
+        "target_body_fat_band": "mid",
+        "bmi_band": "overweight",
+        "bmr_band": "medium",
+        "goal_direction": "fat_loss"
+      },
+      "exercise_level": "novice",
+      "medical_history": "none",
+      "training_context": {
+        "location": "home",
+        "equipment_profile": "bodyweight+mat"
+      },
+      "weekly_commitment": {
+        "weekly_total_minutes": 180,
+        "session_minutes": 45,
+        "frequency_per_week": 4,
+        "time_window": "after_dinner_evening"
+      },
+      "diet_habit": "balanced",
+      "occupation_type": "sedentary"
+    },
+    "template_skeleton": {
+      "knowledge_fill_points": [
+        "为P013（新手|家里|减脂塑形|久坐办公）搜索3天参考三餐示例菜单模板：按mediumBMR与fat_loss目标分配热量和宏营养，输出早餐/午餐/晚餐+加餐可替换项。",
+        "为P013（新手|家里|减脂塑形|久坐办公）搜索外食与在家双场景三餐替换清单：结合balanced饮食习惯和sedentary职业节奏，给出一周可循环食材与份量模板。",
+        "为P013（新手|家里|减脂塑形|久坐办公）搜索每日喝水目标计算模板：结合体重区间、训练日/休息日差异，生成ToDo清单与推送文案（早9/午12/晚18/睡前）。",
+        "为P013（新手|家里|减脂塑形|久坐办公）搜索喝水提醒失败补救策略：基于after_dinner_evening时段习惯，生成漏喝后补水分配、避免夜间影响睡眠的推送规则。",
+        "为P013（新手|家里|减脂塑形|久坐办公）搜索4周健身框架模板：适配home与器械bodyweight+mat，并满足每周4次、每次45分钟。",
+        "为P013（新手|家里|减脂塑形|久坐办公）搜索每天ToDo动作列表模板：按novice训练水平与none医学约束，输出动作顺序、组数、时长、RPE和注意事项。"
+      ]
+    }
+  },
+  {
+    "portrait_id": "P014",
+    "description": "该用户当前体脂中，目标体脂低，BMI为正常，BMR为中，方向是体态重塑。训练基础中级，健康状态有旧伤需规避。常在家里训练，器械为哑铃+弹力带。每周约150分钟，单次30分钟，频次5次，时段以早餐前清晨为主。饮食高蛋白取向，职业学生。计划需兼顾安全边界、动作替代、恢复监测与执行稳定，并支持按周复盘调整。",
+    "dimensions_snapshot": {
+      "body_assessment": {
+        "body_fat_band": "mid",
+        "target_body_fat_band": "low",
+        "bmi_band": "normal",
+        "bmr_band": "medium",
+        "goal_direction": "recomposition"
+      },
+      "exercise_level": "intermediate",
+      "medical_history": "old_injury",
+      "training_context": {
+        "location": "home",
+        "equipment_profile": "dumbbell+resistance_band"
+      },
+      "weekly_commitment": {
+        "weekly_total_minutes": 150,
+        "session_minutes": 30,
+        "frequency_per_week": 5,
+        "time_window": "early_morning_before_breakfast"
+      },
+      "diet_habit": "high_protein",
+      "occupation_type": "student"
+    },
+    "template_skeleton": {
+      "knowledge_fill_points": [
+        "为P014（中级|家里|体态重塑|学生）搜索3天参考三餐示例菜单模板：按mediumBMR与recomposition目标分配热量和宏营养，输出早餐/午餐/晚餐+加餐可替换项。",
+        "为P014（中级|家里|体态重塑|学生）搜索外食与在家双场景三餐替换清单：结合high_protein饮食习惯和student职业节奏，给出一周可循环食材与份量模板。",
+        "为P014（中级|家里|体态重塑|学生）搜索每日喝水目标计算模板：结合体重区间、训练日/休息日差异，生成ToDo清单与推送文案（早9/午12/晚18/睡前）。",
+        "为P014（中级|家里|体态重塑|学生）搜索喝水提醒失败补救策略：基于early_morning_before_breakfast时段习惯，生成漏喝后补水分配、避免夜间影响睡眠的推送规则。",
+        "为P014（中级|家里|体态重塑|学生）搜索4周健身框架模板：适配home与器械dumbbell+resistance_band，并满足每周5次、每次30分钟。",
+        "为P014（中级|家里|体态重塑|学生）搜索每天ToDo动作列表模板：按intermediate训练水平与old_injury医学约束，输出动作顺序、组数、时长、RPE和注意事项。"
+      ]
+    }
+  },
+  {
+    "portrait_id": "P015",
+    "description": "该用户当前体脂低，目标体脂低，BMI为正常，BMR为高，方向是增肌构建。训练基础高级，健康状态无明显疾病史。常在健身房训练，器械为杠铃+器械+有氧区。每周约240分钟，单次60分钟，频次4次，时段以晚饭前为主。饮食饮食不规律，职业体力劳动。计划需兼顾安全边界、动作替代、恢复监测与执行稳定，并支持按周复盘调整。",
+    "dimensions_snapshot": {
+      "body_assessment": {
+        "body_fat_band": "low",
+        "target_body_fat_band": "low",
+        "bmi_band": "normal",
+        "bmr_band": "high",
+        "goal_direction": "muscle_gain"
+      },
+      "exercise_level": "advanced",
+      "medical_history": "none",
+      "training_context": {
+        "location": "gym",
+        "equipment_profile": "barbell+machine+cardio_zone"
+      },
+      "weekly_commitment": {
+        "weekly_total_minutes": 240,
+        "session_minutes": 60,
+        "frequency_per_week": 4,
+        "time_window": "before_dinner_evening"
+      },
+      "diet_habit": "irregular",
+      "occupation_type": "physical_work"
+    },
+    "template_skeleton": {
+      "knowledge_fill_points": [
+        "为P015（高级|健身房|增肌构建|体力劳动）搜索3天参考三餐示例菜单模板：按highBMR与muscle_gain目标分配热量和宏营养，输出早餐/午餐/晚餐+加餐可替换项。",
+        "为P015（高级|健身房|增肌构建|体力劳动）搜索外食与在家双场景三餐替换清单：结合irregular饮食习惯和physical_work职业节奏，给出一周可循环食材与份量模板。",
+        "为P015（高级|健身房|增肌构建|体力劳动）搜索每日喝水目标计算模板：结合体重区间、训练日/休息日差异，生成ToDo清单与推送文案（早9/午12/晚18/睡前）。",
+        "为P015（高级|健身房|增肌构建|体力劳动）搜索喝水提醒失败补救策略：基于before_dinner_evening时段习惯，生成漏喝后补水分配、避免夜间影响睡眠的推送规则。",
+        "为P015（高级|健身房|增肌构建|体力劳动）搜索4周健身框架模板：适配gym与器械barbell+machine+cardio_zone，并满足每周4次、每次60分钟。",
+        "为P015（高级|健身房|增肌构建|体力劳动）搜索每天ToDo动作列表模板：按advanced训练水平与none医学约束，输出动作顺序、组数、时长、RPE和注意事项。"
+      ]
+    }
+  },
+  {
+    "portrait_id": "P016",
+    "description": "该用户当前体脂高，目标体脂中，BMI为肥胖I级，BMR为高，方向是减脂塑形。训练基础新手，健康状态有慢性病管理需求。常在健身房训练，器械为固定器械为主。每周约210分钟，单次35分钟，频次6次，时段以午饭后为主。饮食有明确忌口/限制，职业轮班/夜班。计划需兼顾安全边界、动作替代、恢复监测与执行稳定，并支持按周复盘调整。",
+    "dimensions_snapshot": {
+      "body_assessment": {
+        "body_fat_band": "high",
+        "target_body_fat_band": "mid",
+        "bmi_band": "obese_class_1",
+        "bmr_band": "high",
+        "goal_direction": "fat_loss"
+      },
+      "exercise_level": "novice",
+      "medical_history": "chronic_condition",
+      "training_context": {
+        "location": "gym",
+        "equipment_profile": "machine_priority+guided_equipment"
+      },
+      "weekly_commitment": {
+        "weekly_total_minutes": 210,
+        "session_minutes": 35,
+        "frequency_per_week": 6,
+        "time_window": "after_lunch_afternoon"
+      },
+      "diet_habit": "restriction_based",
+      "occupation_type": "shift_worker"
+    },
+    "template_skeleton": {
+      "knowledge_fill_points": [
+        "为P016（新手|健身房|减脂塑形|轮班/夜班）搜索3天参考三餐示例菜单模板：按highBMR与fat_loss目标分配热量和宏营养，输出早餐/午餐/晚餐+加餐可替换项。",
+        "为P016（新手|健身房|减脂塑形|轮班/夜班）搜索外食与在家双场景三餐替换清单：结合restriction_based饮食习惯和shift_worker职业节奏，给出一周可循环食材与份量模板。",
+        "为P016（新手|健身房|减脂塑形|轮班/夜班）搜索每日喝水目标计算模板：结合体重区间、训练日/休息日差异，生成ToDo清单与推送文案（早9/午12/晚18/睡前）。",
+        "为P016（新手|健身房|减脂塑形|轮班/夜班）搜索喝水提醒失败补救策略：基于after_lunch_afternoon时段习惯，生成漏喝后补水分配、避免夜间影响睡眠的推送规则。",
+        "为P016（新手|健身房|减脂塑形|轮班/夜班）搜索4周健身框架模板：适配gym与器械machine_priority+guided_equipment，并满足每周6次、每次35分钟。",
+        "为P016（新手|健身房|减脂塑形|轮班/夜班）搜索每天ToDo动作列表模板：按novice训练水平与chronic_condition医学约束，输出动作顺序、组数、时长、RPE和注意事项。"
+      ]
+    }
+  },
+  {
+    "portrait_id": "P017",
+    "description": "该用户当前体脂中，目标体脂中偏低，BMI为正常偏高，BMR为低，方向是减脂塑形。训练基础中级，健康状态有旧伤需规避。常在户外训练，器械为跑步+楼梯+公园单杠。每周约160分钟，单次40分钟，频次4次，时段以午饭前为主。饮食素食为主，职业高频出差。计划需兼顾安全边界、动作替代、恢复监测与执行稳定，并支持按周复盘调整。",
+    "dimensions_snapshot": {
+      "body_assessment": {
+        "body_fat_band": "mid",
+        "target_body_fat_band": "mid_low",
+        "bmi_band": "normal_high",
+        "bmr_band": "low",
+        "goal_direction": "fat_loss"
+      },
+      "exercise_level": "intermediate",
+      "medical_history": "old_injury",
+      "training_context": {
+        "location": "outdoor",
+        "equipment_profile": "running+stairs+park_bar"
+      },
+      "weekly_commitment": {
+        "weekly_total_minutes": 160,
+        "session_minutes": 40,
+        "frequency_per_week": 4,
+        "time_window": "before_lunch_midday"
+      },
+      "diet_habit": "vegetarian",
+      "occupation_type": "frequent_travel"
+    },
+    "template_skeleton": {
+      "knowledge_fill_points": [
+        "为P017（中级|户外|减脂塑形|高频出差）搜索3天参考三餐示例菜单模板：按lowBMR与fat_loss目标分配热量和宏营养，输出早餐/午餐/晚餐+加餐可替换项。",
+        "为P017（中级|户外|减脂塑形|高频出差）搜索外食与在家双场景三餐替换清单：结合vegetarian饮食习惯和frequent_travel职业节奏，给出一周可循环食材与份量模板。",
+        "为P017（中级|户外|减脂塑形|高频出差）搜索每日喝水目标计算模板：结合体重区间、训练日/休息日差异，生成ToDo清单与推送文案（早9/午12/晚18/睡前）。",
+        "为P017（中级|户外|减脂塑形|高频出差）搜索喝水提醒失败补救策略：基于before_lunch_midday时段习惯，生成漏喝后补水分配、避免夜间影响睡眠的推送规则。",
+        "为P017（中级|户外|减脂塑形|高频出差）搜索4周健身框架模板：适配outdoor与器械running+stairs+park_bar，并满足每周4次、每次40分钟。",
+        "为P017（中级|户外|减脂塑形|高频出差）搜索每天ToDo动作列表模板：按intermediate训练水平与old_injury医学约束，输出动作顺序、组数、时长、RPE和注意事项。"
+      ]
+    }
+  },
+  {
+    "portrait_id": "P018",
+    "description": "该用户当前体脂中偏低，目标体脂低，BMI为正常，BMR为中偏高，方向是体态重塑。训练基础高级，健康状态无明显疾病史。常在家里训练，器械为可调哑铃+训练凳。每周约200分钟，单次50分钟，频次4次，时段以早餐后上午为主。饮食高蛋白取向，职业久坐办公。计划需兼顾安全边界、动作替代、恢复监测与执行稳定，并支持按周复盘调整。",
+    "dimensions_snapshot": {
+      "body_assessment": {
+        "body_fat_band": "mid_low",
+        "target_body_fat_band": "low",
+        "bmi_band": "normal",
+        "bmr_band": "medium_high",
+        "goal_direction": "recomposition"
+      },
+      "exercise_level": "advanced",
+      "medical_history": "none",
+      "training_context": {
+        "location": "home",
+        "equipment_profile": "adjustable_dumbbell+bench"
+      },
+      "weekly_commitment": {
+        "weekly_total_minutes": 200,
+        "session_minutes": 50,
+        "frequency_per_week": 4,
+        "time_window": "after_breakfast_morning"
+      },
+      "diet_habit": "high_protein",
+      "occupation_type": "sedentary"
+    },
+    "template_skeleton": {
+      "knowledge_fill_points": [
+        "为P018（高级|家里|体态重塑|久坐办公）搜索3天参考三餐示例菜单模板：按medium_highBMR与recomposition目标分配热量和宏营养，输出早餐/午餐/晚餐+加餐可替换项。",
+        "为P018（高级|家里|体态重塑|久坐办公）搜索外食与在家双场景三餐替换清单：结合high_protein饮食习惯和sedentary职业节奏，给出一周可循环食材与份量模板。",
+        "为P018（高级|家里|体态重塑|久坐办公）搜索每日喝水目标计算模板：结合体重区间、训练日/休息日差异，生成ToDo清单与推送文案（早9/午12/晚18/睡前）。",
+        "为P018（高级|家里|体态重塑|久坐办公）搜索喝水提醒失败补救策略：基于after_breakfast_morning时段习惯，生成漏喝后补水分配、避免夜间影响睡眠的推送规则。",
+        "为P018（高级|家里|体态重塑|久坐办公）搜索4周健身框架模板：适配home与器械adjustable_dumbbell+bench，并满足每周4次、每次50分钟。",
+        "为P018（高级|家里|体态重塑|久坐办公）搜索每天ToDo动作列表模板：按advanced训练水平与none医学约束，输出动作顺序、组数、时长、RPE和注意事项。"
+      ]
+    }
+  },
+  {
+    "portrait_id": "P019",
+    "description": "该用户当前体脂高，目标体脂中，BMI为超重，BMR为中，方向是减脂塑形。训练基础新手，健康状态无明显疾病史。常在家里训练，器械为徒手+瑜伽垫。每周约180分钟，单次45分钟，频次4次，时段以晚饭后为主。饮食均衡饮食，职业久坐办公。计划需兼顾安全边界、动作替代、恢复监测与执行稳定，并支持按周复盘调整。",
+    "dimensions_snapshot": {
+      "body_assessment": {
+        "body_fat_band": "high",
+        "target_body_fat_band": "mid",
+        "bmi_band": "overweight",
+        "bmr_band": "medium",
+        "goal_direction": "fat_loss"
+      },
+      "exercise_level": "novice",
+      "medical_history": "none",
+      "training_context": {
+        "location": "home",
+        "equipment_profile": "bodyweight+mat"
+      },
+      "weekly_commitment": {
+        "weekly_total_minutes": 180,
+        "session_minutes": 45,
+        "frequency_per_week": 4,
+        "time_window": "after_dinner_evening"
+      },
+      "diet_habit": "balanced",
+      "occupation_type": "sedentary"
+    },
+    "template_skeleton": {
+      "knowledge_fill_points": [
+        "为P019（新手|家里|减脂塑形|久坐办公）搜索3天参考三餐示例菜单模板：按mediumBMR与fat_loss目标分配热量和宏营养，输出早餐/午餐/晚餐+加餐可替换项。",
+        "为P019（新手|家里|减脂塑形|久坐办公）搜索外食与在家双场景三餐替换清单：结合balanced饮食习惯和sedentary职业节奏，给出一周可循环食材与份量模板。",
+        "为P019（新手|家里|减脂塑形|久坐办公）搜索每日喝水目标计算模板：结合体重区间、训练日/休息日差异，生成ToDo清单与推送文案（早9/午12/晚18/睡前）。",
+        "为P019（新手|家里|减脂塑形|久坐办公）搜索喝水提醒失败补救策略：基于after_dinner_evening时段习惯，生成漏喝后补水分配、避免夜间影响睡眠的推送规则。",
+        "为P019（新手|家里|减脂塑形|久坐办公）搜索4周健身框架模板：适配home与器械bodyweight+mat，并满足每周4次、每次45分钟。",
+        "为P019（新手|家里|减脂塑形|久坐办公）搜索每天ToDo动作列表模板：按novice训练水平与none医学约束，输出动作顺序、组数、时长、RPE和注意事项。"
+      ]
+    }
+  },
+  {
+    "portrait_id": "P020",
+    "description": "该用户当前体脂中，目标体脂低，BMI为正常，BMR为中，方向是体态重塑。训练基础中级，健康状态有旧伤需规避。常在家里训练，器械为哑铃+弹力带。每周约150分钟，单次30分钟，频次5次，时段以早餐前清晨为主。饮食高蛋白取向，职业学生。计划需兼顾安全边界、动作替代、恢复监测与执行稳定，并支持按周复盘调整。",
+    "dimensions_snapshot": {
+      "body_assessment": {
+        "body_fat_band": "mid",
+        "target_body_fat_band": "low",
+        "bmi_band": "normal",
+        "bmr_band": "medium",
+        "goal_direction": "recomposition"
+      },
+      "exercise_level": "intermediate",
+      "medical_history": "old_injury",
+      "training_context": {
+        "location": "home",
+        "equipment_profile": "dumbbell+resistance_band"
+      },
+      "weekly_commitment": {
+        "weekly_total_minutes": 150,
+        "session_minutes": 30,
+        "frequency_per_week": 5,
+        "time_window": "early_morning_before_breakfast"
+      },
+      "diet_habit": "high_protein",
+      "occupation_type": "student"
+    },
+    "template_skeleton": {
+      "knowledge_fill_points": [
+        "为P020（中级|家里|体态重塑|学生）搜索3天参考三餐示例菜单模板：按mediumBMR与recomposition目标分配热量和宏营养，输出早餐/午餐/晚餐+加餐可替换项。",
+        "为P020（中级|家里|体态重塑|学生）搜索外食与在家双场景三餐替换清单：结合high_protein饮食习惯和student职业节奏，给出一周可循环食材与份量模板。",
+        "为P020（中级|家里|体态重塑|学生）搜索每日喝水目标计算模板：结合体重区间、训练日/休息日差异，生成ToDo清单与推送文案（早9/午12/晚18/睡前）。",
+        "为P020（中级|家里|体态重塑|学生）搜索喝水提醒失败补救策略：基于early_morning_before_breakfast时段习惯，生成漏喝后补水分配、避免夜间影响睡眠的推送规则。",
+        "为P020（中级|家里|体态重塑|学生）搜索4周健身框架模板：适配home与器械dumbbell+resistance_band，并满足每周5次、每次30分钟。",
+        "为P020（中级|家里|体态重塑|学生）搜索每天ToDo动作列表模板：按intermediate训练水平与old_injury医学约束，输出动作顺序、组数、时长、RPE和注意事项。"
+      ]
+    }
+  },
+  {
+    "portrait_id": "P021",
+    "description": "该用户当前体脂低，目标体脂低，BMI为正常，BMR为高，方向是增肌构建。训练基础高级，健康状态无明显疾病史。常在健身房训练，器械为杠铃+器械+有氧区。每周约240分钟，单次60分钟，频次4次，时段以晚饭前为主。饮食饮食不规律，职业体力劳动。计划需兼顾安全边界、动作替代、恢复监测与执行稳定，并支持按周复盘调整。",
+    "dimensions_snapshot": {
+      "body_assessment": {
+        "body_fat_band": "low",
+        "target_body_fat_band": "low",
+        "bmi_band": "normal",
+        "bmr_band": "high",
+        "goal_direction": "muscle_gain"
+      },
+      "exercise_level": "advanced",
+      "medical_history": "none",
+      "training_context": {
+        "location": "gym",
+        "equipment_profile": "barbell+machine+cardio_zone"
+      },
+      "weekly_commitment": {
+        "weekly_total_minutes": 240,
+        "session_minutes": 60,
+        "frequency_per_week": 4,
+        "time_window": "before_dinner_evening"
+      },
+      "diet_habit": "irregular",
+      "occupation_type": "physical_work"
+    },
+    "template_skeleton": {
+      "knowledge_fill_points": [
+        "为P021（高级|健身房|增肌构建|体力劳动）搜索3天参考三餐示例菜单模板：按highBMR与muscle_gain目标分配热量和宏营养，输出早餐/午餐/晚餐+加餐可替换项。",
+        "为P021（高级|健身房|增肌构建|体力劳动）搜索外食与在家双场景三餐替换清单：结合irregular饮食习惯和physical_work职业节奏，给出一周可循环食材与份量模板。",
+        "为P021（高级|健身房|增肌构建|体力劳动）搜索每日喝水目标计算模板：结合体重区间、训练日/休息日差异，生成ToDo清单与推送文案（早9/午12/晚18/睡前）。",
+        "为P021（高级|健身房|增肌构建|体力劳动）搜索喝水提醒失败补救策略：基于before_dinner_evening时段习惯，生成漏喝后补水分配、避免夜间影响睡眠的推送规则。",
+        "为P021（高级|健身房|增肌构建|体力劳动）搜索4周健身框架模板：适配gym与器械barbell+machine+cardio_zone，并满足每周4次、每次60分钟。",
+        "为P021（高级|健身房|增肌构建|体力劳动）搜索每天ToDo动作列表模板：按advanced训练水平与none医学约束，输出动作顺序、组数、时长、RPE和注意事项。"
+      ]
+    }
+  },
+  {
+    "portrait_id": "P022",
+    "description": "该用户当前体脂高，目标体脂中，BMI为肥胖I级，BMR为高，方向是减脂塑形。训练基础新手，健康状态有慢性病管理需求。常在健身房训练，器械为固定器械为主。每周约210分钟，单次35分钟，频次6次，时段以午饭后为主。饮食有明确忌口/限制，职业轮班/夜班。计划需兼顾安全边界、动作替代、恢复监测与执行稳定，并支持按周复盘调整。",
+    "dimensions_snapshot": {
+      "body_assessment": {
+        "body_fat_band": "high",
+        "target_body_fat_band": "mid",
+        "bmi_band": "obese_class_1",
+        "bmr_band": "high",
+        "goal_direction": "fat_loss"
+      },
+      "exercise_level": "novice",
+      "medical_history": "chronic_condition",
+      "training_context": {
+        "location": "gym",
+        "equipment_profile": "machine_priority+guided_equipment"
+      },
+      "weekly_commitment": {
+        "weekly_total_minutes": 210,
+        "session_minutes": 35,
+        "frequency_per_week": 6,
+        "time_window": "after_lunch_afternoon"
+      },
+      "diet_habit": "restriction_based",
+      "occupation_type": "shift_worker"
+    },
+    "template_skeleton": {
+      "knowledge_fill_points": [
+        "为P022（新手|健身房|减脂塑形|轮班/夜班）搜索3天参考三餐示例菜单模板：按highBMR与fat_loss目标分配热量和宏营养，输出早餐/午餐/晚餐+加餐可替换项。",
+        "为P022（新手|健身房|减脂塑形|轮班/夜班）搜索外食与在家双场景三餐替换清单：结合restriction_based饮食习惯和shift_worker职业节奏，给出一周可循环食材与份量模板。",
+        "为P022（新手|健身房|减脂塑形|轮班/夜班）搜索每日喝水目标计算模板：结合体重区间、训练日/休息日差异，生成ToDo清单与推送文案（早9/午12/晚18/睡前）。",
+        "为P022（新手|健身房|减脂塑形|轮班/夜班）搜索喝水提醒失败补救策略：基于after_lunch_afternoon时段习惯，生成漏喝后补水分配、避免夜间影响睡眠的推送规则。",
+        "为P022（新手|健身房|减脂塑形|轮班/夜班）搜索4周健身框架模板：适配gym与器械machine_priority+guided_equipment，并满足每周6次、每次35分钟。",
+        "为P022（新手|健身房|减脂塑形|轮班/夜班）搜索每天ToDo动作列表模板：按novice训练水平与chronic_condition医学约束，输出动作顺序、组数、时长、RPE和注意事项。"
+      ]
+    }
+  },
+  {
+    "portrait_id": "P023",
+    "description": "该用户当前体脂中，目标体脂中偏低，BMI为正常偏高，BMR为低，方向是减脂塑形。训练基础中级，健康状态有旧伤需规避。常在户外训练，器械为跑步+楼梯+公园单杠。每周约160分钟，单次40分钟，频次4次，时段以午饭前为主。饮食素食为主，职业高频出差。计划需兼顾安全边界、动作替代、恢复监测与执行稳定，并支持按周复盘调整。",
+    "dimensions_snapshot": {
+      "body_assessment": {
+        "body_fat_band": "mid",
+        "target_body_fat_band": "mid_low",
+        "bmi_band": "normal_high",
+        "bmr_band": "low",
+        "goal_direction": "fat_loss"
+      },
+      "exercise_level": "intermediate",
+      "medical_history": "old_injury",
+      "training_context": {
+        "location": "outdoor",
+        "equipment_profile": "running+stairs+park_bar"
+      },
+      "weekly_commitment": {
+        "weekly_total_minutes": 160,
+        "session_minutes": 40,
+        "frequency_per_week": 4,
+        "time_window": "before_lunch_midday"
+      },
+      "diet_habit": "vegetarian",
+      "occupation_type": "frequent_travel"
+    },
+    "template_skeleton": {
+      "knowledge_fill_points": [
+        "为P023（中级|户外|减脂塑形|高频出差）搜索3天参考三餐示例菜单模板：按lowBMR与fat_loss目标分配热量和宏营养，输出早餐/午餐/晚餐+加餐可替换项。",
+        "为P023（中级|户外|减脂塑形|高频出差）搜索外食与在家双场景三餐替换清单：结合vegetarian饮食习惯和frequent_travel职业节奏，给出一周可循环食材与份量模板。",
+        "为P023（中级|户外|减脂塑形|高频出差）搜索每日喝水目标计算模板：结合体重区间、训练日/休息日差异，生成ToDo清单与推送文案（早9/午12/晚18/睡前）。",
+        "为P023（中级|户外|减脂塑形|高频出差）搜索喝水提醒失败补救策略：基于before_lunch_midday时段习惯，生成漏喝后补水分配、避免夜间影响睡眠的推送规则。",
+        "为P023（中级|户外|减脂塑形|高频出差）搜索4周健身框架模板：适配outdoor与器械running+stairs+park_bar，并满足每周4次、每次40分钟。",
+        "为P023（中级|户外|减脂塑形|高频出差）搜索每天ToDo动作列表模板：按intermediate训练水平与old_injury医学约束，输出动作顺序、组数、时长、RPE和注意事项。"
+      ]
+    }
+  },
+  {
+    "portrait_id": "P024",
+    "description": "该用户当前体脂中偏低，目标体脂低，BMI为正常，BMR为中偏高，方向是体态重塑。训练基础高级，健康状态无明显疾病史。常在家里训练，器械为可调哑铃+训练凳。每周约200分钟，单次50分钟，频次4次，时段以早餐后上午为主。饮食高蛋白取向，职业久坐办公。计划需兼顾安全边界、动作替代、恢复监测与执行稳定，并支持按周复盘调整。",
+    "dimensions_snapshot": {
+      "body_assessment": {
+        "body_fat_band": "mid_low",
+        "target_body_fat_band": "low",
+        "bmi_band": "normal",
+        "bmr_band": "medium_high",
+        "goal_direction": "recomposition"
+      },
+      "exercise_level": "advanced",
+      "medical_history": "none",
+      "training_context": {
+        "location": "home",
+        "equipment_profile": "adjustable_dumbbell+bench"
+      },
+      "weekly_commitment": {
+        "weekly_total_minutes": 200,
+        "session_minutes": 50,
+        "frequency_per_week": 4,
+        "time_window": "after_breakfast_morning"
+      },
+      "diet_habit": "high_protein",
+      "occupation_type": "sedentary"
+    },
+    "template_skeleton": {
+      "knowledge_fill_points": [
+        "为P024（高级|家里|体态重塑|久坐办公）搜索3天参考三餐示例菜单模板：按medium_highBMR与recomposition目标分配热量和宏营养，输出早餐/午餐/晚餐+加餐可替换项。",
+        "为P024（高级|家里|体态重塑|久坐办公）搜索外食与在家双场景三餐替换清单：结合high_protein饮食习惯和sedentary职业节奏，给出一周可循环食材与份量模板。",
+        "为P024（高级|家里|体态重塑|久坐办公）搜索每日喝水目标计算模板：结合体重区间、训练日/休息日差异，生成ToDo清单与推送文案（早9/午12/晚18/睡前）。",
+        "为P024（高级|家里|体态重塑|久坐办公）搜索喝水提醒失败补救策略：基于after_breakfast_morning时段习惯，生成漏喝后补水分配、避免夜间影响睡眠的推送规则。",
+        "为P024（高级|家里|体态重塑|久坐办公）搜索4周健身框架模板：适配home与器械adjustable_dumbbell+bench，并满足每周4次、每次50分钟。",
+        "为P024（高级|家里|体态重塑|久坐办公）搜索每天ToDo动作列表模板：按advanced训练水平与none医学约束，输出动作顺序、组数、时长、RPE和注意事项。"
+      ]
+    }
+  },
+  {
+    "portrait_id": "P025",
+    "description": "该用户当前体脂高，目标体脂中，BMI为超重，BMR为中，方向是减脂塑形。训练基础新手，健康状态无明显疾病史。常在家里训练，器械为徒手+瑜伽垫。每周约180分钟，单次45分钟，频次4次，时段以晚饭后为主。饮食均衡饮食，职业久坐办公。计划需兼顾安全边界、动作替代、恢复监测与执行稳定，并支持按周复盘调整。",
+    "dimensions_snapshot": {
+      "body_assessment": {
+        "body_fat_band": "high",
+        "target_body_fat_band": "mid",
+        "bmi_band": "overweight",
+        "bmr_band": "medium",
+        "goal_direction": "fat_loss"
+      },
+      "exercise_level": "novice",
+      "medical_history": "none",
+      "training_context": {
+        "location": "home",
+        "equipment_profile": "bodyweight+mat"
+      },
+      "weekly_commitment": {
+        "weekly_total_minutes": 180,
+        "session_minutes": 45,
+        "frequency_per_week": 4,
+        "time_window": "after_dinner_evening"
+      },
+      "diet_habit": "balanced",
+      "occupation_type": "sedentary"
+    },
+    "template_skeleton": {
+      "knowledge_fill_points": [
+        "为P025（新手|家里|减脂塑形|久坐办公）搜索3天参考三餐示例菜单模板：按mediumBMR与fat_loss目标分配热量和宏营养，输出早餐/午餐/晚餐+加餐可替换项。",
+        "为P025（新手|家里|减脂塑形|久坐办公）搜索外食与在家双场景三餐替换清单：结合balanced饮食习惯和sedentary职业节奏，给出一周可循环食材与份量模板。",
+        "为P025（新手|家里|减脂塑形|久坐办公）搜索每日喝水目标计算模板：结合体重区间、训练日/休息日差异，生成ToDo清单与推送文案（早9/午12/晚18/睡前）。",
+        "为P025（新手|家里|减脂塑形|久坐办公）搜索喝水提醒失败补救策略：基于after_dinner_evening时段习惯，生成漏喝后补水分配、避免夜间影响睡眠的推送规则。",
+        "为P025（新手|家里|减脂塑形|久坐办公）搜索4周健身框架模板：适配home与器械bodyweight+mat，并满足每周4次、每次45分钟。",
+        "为P025（新手|家里|减脂塑形|久坐办公）搜索每天ToDo动作列表模板：按novice训练水平与none医学约束，输出动作顺序、组数、时长、RPE和注意事项。"
+      ]
+    }
+  },
+  {
+    "portrait_id": "P026",
+    "description": "该用户当前体脂中，目标体脂低，BMI为正常，BMR为中，方向是体态重塑。训练基础中级，健康状态有旧伤需规避。常在家里训练，器械为哑铃+弹力带。每周约150分钟，单次30分钟，频次5次，时段以早餐前清晨为主。饮食高蛋白取向，职业学生。计划需兼顾安全边界、动作替代、恢复监测与执行稳定，并支持按周复盘调整。",
+    "dimensions_snapshot": {
+      "body_assessment": {
+        "body_fat_band": "mid",
+        "target_body_fat_band": "low",
+        "bmi_band": "normal",
+        "bmr_band": "medium",
+        "goal_direction": "recomposition"
+      },
+      "exercise_level": "intermediate",
+      "medical_history": "old_injury",
+      "training_context": {
+        "location": "home",
+        "equipment_profile": "dumbbell+resistance_band"
+      },
+      "weekly_commitment": {
+        "weekly_total_minutes": 150,
+        "session_minutes": 30,
+        "frequency_per_week": 5,
+        "time_window": "early_morning_before_breakfast"
+      },
+      "diet_habit": "high_protein",
+      "occupation_type": "student"
+    },
+    "template_skeleton": {
+      "knowledge_fill_points": [
+        "为P026（中级|家里|体态重塑|学生）搜索3天参考三餐示例菜单模板：按mediumBMR与recomposition目标分配热量和宏营养，输出早餐/午餐/晚餐+加餐可替换项。",
+        "为P026（中级|家里|体态重塑|学生）搜索外食与在家双场景三餐替换清单：结合high_protein饮食习惯和student职业节奏，给出一周可循环食材与份量模板。",
+        "为P026（中级|家里|体态重塑|学生）搜索每日喝水目标计算模板：结合体重区间、训练日/休息日差异，生成ToDo清单与推送文案（早9/午12/晚18/睡前）。",
+        "为P026（中级|家里|体态重塑|学生）搜索喝水提醒失败补救策略：基于early_morning_before_breakfast时段习惯，生成漏喝后补水分配、避免夜间影响睡眠的推送规则。",
+        "为P026（中级|家里|体态重塑|学生）搜索4周健身框架模板：适配home与器械dumbbell+resistance_band，并满足每周5次、每次30分钟。",
+        "为P026（中级|家里|体态重塑|学生）搜索每天ToDo动作列表模板：按intermediate训练水平与old_injury医学约束，输出动作顺序、组数、时长、RPE和注意事项。"
+      ]
+    }
+  },
+  {
+    "portrait_id": "P027",
+    "description": "该用户当前体脂低，目标体脂低，BMI为正常，BMR为高，方向是增肌构建。训练基础高级，健康状态无明显疾病史。常在健身房训练，器械为杠铃+器械+有氧区。每周约240分钟，单次60分钟，频次4次，时段以晚饭前为主。饮食饮食不规律，职业体力劳动。计划需兼顾安全边界、动作替代、恢复监测与执行稳定，并支持按周复盘调整。",
+    "dimensions_snapshot": {
+      "body_assessment": {
+        "body_fat_band": "low",
+        "target_body_fat_band": "low",
+        "bmi_band": "normal",
+        "bmr_band": "high",
+        "goal_direction": "muscle_gain"
+      },
+      "exercise_level": "advanced",
+      "medical_history": "none",
+      "training_context": {
+        "location": "gym",
+        "equipment_profile": "barbell+machine+cardio_zone"
+      },
+      "weekly_commitment": {
+        "weekly_total_minutes": 240,
+        "session_minutes": 60,
+        "frequency_per_week": 4,
+        "time_window": "before_dinner_evening"
+      },
+      "diet_habit": "irregular",
+      "occupation_type": "physical_work"
+    },
+    "template_skeleton": {
+      "knowledge_fill_points": [
+        "为P027（高级|健身房|增肌构建|体力劳动）搜索3天参考三餐示例菜单模板：按highBMR与muscle_gain目标分配热量和宏营养，输出早餐/午餐/晚餐+加餐可替换项。",
+        "为P027（高级|健身房|增肌构建|体力劳动）搜索外食与在家双场景三餐替换清单：结合irregular饮食习惯和physical_work职业节奏，给出一周可循环食材与份量模板。",
+        "为P027（高级|健身房|增肌构建|体力劳动）搜索每日喝水目标计算模板：结合体重区间、训练日/休息日差异，生成ToDo清单与推送文案（早9/午12/晚18/睡前）。",
+        "为P027（高级|健身房|增肌构建|体力劳动）搜索喝水提醒失败补救策略：基于before_dinner_evening时段习惯，生成漏喝后补水分配、避免夜间影响睡眠的推送规则。",
+        "为P027（高级|健身房|增肌构建|体力劳动）搜索4周健身框架模板：适配gym与器械barbell+machine+cardio_zone，并满足每周4次、每次60分钟。",
+        "为P027（高级|健身房|增肌构建|体力劳动）搜索每天ToDo动作列表模板：按advanced训练水平与none医学约束，输出动作顺序、组数、时长、RPE和注意事项。"
+      ]
+    }
+  },
+  {
+    "portrait_id": "P028",
+    "description": "该用户当前体脂高，目标体脂中，BMI为肥胖I级，BMR为高，方向是减脂塑形。训练基础新手，健康状态有慢性病管理需求。常在健身房训练，器械为固定器械为主。每周约210分钟，单次35分钟，频次6次，时段以午饭后为主。饮食有明确忌口/限制，职业轮班/夜班。计划需兼顾安全边界、动作替代、恢复监测与执行稳定，并支持按周复盘调整。",
+    "dimensions_snapshot": {
+      "body_assessment": {
+        "body_fat_band": "high",
+        "target_body_fat_band": "mid",
+        "bmi_band": "obese_class_1",
+        "bmr_band": "high",
+        "goal_direction": "fat_loss"
+      },
+      "exercise_level": "novice",
+      "medical_history": "chronic_condition",
+      "training_context": {
+        "location": "gym",
+        "equipment_profile": "machine_priority+guided_equipment"
+      },
+      "weekly_commitment": {
+        "weekly_total_minutes": 210,
+        "session_minutes": 35,
+        "frequency_per_week": 6,
+        "time_window": "after_lunch_afternoon"
+      },
+      "diet_habit": "restriction_based",
+      "occupation_type": "shift_worker"
+    },
+    "template_skeleton": {
+      "knowledge_fill_points": [
+        "为P028（新手|健身房|减脂塑形|轮班/夜班）搜索3天参考三餐示例菜单模板：按highBMR与fat_loss目标分配热量和宏营养，输出早餐/午餐/晚餐+加餐可替换项。",
+        "为P028（新手|健身房|减脂塑形|轮班/夜班）搜索外食与在家双场景三餐替换清单：结合restriction_based饮食习惯和shift_worker职业节奏，给出一周可循环食材与份量模板。",
+        "为P028（新手|健身房|减脂塑形|轮班/夜班）搜索每日喝水目标计算模板：结合体重区间、训练日/休息日差异，生成ToDo清单与推送文案（早9/午12/晚18/睡前）。",
+        "为P028（新手|健身房|减脂塑形|轮班/夜班）搜索喝水提醒失败补救策略：基于after_lunch_afternoon时段习惯，生成漏喝后补水分配、避免夜间影响睡眠的推送规则。",
+        "为P028（新手|健身房|减脂塑形|轮班/夜班）搜索4周健身框架模板：适配gym与器械machine_priority+guided_equipment，并满足每周6次、每次35分钟。",
+        "为P028（新手|健身房|减脂塑形|轮班/夜班）搜索每天ToDo动作列表模板：按novice训练水平与chronic_condition医学约束，输出动作顺序、组数、时长、RPE和注意事项。"
+      ]
+    }
+  },
+  {
+    "portrait_id": "P029",
+    "description": "该用户当前体脂中，目标体脂中偏低，BMI为正常偏高，BMR为低，方向是减脂塑形。训练基础中级，健康状态有旧伤需规避。常在户外训练，器械为跑步+楼梯+公园单杠。每周约160分钟，单次40分钟，频次4次，时段以午饭前为主。饮食素食为主，职业高频出差。计划需兼顾安全边界、动作替代、恢复监测与执行稳定，并支持按周复盘调整。",
+    "dimensions_snapshot": {
+      "body_assessment": {
+        "body_fat_band": "mid",
+        "target_body_fat_band": "mid_low",
+        "bmi_band": "normal_high",
+        "bmr_band": "low",
+        "goal_direction": "fat_loss"
+      },
+      "exercise_level": "intermediate",
+      "medical_history": "old_injury",
+      "training_context": {
+        "location": "outdoor",
+        "equipment_profile": "running+stairs+park_bar"
+      },
+      "weekly_commitment": {
+        "weekly_total_minutes": 160,
+        "session_minutes": 40,
+        "frequency_per_week": 4,
+        "time_window": "before_lunch_midday"
+      },
+      "diet_habit": "vegetarian",
+      "occupation_type": "frequent_travel"
+    },
+    "template_skeleton": {
+      "knowledge_fill_points": [
+        "为P029（中级|户外|减脂塑形|高频出差）搜索3天参考三餐示例菜单模板：按lowBMR与fat_loss目标分配热量和宏营养，输出早餐/午餐/晚餐+加餐可替换项。",
+        "为P029（中级|户外|减脂塑形|高频出差）搜索外食与在家双场景三餐替换清单：结合vegetarian饮食习惯和frequent_travel职业节奏，给出一周可循环食材与份量模板。",
+        "为P029（中级|户外|减脂塑形|高频出差）搜索每日喝水目标计算模板：结合体重区间、训练日/休息日差异，生成ToDo清单与推送文案（早9/午12/晚18/睡前）。",
+        "为P029（中级|户外|减脂塑形|高频出差）搜索喝水提醒失败补救策略：基于before_lunch_midday时段习惯，生成漏喝后补水分配、避免夜间影响睡眠的推送规则。",
+        "为P029（中级|户外|减脂塑形|高频出差）搜索4周健身框架模板：适配outdoor与器械running+stairs+park_bar，并满足每周4次、每次40分钟。",
+        "为P029（中级|户外|减脂塑形|高频出差）搜索每天ToDo动作列表模板：按intermediate训练水平与old_injury医学约束，输出动作顺序、组数、时长、RPE和注意事项。"
+      ]
+    }
+  },
+  {
+    "portrait_id": "P030",
+    "description": "该用户当前体脂中偏低，目标体脂低，BMI为正常，BMR为中偏高，方向是体态重塑。训练基础高级，健康状态无明显疾病史。常在家里训练，器械为可调哑铃+训练凳。每周约200分钟，单次50分钟，频次4次，时段以早餐后上午为主。饮食高蛋白取向，职业久坐办公。计划需兼顾安全边界、动作替代、恢复监测与执行稳定，并支持按周复盘调整。",
+    "dimensions_snapshot": {
+      "body_assessment": {
+        "body_fat_band": "mid_low",
+        "target_body_fat_band": "low",
+        "bmi_band": "normal",
+        "bmr_band": "medium_high",
+        "goal_direction": "recomposition"
+      },
+      "exercise_level": "advanced",
+      "medical_history": "none",
+      "training_context": {
+        "location": "home",
+        "equipment_profile": "adjustable_dumbbell+bench"
+      },
+      "weekly_commitment": {
+        "weekly_total_minutes": 200,
+        "session_minutes": 50,
+        "frequency_per_week": 4,
+        "time_window": "after_breakfast_morning"
+      },
+      "diet_habit": "high_protein",
+      "occupation_type": "sedentary"
+    },
+    "template_skeleton": {
+      "knowledge_fill_points": [
+        "为P030（高级|家里|体态重塑|久坐办公）搜索3天参考三餐示例菜单模板：按medium_highBMR与recomposition目标分配热量和宏营养，输出早餐/午餐/晚餐+加餐可替换项。",
+        "为P030（高级|家里|体态重塑|久坐办公）搜索外食与在家双场景三餐替换清单：结合high_protein饮食习惯和sedentary职业节奏，给出一周可循环食材与份量模板。",
+        "为P030（高级|家里|体态重塑|久坐办公）搜索每日喝水目标计算模板：结合体重区间、训练日/休息日差异，生成ToDo清单与推送文案（早9/午12/晚18/睡前）。",
+        "为P030（高级|家里|体态重塑|久坐办公）搜索喝水提醒失败补救策略：基于after_breakfast_morning时段习惯，生成漏喝后补水分配、避免夜间影响睡眠的推送规则。",
+        "为P030（高级|家里|体态重塑|久坐办公）搜索4周健身框架模板：适配home与器械adjustable_dumbbell+bench，并满足每周4次、每次50分钟。",
+        "为P030（高级|家里|体态重塑|久坐办公）搜索每天ToDo动作列表模板：按advanced训练水平与none医学约束，输出动作顺序、组数、时长、RPE和注意事项。"
+      ]
+    }
+  },
+  {
+    "portrait_id": "P031",
+    "description": "该用户当前体脂高，目标体脂中，BMI为超重，BMR为中，方向是减脂塑形。训练基础新手，健康状态无明显疾病史。常在家里训练，器械为徒手+瑜伽垫。每周约180分钟，单次45分钟，频次4次，时段以晚饭后为主。饮食均衡饮食，职业久坐办公。计划需兼顾安全边界、动作替代、恢复监测与执行稳定，并支持按周复盘调整。",
+    "dimensions_snapshot": {
+      "body_assessment": {
+        "body_fat_band": "high",
+        "target_body_fat_band": "mid",
+        "bmi_band": "overweight",
+        "bmr_band": "medium",
+        "goal_direction": "fat_loss"
+      },
+      "exercise_level": "novice",
+      "medical_history": "none",
+      "training_context": {
+        "location": "home",
+        "equipment_profile": "bodyweight+mat"
+      },
+      "weekly_commitment": {
+        "weekly_total_minutes": 180,
+        "session_minutes": 45,
+        "frequency_per_week": 4,
+        "time_window": "after_dinner_evening"
+      },
+      "diet_habit": "balanced",
+      "occupation_type": "sedentary"
+    },
+    "template_skeleton": {
+      "knowledge_fill_points": [
+        "为P031（新手|家里|减脂塑形|久坐办公）搜索3天参考三餐示例菜单模板：按mediumBMR与fat_loss目标分配热量和宏营养，输出早餐/午餐/晚餐+加餐可替换项。",
+        "为P031（新手|家里|减脂塑形|久坐办公）搜索外食与在家双场景三餐替换清单：结合balanced饮食习惯和sedentary职业节奏，给出一周可循环食材与份量模板。",
+        "为P031（新手|家里|减脂塑形|久坐办公）搜索每日喝水目标计算模板：结合体重区间、训练日/休息日差异，生成ToDo清单与推送文案（早9/午12/晚18/睡前）。",
+        "为P031（新手|家里|减脂塑形|久坐办公）搜索喝水提醒失败补救策略：基于after_dinner_evening时段习惯，生成漏喝后补水分配、避免夜间影响睡眠的推送规则。",
+        "为P031（新手|家里|减脂塑形|久坐办公）搜索4周健身框架模板：适配home与器械bodyweight+mat，并满足每周4次、每次45分钟。",
+        "为P031（新手|家里|减脂塑形|久坐办公）搜索每天ToDo动作列表模板：按novice训练水平与none医学约束，输出动作顺序、组数、时长、RPE和注意事项。"
+      ]
+    }
+  },
+  {
+    "portrait_id": "P032",
+    "description": "该用户当前体脂中，目标体脂低，BMI为正常，BMR为中，方向是体态重塑。训练基础中级，健康状态有旧伤需规避。常在家里训练，器械为哑铃+弹力带。每周约150分钟，单次30分钟，频次5次，时段以早餐前清晨为主。饮食高蛋白取向，职业学生。计划需兼顾安全边界、动作替代、恢复监测与执行稳定，并支持按周复盘调整。",
+    "dimensions_snapshot": {
+      "body_assessment": {
+        "body_fat_band": "mid",
+        "target_body_fat_band": "low",
+        "bmi_band": "normal",
+        "bmr_band": "medium",
+        "goal_direction": "recomposition"
+      },
+      "exercise_level": "intermediate",
+      "medical_history": "old_injury",
+      "training_context": {
+        "location": "home",
+        "equipment_profile": "dumbbell+resistance_band"
+      },
+      "weekly_commitment": {
+        "weekly_total_minutes": 150,
+        "session_minutes": 30,
+        "frequency_per_week": 5,
+        "time_window": "early_morning_before_breakfast"
+      },
+      "diet_habit": "high_protein",
+      "occupation_type": "student"
+    },
+    "template_skeleton": {
+      "knowledge_fill_points": [
+        "为P032（中级|家里|体态重塑|学生）搜索3天参考三餐示例菜单模板：按mediumBMR与recomposition目标分配热量和宏营养，输出早餐/午餐/晚餐+加餐可替换项。",
+        "为P032（中级|家里|体态重塑|学生）搜索外食与在家双场景三餐替换清单：结合high_protein饮食习惯和student职业节奏，给出一周可循环食材与份量模板。",
+        "为P032（中级|家里|体态重塑|学生）搜索每日喝水目标计算模板：结合体重区间、训练日/休息日差异，生成ToDo清单与推送文案（早9/午12/晚18/睡前）。",
+        "为P032（中级|家里|体态重塑|学生）搜索喝水提醒失败补救策略：基于early_morning_before_breakfast时段习惯，生成漏喝后补水分配、避免夜间影响睡眠的推送规则。",
+        "为P032（中级|家里|体态重塑|学生）搜索4周健身框架模板：适配home与器械dumbbell+resistance_band，并满足每周5次、每次30分钟。",
+        "为P032（中级|家里|体态重塑|学生）搜索每天ToDo动作列表模板：按intermediate训练水平与old_injury医学约束，输出动作顺序、组数、时长、RPE和注意事项。"
+      ]
+    }
+  },
+  {
+    "portrait_id": "P033",
+    "description": "该用户当前体脂低，目标体脂低，BMI为正常，BMR为高，方向是增肌构建。训练基础高级，健康状态无明显疾病史。常在健身房训练，器械为杠铃+器械+有氧区。每周约240分钟，单次60分钟，频次4次，时段以晚饭前为主。饮食饮食不规律，职业体力劳动。计划需兼顾安全边界、动作替代、恢复监测与执行稳定，并支持按周复盘调整。",
+    "dimensions_snapshot": {
+      "body_assessment": {
+        "body_fat_band": "low",
+        "target_body_fat_band": "low",
+        "bmi_band": "normal",
+        "bmr_band": "high",
+        "goal_direction": "muscle_gain"
+      },
+      "exercise_level": "advanced",
+      "medical_history": "none",
+      "training_context": {
+        "location": "gym",
+        "equipment_profile": "barbell+machine+cardio_zone"
+      },
+      "weekly_commitment": {
+        "weekly_total_minutes": 240,
+        "session_minutes": 60,
+        "frequency_per_week": 4,
+        "time_window": "before_dinner_evening"
+      },
+      "diet_habit": "irregular",
+      "occupation_type": "physical_work"
+    },
+    "template_skeleton": {
+      "knowledge_fill_points": [
+        "为P033（高级|健身房|增肌构建|体力劳动）搜索3天参考三餐示例菜单模板：按highBMR与muscle_gain目标分配热量和宏营养，输出早餐/午餐/晚餐+加餐可替换项。",
+        "为P033（高级|健身房|增肌构建|体力劳动）搜索外食与在家双场景三餐替换清单：结合irregular饮食习惯和physical_work职业节奏，给出一周可循环食材与份量模板。",
+        "为P033（高级|健身房|增肌构建|体力劳动）搜索每日喝水目标计算模板：结合体重区间、训练日/休息日差异，生成ToDo清单与推送文案（早9/午12/晚18/睡前）。",
+        "为P033（高级|健身房|增肌构建|体力劳动）搜索喝水提醒失败补救策略：基于before_dinner_evening时段习惯，生成漏喝后补水分配、避免夜间影响睡眠的推送规则。",
+        "为P033（高级|健身房|增肌构建|体力劳动）搜索4周健身框架模板：适配gym与器械barbell+machine+cardio_zone，并满足每周4次、每次60分钟。",
+        "为P033（高级|健身房|增肌构建|体力劳动）搜索每天ToDo动作列表模板：按advanced训练水平与none医学约束，输出动作顺序、组数、时长、RPE和注意事项。"
+      ]
+    }
+  },
+  {
+    "portrait_id": "P034",
+    "description": "该用户当前体脂高，目标体脂中，BMI为肥胖I级，BMR为高，方向是减脂塑形。训练基础新手，健康状态有慢性病管理需求。常在健身房训练，器械为固定器械为主。每周约210分钟，单次35分钟，频次6次，时段以午饭后为主。饮食有明确忌口/限制，职业轮班/夜班。计划需兼顾安全边界、动作替代、恢复监测与执行稳定，并支持按周复盘调整。",
+    "dimensions_snapshot": {
+      "body_assessment": {
+        "body_fat_band": "high",
+        "target_body_fat_band": "mid",
+        "bmi_band": "obese_class_1",
+        "bmr_band": "high",
+        "goal_direction": "fat_loss"
+      },
+      "exercise_level": "novice",
+      "medical_history": "chronic_condition",
+      "training_context": {
+        "location": "gym",
+        "equipment_profile": "machine_priority+guided_equipment"
+      },
+      "weekly_commitment": {
+        "weekly_total_minutes": 210,
+        "session_minutes": 35,
+        "frequency_per_week": 6,
+        "time_window": "after_lunch_afternoon"
+      },
+      "diet_habit": "restriction_based",
+      "occupation_type": "shift_worker"
+    },
+    "template_skeleton": {
+      "knowledge_fill_points": [
+        "为P034（新手|健身房|减脂塑形|轮班/夜班）搜索3天参考三餐示例菜单模板：按highBMR与fat_loss目标分配热量和宏营养，输出早餐/午餐/晚餐+加餐可替换项。",
+        "为P034（新手|健身房|减脂塑形|轮班/夜班）搜索外食与在家双场景三餐替换清单：结合restriction_based饮食习惯和shift_worker职业节奏，给出一周可循环食材与份量模板。",
+        "为P034（新手|健身房|减脂塑形|轮班/夜班）搜索每日喝水目标计算模板：结合体重区间、训练日/休息日差异，生成ToDo清单与推送文案（早9/午12/晚18/睡前）。",
+        "为P034（新手|健身房|减脂塑形|轮班/夜班）搜索喝水提醒失败补救策略：基于after_lunch_afternoon时段习惯，生成漏喝后补水分配、避免夜间影响睡眠的推送规则。",
+        "为P034（新手|健身房|减脂塑形|轮班/夜班）搜索4周健身框架模板：适配gym与器械machine_priority+guided_equipment，并满足每周6次、每次35分钟。",
+        "为P034（新手|健身房|减脂塑形|轮班/夜班）搜索每天ToDo动作列表模板：按novice训练水平与chronic_condition医学约束，输出动作顺序、组数、时长、RPE和注意事项。"
+      ]
+    }
+  },
+  {
+    "portrait_id": "P035",
+    "description": "该用户当前体脂中，目标体脂中偏低，BMI为正常偏高，BMR为低，方向是减脂塑形。训练基础中级，健康状态有旧伤需规避。常在户外训练，器械为跑步+楼梯+公园单杠。每周约160分钟，单次40分钟，频次4次，时段以午饭前为主。饮食素食为主，职业高频出差。计划需兼顾安全边界、动作替代、恢复监测与执行稳定，并支持按周复盘调整。",
+    "dimensions_snapshot": {
+      "body_assessment": {
+        "body_fat_band": "mid",
+        "target_body_fat_band": "mid_low",
+        "bmi_band": "normal_high",
+        "bmr_band": "low",
+        "goal_direction": "fat_loss"
+      },
+      "exercise_level": "intermediate",
+      "medical_history": "old_injury",
+      "training_context": {
+        "location": "outdoor",
+        "equipment_profile": "running+stairs+park_bar"
+      },
+      "weekly_commitment": {
+        "weekly_total_minutes": 160,
+        "session_minutes": 40,
+        "frequency_per_week": 4,
+        "time_window": "before_lunch_midday"
+      },
+      "diet_habit": "vegetarian",
+      "occupation_type": "frequent_travel"
+    },
+    "template_skeleton": {
+      "knowledge_fill_points": [
+        "为P035（中级|户外|减脂塑形|高频出差）搜索3天参考三餐示例菜单模板：按lowBMR与fat_loss目标分配热量和宏营养，输出早餐/午餐/晚餐+加餐可替换项。",
+        "为P035（中级|户外|减脂塑形|高频出差）搜索外食与在家双场景三餐替换清单：结合vegetarian饮食习惯和frequent_travel职业节奏，给出一周可循环食材与份量模板。",
+        "为P035（中级|户外|减脂塑形|高频出差）搜索每日喝水目标计算模板：结合体重区间、训练日/休息日差异，生成ToDo清单与推送文案（早9/午12/晚18/睡前）。",
+        "为P035（中级|户外|减脂塑形|高频出差）搜索喝水提醒失败补救策略：基于before_lunch_midday时段习惯，生成漏喝后补水分配、避免夜间影响睡眠的推送规则。",
+        "为P035（中级|户外|减脂塑形|高频出差）搜索4周健身框架模板：适配outdoor与器械running+stairs+park_bar，并满足每周4次、每次40分钟。",
+        "为P035（中级|户外|减脂塑形|高频出差）搜索每天ToDo动作列表模板：按intermediate训练水平与old_injury医学约束，输出动作顺序、组数、时长、RPE和注意事项。"
+      ]
+    }
+  },
+  {
+    "portrait_id": "P036",
+    "description": "该用户当前体脂中偏低，目标体脂低，BMI为正常，BMR为中偏高，方向是体态重塑。训练基础高级，健康状态无明显疾病史。常在家里训练，器械为可调哑铃+训练凳。每周约200分钟，单次50分钟，频次4次，时段以早餐后上午为主。饮食高蛋白取向，职业久坐办公。计划需兼顾安全边界、动作替代、恢复监测与执行稳定，并支持按周复盘调整。",
+    "dimensions_snapshot": {
+      "body_assessment": {
+        "body_fat_band": "mid_low",
+        "target_body_fat_band": "low",
+        "bmi_band": "normal",
+        "bmr_band": "medium_high",
+        "goal_direction": "recomposition"
+      },
+      "exercise_level": "advanced",
+      "medical_history": "none",
+      "training_context": {
+        "location": "home",
+        "equipment_profile": "adjustable_dumbbell+bench"
+      },
+      "weekly_commitment": {
+        "weekly_total_minutes": 200,
+        "session_minutes": 50,
+        "frequency_per_week": 4,
+        "time_window": "after_breakfast_morning"
+      },
+      "diet_habit": "high_protein",
+      "occupation_type": "sedentary"
+    },
+    "template_skeleton": {
+      "knowledge_fill_points": [
+        "为P036（高级|家里|体态重塑|久坐办公）搜索3天参考三餐示例菜单模板：按medium_highBMR与recomposition目标分配热量和宏营养，输出早餐/午餐/晚餐+加餐可替换项。",
+        "为P036（高级|家里|体态重塑|久坐办公）搜索外食与在家双场景三餐替换清单：结合high_protein饮食习惯和sedentary职业节奏，给出一周可循环食材与份量模板。",
+        "为P036（高级|家里|体态重塑|久坐办公）搜索每日喝水目标计算模板：结合体重区间、训练日/休息日差异，生成ToDo清单与推送文案（早9/午12/晚18/睡前）。",
+        "为P036（高级|家里|体态重塑|久坐办公）搜索喝水提醒失败补救策略：基于after_breakfast_morning时段习惯，生成漏喝后补水分配、避免夜间影响睡眠的推送规则。",
+        "为P036（高级|家里|体态重塑|久坐办公）搜索4周健身框架模板：适配home与器械adjustable_dumbbell+bench，并满足每周4次、每次50分钟。",
+        "为P036（高级|家里|体态重塑|久坐办公）搜索每天ToDo动作列表模板：按advanced训练水平与none医学约束，输出动作顺序、组数、时长、RPE和注意事项。"
+      ]
+    }
+  },
+  {
+    "portrait_id": "P037",
+    "description": "该用户当前体脂中偏高，目标体脂中，BMI为超重，BMR为中，方向是减脂塑形。训练基础新手，健康状态处于孕产后恢复阶段。常在家里训练，器械为徒手+骨盆底弹力带。每周约120分钟，单次30分钟，频次4次，时段以午饭后为主。饮食均衡饮食，职业久坐办公。计划需兼顾安全边界、动作替代、恢复监测与执行稳定，并支持按周复盘调整。",
+    "dimensions_snapshot": {
+      "body_assessment": {
+        "body_fat_band": "mid_high",
+        "target_body_fat_band": "mid",
+        "bmi_band": "overweight",
+        "bmr_band": "medium",
+        "goal_direction": "fat_loss"
+      },
+      "exercise_level": "novice",
+      "medical_history": "postpartum_recovery",
+      "training_context": {
+        "location": "home",
+        "equipment_profile": "bodyweight+pelvic_floor_band"
+      },
+      "weekly_commitment": {
+        "weekly_total_minutes": 120,
+        "session_minutes": 30,
+        "frequency_per_week": 4,
+        "time_window": "after_lunch_afternoon"
+      },
+      "diet_habit": "balanced",
+      "occupation_type": "sedentary"
+    },
+    "template_skeleton": {
+      "knowledge_fill_points": [
+        "为P037（新手|家里|减脂塑形|久坐办公）搜索3天参考三餐示例菜单模板：以处于孕产后恢复阶段为约束，匹配mediumBMR和fat_loss目标热量。",
+        "为P037（新手|家里|减脂塑形|久坐办公）搜索高可执行三餐替换方案：结合均衡饮食与久坐办公作息，输出工作日/周末双模板。",
+        "为P037（新手|家里|减脂塑形|久坐办公）搜索每日喝水目标与提醒模板：按训练日和非训练日分层，生成ToDo清单与四时点推送文案（早9/午12/晚18/睡前）。",
+        "为P037（新手|家里|减脂塑形|久坐办公）搜索喝水提醒个性化规则：根据午饭后时段、睡眠影响和慢病/恢复注意点配置提醒频率。",
+        "为P037（新手|家里|减脂塑形|久坐办公）搜索4周训练框架模板：适配home与器械bodyweight+pelvic_floor_band，满足每周4次节奏。",
+        "为P037（新手|家里|减脂塑形|久坐办公）搜索每天ToDo动作模板：针对处于孕产后恢复阶段与新手，输出动作、组数、时长、强度上限和风险提示。"
+      ]
+    }
+  },
+  {
+    "portrait_id": "P038",
+    "description": "该用户当前体脂中，目标体脂中偏低，BMI为正常偏高，BMR为中偏低，方向是体态重塑。训练基础中级，健康状态处于孕产后恢复阶段。常在健身房训练，器械为轻器械+核心稳定工具。每周约150分钟，单次50分钟，频次3次，时段以早餐后上午为主。饮食高蛋白取向，职业久坐办公。计划需兼顾安全边界、动作替代、恢复监测与执行稳定，并支持按周复盘调整。",
+    "dimensions_snapshot": {
+      "body_assessment": {
+        "body_fat_band": "mid",
+        "target_body_fat_band": "mid_low",
+        "bmi_band": "normal_high",
+        "bmr_band": "medium_low",
+        "goal_direction": "recomposition"
+      },
+      "exercise_level": "intermediate",
+      "medical_history": "postpartum_recovery",
+      "training_context": {
+        "location": "gym",
+        "equipment_profile": "light_machine+core_stability_tools"
+      },
+      "weekly_commitment": {
+        "weekly_total_minutes": 150,
+        "session_minutes": 50,
+        "frequency_per_week": 3,
+        "time_window": "after_breakfast_morning"
+      },
+      "diet_habit": "high_protein",
+      "occupation_type": "sedentary"
+    },
+    "template_skeleton": {
+      "knowledge_fill_points": [
+        "为P038（中级|健身房|体态重塑|久坐办公）搜索3天参考三餐示例菜单模板：以处于孕产后恢复阶段为约束，匹配medium_lowBMR和recomposition目标热量。",
+        "为P038（中级|健身房|体态重塑|久坐办公）搜索高可执行三餐替换方案：结合高蛋白取向与久坐办公作息，输出工作日/周末双模板。",
+        "为P038（中级|健身房|体态重塑|久坐办公）搜索每日喝水目标与提醒模板：按训练日和非训练日分层，生成ToDo清单与四时点推送文案（早9/午12/晚18/睡前）。",
+        "为P038（中级|健身房|体态重塑|久坐办公）搜索喝水提醒个性化规则：根据早餐后上午时段、睡眠影响和慢病/恢复注意点配置提醒频率。",
+        "为P038（中级|健身房|体态重塑|久坐办公）搜索4周训练框架模板：适配gym与器械light_machine+core_stability_tools，满足每周3次节奏。",
+        "为P038（中级|健身房|体态重塑|久坐办公）搜索每天ToDo动作模板：针对处于孕产后恢复阶段与中级，输出动作、组数、时长、强度上限和风险提示。"
+      ]
+    }
+  },
+  {
+    "portrait_id": "P039",
+    "description": "该用户当前体脂中，目标体脂中，BMI为正常，BMR为低，方向是体态重塑。训练基础新手，健康状态50岁以上体能维护阶段。常在家里训练，器械为椅子辅助+轻哑铃。每周约120分钟，单次40分钟，频次3次，时段以晚饭后为主。饮食均衡饮食，职业久坐办公。计划需兼顾安全边界、动作替代、恢复监测与执行稳定，并支持按周复盘调整。",
+    "dimensions_snapshot": {
+      "body_assessment": {
+        "body_fat_band": "mid",
+        "target_body_fat_band": "mid",
+        "bmi_band": "normal",
+        "bmr_band": "low",
+        "goal_direction": "recomposition"
+      },
+      "exercise_level": "novice",
+      "medical_history": "age_50_plus",
+      "training_context": {
+        "location": "home",
+        "equipment_profile": "chair_assist+light_dumbbell"
+      },
+      "weekly_commitment": {
+        "weekly_total_minutes": 120,
+        "session_minutes": 40,
+        "frequency_per_week": 3,
+        "time_window": "after_dinner_evening"
+      },
+      "diet_habit": "balanced",
+      "occupation_type": "sedentary"
+    },
+    "template_skeleton": {
+      "knowledge_fill_points": [
+        "为P039（新手|家里|体态重塑|久坐办公）搜索3天参考三餐示例菜单模板：以50岁以上体能维护阶段为约束，匹配lowBMR和recomposition目标热量。",
+        "为P039（新手|家里|体态重塑|久坐办公）搜索高可执行三餐替换方案：结合均衡饮食与久坐办公作息，输出工作日/周末双模板。",
+        "为P039（新手|家里|体态重塑|久坐办公）搜索每日喝水目标与提醒模板：按训练日和非训练日分层，生成ToDo清单与四时点推送文案（早9/午12/晚18/睡前）。",
+        "为P039（新手|家里|体态重塑|久坐办公）搜索喝水提醒个性化规则：根据晚饭后时段、睡眠影响和慢病/恢复注意点配置提醒频率。",
+        "为P039（新手|家里|体态重塑|久坐办公）搜索4周训练框架模板：适配home与器械chair_assist+light_dumbbell，满足每周3次节奏。",
+        "为P039（新手|家里|体态重塑|久坐办公）搜索每天ToDo动作模板：针对50岁以上体能维护阶段与新手，输出动作、组数、时长、强度上限和风险提示。"
+      ]
+    }
+  },
+  {
+    "portrait_id": "P040",
+    "description": "该用户当前体脂中偏高，目标体脂中，BMI为超重，BMR为中偏低，方向是减脂塑形。训练基础中级，健康状态50岁以上体能维护阶段。常在健身房训练，器械为固定器械+低冲击有氧。每周约180分钟，单次45分钟，频次4次，时段以午饭前为主。饮食有明确忌口/限制，职业久坐办公。计划需兼顾安全边界、动作替代、恢复监测与执行稳定，并支持按周复盘调整。",
+    "dimensions_snapshot": {
+      "body_assessment": {
+        "body_fat_band": "mid_high",
+        "target_body_fat_band": "mid",
+        "bmi_band": "overweight",
+        "bmr_band": "medium_low",
+        "goal_direction": "fat_loss"
+      },
+      "exercise_level": "intermediate",
+      "medical_history": "age_50_plus",
+      "training_context": {
+        "location": "gym",
+        "equipment_profile": "machine_priority+low_impact_cardio"
+      },
+      "weekly_commitment": {
+        "weekly_total_minutes": 180,
+        "session_minutes": 45,
+        "frequency_per_week": 4,
+        "time_window": "before_lunch_midday"
+      },
+      "diet_habit": "restriction_based",
+      "occupation_type": "sedentary"
+    },
+    "template_skeleton": {
+      "knowledge_fill_points": [
+        "为P040（中级|健身房|减脂塑形|久坐办公）搜索3天参考三餐示例菜单模板：以50岁以上体能维护阶段为约束，匹配medium_lowBMR和fat_loss目标热量。",
+        "为P040（中级|健身房|减脂塑形|久坐办公）搜索高可执行三餐替换方案：结合有明确忌口/限制与久坐办公作息，输出工作日/周末双模板。",
+        "为P040（中级|健身房|减脂塑形|久坐办公）搜索每日喝水目标与提醒模板：按训练日和非训练日分层，生成ToDo清单与四时点推送文案（早9/午12/晚18/睡前）。",
+        "为P040（中级|健身房|减脂塑形|久坐办公）搜索喝水提醒个性化规则：根据午饭前时段、睡眠影响和慢病/恢复注意点配置提醒频率。",
+        "为P040（中级|健身房|减脂塑形|久坐办公）搜索4周训练框架模板：适配gym与器械machine_priority+low_impact_cardio，满足每周4次节奏。",
+        "为P040（中级|健身房|减脂塑形|久坐办公）搜索每天ToDo动作模板：针对50岁以上体能维护阶段与中级，输出动作、组数、时长、强度上限和风险提示。"
+      ]
+    }
+  },
+  {
+    "portrait_id": "P041",
+    "description": "该用户当前体脂高，目标体脂中，BMI为肥胖I级，BMR为高，方向是减脂塑形。训练基础新手，健康状态无明显疾病史。常在家里训练，器械为徒手+短时训练计时。每周约90分钟，单次15分钟，频次6次，时段以碎片化时段为主。饮食饮食不规律，职业久坐办公。计划需兼顾安全边界、动作替代、恢复监测与执行稳定，并支持按周复盘调整。",
+    "dimensions_snapshot": {
+      "body_assessment": {
+        "body_fat_band": "high",
+        "target_body_fat_band": "mid",
+        "bmi_band": "obese_class_1",
+        "bmr_band": "high",
+        "goal_direction": "fat_loss"
+      },
+      "exercise_level": "novice",
+      "medical_history": "none",
+      "training_context": {
+        "location": "home",
+        "equipment_profile": "bodyweight+short_session_timer"
+      },
+      "weekly_commitment": {
+        "weekly_total_minutes": 90,
+        "session_minutes": 15,
+        "frequency_per_week": 6,
+        "time_window": "flexible_fragmented"
+      },
+      "diet_habit": "irregular",
+      "occupation_type": "sedentary"
+    },
+    "template_skeleton": {
+      "knowledge_fill_points": [
+        "为P041（新手|家里|减脂塑形|久坐办公）搜索3天参考三餐示例菜单模板：以无明显疾病史为约束，匹配highBMR和fat_loss目标热量。",
+        "为P041（新手|家里|减脂塑形|久坐办公）搜索高可执行三餐替换方案：结合饮食不规律与久坐办公作息，输出工作日/周末双模板。",
+        "为P041（新手|家里|减脂塑形|久坐办公）搜索每日喝水目标与提醒模板：按训练日和非训练日分层，生成ToDo清单与四时点推送文案（早9/午12/晚18/睡前）。",
+        "为P041（新手|家里|减脂塑形|久坐办公）搜索喝水提醒个性化规则：根据碎片化时段时段、睡眠影响和慢病/恢复注意点配置提醒频率。",
+        "为P041（新手|家里|减脂塑形|久坐办公）搜索4周训练框架模板：适配home与器械bodyweight+short_session_timer，满足每周6次节奏。",
+        "为P041（新手|家里|减脂塑形|久坐办公）搜索每天ToDo动作模板：针对无明显疾病史与新手，输出动作、组数、时长、强度上限和风险提示。"
+      ]
+    }
+  },
+  {
+    "portrait_id": "P042",
+    "description": "该用户当前体脂中，目标体脂中偏低，BMI为正常偏高，BMR为中，方向是体态重塑。训练基础中级，健康状态有旧伤需规避。常在家里训练，器械为酒店徒手+弹力带。每周约110分钟，单次22分钟，频次5次，时段以碎片化时段为主。饮食高蛋白取向，职业高频出差。计划需兼顾安全边界、动作替代、恢复监测与执行稳定，并支持按周复盘调整。",
+    "dimensions_snapshot": {
+      "body_assessment": {
+        "body_fat_band": "mid",
+        "target_body_fat_band": "mid_low",
+        "bmi_band": "normal_high",
+        "bmr_band": "medium",
+        "goal_direction": "recomposition"
+      },
+      "exercise_level": "intermediate",
+      "medical_history": "old_injury",
+      "training_context": {
+        "location": "home",
+        "equipment_profile": "hotel_room_bodyweight+resistance_band"
+      },
+      "weekly_commitment": {
+        "weekly_total_minutes": 110,
+        "session_minutes": 22,
+        "frequency_per_week": 5,
+        "time_window": "flexible_fragmented"
+      },
+      "diet_habit": "high_protein",
+      "occupation_type": "frequent_travel"
+    },
+    "template_skeleton": {
+      "knowledge_fill_points": [
+        "为P042（中级|家里|体态重塑|高频出差）搜索3天参考三餐示例菜单模板：以有旧伤需规避为约束，匹配mediumBMR和recomposition目标热量。",
+        "为P042（中级|家里|体态重塑|高频出差）搜索高可执行三餐替换方案：结合高蛋白取向与高频出差作息，输出工作日/周末双模板。",
+        "为P042（中级|家里|体态重塑|高频出差）搜索每日喝水目标与提醒模板：按训练日和非训练日分层，生成ToDo清单与四时点推送文案（早9/午12/晚18/睡前）。",
+        "为P042（中级|家里|体态重塑|高频出差）搜索喝水提醒个性化规则：根据碎片化时段时段、睡眠影响和慢病/恢复注意点配置提醒频率。",
+        "为P042（中级|家里|体态重塑|高频出差）搜索4周训练框架模板：适配home与器械hotel_room_bodyweight+resistance_band，满足每周5次节奏。",
+        "为P042（中级|家里|体态重塑|高频出差）搜索每天ToDo动作模板：针对有旧伤需规避与中级，输出动作、组数、时长、强度上限和风险提示。"
+      ]
+    }
+  },
+  {
+    "portrait_id": "P043",
+    "description": "该用户当前体脂中，目标体脂中偏低，BMI为正常，BMR为中，方向是减脂塑形。训练基础新手，健康状态无明显疾病史。常在户外训练，器械为纯跑步。每周约150分钟，单次30分钟，频次5次，时段以早餐前清晨为主。饮食均衡饮食，职业学生。计划需兼顾安全边界、动作替代、恢复监测与执行稳定，并支持按周复盘调整。同时保留训练日与休息日的节奏差异。",
+    "dimensions_snapshot": {
+      "body_assessment": {
+        "body_fat_band": "mid",
+        "target_body_fat_band": "mid_low",
+        "bmi_band": "normal",
+        "bmr_band": "medium",
+        "goal_direction": "fat_loss"
+      },
+      "exercise_level": "novice",
+      "medical_history": "none",
+      "training_context": {
+        "location": "outdoor",
+        "equipment_profile": "running_only"
+      },
+      "weekly_commitment": {
+        "weekly_total_minutes": 150,
+        "session_minutes": 30,
+        "frequency_per_week": 5,
+        "time_window": "early_morning_before_breakfast"
+      },
+      "diet_habit": "balanced",
+      "occupation_type": "student"
+    },
+    "template_skeleton": {
+      "knowledge_fill_points": [
+        "为P043（新手|户外|减脂塑形|学生）搜索3天参考三餐示例菜单模板：以无明显疾病史为约束，匹配mediumBMR和fat_loss目标热量。",
+        "为P043（新手|户外|减脂塑形|学生）搜索高可执行三餐替换方案：结合均衡饮食与学生作息，输出工作日/周末双模板。",
+        "为P043（新手|户外|减脂塑形|学生）搜索每日喝水目标与提醒模板：按训练日和非训练日分层，生成ToDo清单与四时点推送文案（早9/午12/晚18/睡前）。",
+        "为P043（新手|户外|减脂塑形|学生）搜索喝水提醒个性化规则：根据早餐前清晨时段、睡眠影响和慢病/恢复注意点配置提醒频率。",
+        "为P043（新手|户外|减脂塑形|学生）搜索4周训练框架模板：适配outdoor与器械running_only，满足每周5次节奏。",
+        "为P043（新手|户外|减脂塑形|学生）搜索每天ToDo动作模板：针对无明显疾病史与新手，输出动作、组数、时长、强度上限和风险提示。"
+      ]
+    }
+  },
+  {
+    "portrait_id": "P044",
+    "description": "该用户当前体脂中偏低，目标体脂低，BMI为正常，BMR为中偏高，方向是体态重塑。训练基础高级，健康状态无明显疾病史。常在户外训练，器械为跑步+坡冲+田径场训练。每周约300分钟，单次60分钟，频次5次，时段以晚饭前为主。饮食高蛋白取向，职业体力劳动。计划需兼顾安全边界、动作替代、恢复监测与执行稳定，并支持按周复盘调整。",
+    "dimensions_snapshot": {
+      "body_assessment": {
+        "body_fat_band": "mid_low",
+        "target_body_fat_band": "low",
+        "bmi_band": "normal",
+        "bmr_band": "medium_high",
+        "goal_direction": "recomposition"
+      },
+      "exercise_level": "advanced",
+      "medical_history": "none",
+      "training_context": {
+        "location": "outdoor",
+        "equipment_profile": "running+hill_sprint+track_work"
+      },
+      "weekly_commitment": {
+        "weekly_total_minutes": 300,
+        "session_minutes": 60,
+        "frequency_per_week": 5,
+        "time_window": "before_dinner_evening"
+      },
+      "diet_habit": "high_protein",
+      "occupation_type": "physical_work"
+    },
+    "template_skeleton": {
+      "knowledge_fill_points": [
+        "为P044（高级|户外|体态重塑|体力劳动）搜索3天参考三餐示例菜单模板：以无明显疾病史为约束，匹配medium_highBMR和recomposition目标热量。",
+        "为P044（高级|户外|体态重塑|体力劳动）搜索高可执行三餐替换方案：结合高蛋白取向与体力劳动作息，输出工作日/周末双模板。",
+        "为P044（高级|户外|体态重塑|体力劳动）搜索每日喝水目标与提醒模板：按训练日和非训练日分层，生成ToDo清单与四时点推送文案（早9/午12/晚18/睡前）。",
+        "为P044（高级|户外|体态重塑|体力劳动）搜索喝水提醒个性化规则：根据晚饭前时段、睡眠影响和慢病/恢复注意点配置提醒频率。",
+        "为P044（高级|户外|体态重塑|体力劳动）搜索4周训练框架模板：适配outdoor与器械running+hill_sprint+track_work，满足每周5次节奏。",
+        "为P044（高级|户外|体态重塑|体力劳动）搜索每天ToDo动作模板：针对无明显疾病史与高级，输出动作、组数、时长、强度上限和风险提示。"
+      ]
+    }
+  },
+  {
+    "portrait_id": "P045",
+    "description": "该用户当前体脂高，目标体脂中偏高，BMI为肥胖II级，BMR为高，方向是减脂塑形。训练基础新手，健康状态处于严重伤病恢复期。常在家里训练，器械为康复弹力带+椅子支撑。每周约100分钟，单次20分钟，频次5次，时段以早餐后上午为主。饮食有明确忌口/限制，职业久坐办公。计划需兼顾安全边界、动作替代、恢复监测与执行稳定，并支持按周复盘调整。",
+    "dimensions_snapshot": {
+      "body_assessment": {
+        "body_fat_band": "high",
+        "target_body_fat_band": "mid_high",
+        "bmi_band": "obese_class_2",
+        "bmr_band": "high",
+        "goal_direction": "fat_loss"
+      },
+      "exercise_level": "novice",
+      "medical_history": "severe_rehab",
+      "training_context": {
+        "location": "home",
+        "equipment_profile": "rehab_band+chair_support"
+      },
+      "weekly_commitment": {
+        "weekly_total_minutes": 100,
+        "session_minutes": 20,
+        "frequency_per_week": 5,
+        "time_window": "after_breakfast_morning"
+      },
+      "diet_habit": "restriction_based",
+      "occupation_type": "sedentary"
+    },
+    "template_skeleton": {
+      "knowledge_fill_points": [
+        "为P045（新手|家里|减脂塑形|久坐办公）搜索3天参考三餐示例菜单模板：以处于严重伤病恢复期为约束，匹配highBMR和fat_loss目标热量。",
+        "为P045（新手|家里|减脂塑形|久坐办公）搜索高可执行三餐替换方案：结合有明确忌口/限制与久坐办公作息，输出工作日/周末双模板。",
+        "为P045（新手|家里|减脂塑形|久坐办公）搜索每日喝水目标与提醒模板：按训练日和非训练日分层，生成ToDo清单与四时点推送文案（早9/午12/晚18/睡前）。",
+        "为P045（新手|家里|减脂塑形|久坐办公）搜索喝水提醒个性化规则：根据早餐后上午时段、睡眠影响和慢病/恢复注意点配置提醒频率。",
+        "为P045（新手|家里|减脂塑形|久坐办公）搜索4周训练框架模板：适配home与器械rehab_band+chair_support，满足每周5次节奏。",
+        "为P045（新手|家里|减脂塑形|久坐办公）搜索每天ToDo动作模板：针对处于严重伤病恢复期与新手，输出动作、组数、时长、强度上限和风险提示。"
+      ]
+    }
+  },
+  {
+    "portrait_id": "P046",
+    "description": "该用户当前体脂中偏高，目标体脂中，BMI为超重，BMR为中，方向是体态重塑。训练基础中级，健康状态处于严重伤病恢复期。常在健身房训练，器械为康复器械+关节活动训练。每周约140分钟，单次35分钟，频次4次，时段以午饭后为主。饮食均衡饮食，职业久坐办公。计划需兼顾安全边界、动作替代、恢复监测与执行稳定，并支持按周复盘调整。",
+    "dimensions_snapshot": {
+      "body_assessment": {
+        "body_fat_band": "mid_high",
+        "target_body_fat_band": "mid",
+        "bmi_band": "overweight",
+        "bmr_band": "medium",
+        "goal_direction": "recomposition"
+      },
+      "exercise_level": "intermediate",
+      "medical_history": "severe_rehab",
+      "training_context": {
+        "location": "gym",
+        "equipment_profile": "physio_machine+guided_rom_training"
+      },
+      "weekly_commitment": {
+        "weekly_total_minutes": 140,
+        "session_minutes": 35,
+        "frequency_per_week": 4,
+        "time_window": "after_lunch_afternoon"
+      },
+      "diet_habit": "balanced",
+      "occupation_type": "sedentary"
+    },
+    "template_skeleton": {
+      "knowledge_fill_points": [
+        "为P046（中级|健身房|体态重塑|久坐办公）搜索3天参考三餐示例菜单模板：以处于严重伤病恢复期为约束，匹配mediumBMR和recomposition目标热量。",
+        "为P046（中级|健身房|体态重塑|久坐办公）搜索高可执行三餐替换方案：结合均衡饮食与久坐办公作息，输出工作日/周末双模板。",
+        "为P046（中级|健身房|体态重塑|久坐办公）搜索每日喝水目标与提醒模板：按训练日和非训练日分层，生成ToDo清单与四时点推送文案（早9/午12/晚18/睡前）。",
+        "为P046（中级|健身房|体态重塑|久坐办公）搜索喝水提醒个性化规则：根据午饭后时段、睡眠影响和慢病/恢复注意点配置提醒频率。",
+        "为P046（中级|健身房|体态重塑|久坐办公）搜索4周训练框架模板：适配gym与器械physio_machine+guided_rom_training，满足每周4次节奏。",
+        "为P046（中级|健身房|体态重塑|久坐办公）搜索每天ToDo动作模板：针对处于严重伤病恢复期与中级，输出动作、组数、时长、强度上限和风险提示。"
+      ]
+    }
+  },
+  {
+    "portrait_id": "P047",
+    "description": "该用户当前体脂高，目标体脂中，BMI为肥胖I级，BMR为中偏高，方向是减脂塑形。训练基础新手，健康状态有慢性病管理需求。常在家里训练，器械为步行+低冲击徒手。每周约140分钟，单次35分钟，频次4次，时段以晚饭前为主。饮食有明确忌口/限制，职业轮班/夜班。计划需兼顾安全边界、动作替代、恢复监测与执行稳定，并支持按周复盘调整。",
+    "dimensions_snapshot": {
+      "body_assessment": {
+        "body_fat_band": "high",
+        "target_body_fat_band": "mid",
+        "bmi_band": "obese_class_1",
+        "bmr_band": "medium_high",
+        "goal_direction": "fat_loss"
+      },
+      "exercise_level": "novice",
+      "medical_history": "chronic_condition",
+      "training_context": {
+        "location": "home",
+        "equipment_profile": "walking+bodyweight_low_impact"
+      },
+      "weekly_commitment": {
+        "weekly_total_minutes": 140,
+        "session_minutes": 35,
+        "frequency_per_week": 4,
+        "time_window": "before_dinner_evening"
+      },
+      "diet_habit": "restriction_based",
+      "occupation_type": "shift_worker"
+    },
+    "template_skeleton": {
+      "knowledge_fill_points": [
+        "为P047（新手|家里|减脂塑形|轮班/夜班）搜索3天参考三餐示例菜单模板：以有慢性病管理需求为约束，匹配medium_highBMR和fat_loss目标热量。",
+        "为P047（新手|家里|减脂塑形|轮班/夜班）搜索高可执行三餐替换方案：结合有明确忌口/限制与轮班/夜班作息，输出工作日/周末双模板。",
+        "为P047（新手|家里|减脂塑形|轮班/夜班）搜索每日喝水目标与提醒模板：按训练日和非训练日分层，生成ToDo清单与四时点推送文案（早9/午12/晚18/睡前）。",
+        "为P047（新手|家里|减脂塑形|轮班/夜班）搜索喝水提醒个性化规则：根据晚饭前时段、睡眠影响和慢病/恢复注意点配置提醒频率。",
+        "为P047（新手|家里|减脂塑形|轮班/夜班）搜索4周训练框架模板：适配home与器械walking+bodyweight_low_impact，满足每周4次节奏。",
+        "为P047（新手|家里|减脂塑形|轮班/夜班）搜索每天ToDo动作模板：针对有慢性病管理需求与新手，输出动作、组数、时长、强度上限和风险提示。"
+      ]
+    }
+  },
+  {
+    "portrait_id": "P048",
+    "description": "该用户当前体脂中，目标体脂中偏低，BMI为正常偏高，BMR为中，方向是体态重塑。训练基础中级，健康状态有慢性病管理需求。常在健身房训练，器械为器械+二区有氧。每周约180分钟，单次45分钟，频次4次，时段以晚饭后为主。饮食均衡饮食，职业久坐办公。计划需兼顾安全边界、动作替代、恢复监测与执行稳定，并支持按周复盘调整。",
+    "dimensions_snapshot": {
+      "body_assessment": {
+        "body_fat_band": "mid",
+        "target_body_fat_band": "mid_low",
+        "bmi_band": "normal_high",
+        "bmr_band": "medium",
+        "goal_direction": "recomposition"
+      },
+      "exercise_level": "intermediate",
+      "medical_history": "chronic_condition",
+      "training_context": {
+        "location": "gym",
+        "equipment_profile": "machine+zone2_cardio"
+      },
+      "weekly_commitment": {
+        "weekly_total_minutes": 180,
+        "session_minutes": 45,
+        "frequency_per_week": 4,
+        "time_window": "after_dinner_evening"
+      },
+      "diet_habit": "balanced",
+      "occupation_type": "sedentary"
+    },
+    "template_skeleton": {
+      "knowledge_fill_points": [
+        "为P048（中级|健身房|体态重塑|久坐办公）搜索3天参考三餐示例菜单模板：以有慢性病管理需求为约束，匹配mediumBMR和recomposition目标热量。",
+        "为P048（中级|健身房|体态重塑|久坐办公）搜索高可执行三餐替换方案：结合均衡饮食与久坐办公作息，输出工作日/周末双模板。",
+        "为P048（中级|健身房|体态重塑|久坐办公）搜索每日喝水目标与提醒模板：按训练日和非训练日分层，生成ToDo清单与四时点推送文案（早9/午12/晚18/睡前）。",
+        "为P048（中级|健身房|体态重塑|久坐办公）搜索喝水提醒个性化规则：根据晚饭后时段、睡眠影响和慢病/恢复注意点配置提醒频率。",
+        "为P048（中级|健身房|体态重塑|久坐办公）搜索4周训练框架模板：适配gym与器械machine+zone2_cardio，满足每周4次节奏。",
+        "为P048（中级|健身房|体态重塑|久坐办公）搜索每天ToDo动作模板：针对有慢性病管理需求与中级，输出动作、组数、时长、强度上限和风险提示。"
+      ]
+    }
+  }
+]
+</portraits>
+<db_schema_suggestion>SQL CREATE TABLE portraits (portrait_id TEXT PRIMARY KEY, description TEXT, dimensions_snapshot JSONB, template_skeleton JSONB);</db_schema_suggestion>
+<rag_retrieval_tip>下游Agent搜索建议：用portrait_id或dimensions_snapshot做精确匹配，再用knowledge_fill_points做RAG查询</rag_retrieval_tip>
+</user_portraits_kb>
