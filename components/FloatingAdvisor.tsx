@@ -54,7 +54,7 @@ const FloatingAdvisor: React.FC<Props> = ({ onChatClick, hasNotification = false
         hideTimerRef.current = null;
       }
     };
-  }, [currentView]);
+  }, [currentView, coachReady, coachMessage, hasNotification]);
 
   const handlePointerDown = (e: React.PointerEvent) => {
     setIsDragging(true);

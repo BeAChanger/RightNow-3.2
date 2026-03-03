@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View } from './types';
-import { authApi, TOKEN_KEY } from './api';
+import { authApi, TOKEN_KEY, aiCoachApi } from './api';
 import type { AuthUser } from './api';
+import { assessBodyFatFromImages } from './services/gemini';
 import Login from './views/Login';
 import Register from './views/Register';
 import Splash from './views/Splash';
@@ -45,6 +46,12 @@ const App: React.FC = () => {
   const [idealBodyImage, setIdealBodyImage] = useState<string | null>(() => localStorage.getItem(IDEAL_BODY_IMAGE_KEY));
   const [coachTrigger, setCoachTrigger] = useState(false);
   const [visualAssessment, setVisualAssessment] = useState<{ currentBodyFat: number; targetBodyFat: number } | null>(null);
+  const [pendingVisualAssessment, setPendingVisualAssessment] = useState<{
+    currentImage: string;
+    targetImage: string;
+    gender: 'male' | 'female';
+  } | null>(null);
+  const [isRunningVisualAssessment, setIsRunningVisualAssessment] = useState(false);
 
   const [customPhotos, setCustomPhotos] = useState<string[]>([]);
 
@@ -74,6 +81,8 @@ const App: React.FC = () => {
     setIdealBodyImage(null);
     setCoachTrigger(false);
     setVisualAssessment(null);
+    setPendingVisualAssessment(null);
+    setIsRunningVisualAssessment(false);
     setCustomPhotos([]);
     localStorage.removeItem(USER_IMAGE_KEY);
     localStorage.removeItem(USER_FACE_IMAGE_KEY);
@@ -103,6 +112,56 @@ const App: React.FC = () => {
       localStorage.removeItem(IDEAL_BODY_IMAGE_KEY);
     }
   }, [idealBodyImage]);
+
+  useEffect(() => {
+    if (!pendingVisualAssessment || isRunningVisualAssessment) {
+      return;
+    }
+
+    let isCancelled = false;
+    setIsRunningVisualAssessment(true);
+
+    const runVisualAssessment = async () => {
+      try {
+        const result = await assessBodyFatFromImages(
+          pendingVisualAssessment.currentImage,
+          pendingVisualAssessment.targetImage,
+          pendingVisualAssessment.gender,
+        );
+
+        if (!result || isCancelled) {
+          return;
+        }
+
+        setVisualAssessment(result);
+        setHasUnreadAI(true);
+        setCoachTrigger(true);
+
+        try {
+          await aiCoachApi.updateAssessment({
+            bodyFatEstimate: result.currentBodyFat,
+            targetBodyFatEstimate: result.targetBodyFat,
+            isVisualAssessment: true,
+          });
+        } catch {
+          // Backend save is best-effort
+        }
+      } catch {
+        // Visual assessment is best-effort
+      } finally {
+        if (!isCancelled) {
+          setPendingVisualAssessment(null);
+        }
+        setIsRunningVisualAssessment(false);
+      }
+    };
+
+    void runVisualAssessment();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [pendingVisualAssessment]);
 
   // Check for existing token on mount (stay on Splash either way)
   useEffect(() => {
@@ -209,7 +268,7 @@ const App: React.FC = () => {
           bodyStyle={bodyStyle}
           gender={gender}
           authUser={authUser}
-          onComplete={(generatedImg?: string | null, assessment?: { currentBodyFat: number; targetBodyFat: number } | null) => {
+          onComplete={(generatedImg?: string | null) => {
             if (generatedImg) {
               setIdealBodyImage(generatedImg);
             } else if (userFaceImage) {
@@ -217,10 +276,21 @@ const App: React.FC = () => {
             } else if (userImage) {
               setIdealBodyImage(userImage);
             }
-            if (assessment) {
-              setVisualAssessment(assessment);
+
+            setHasUnreadAI(false);
+            setCoachTrigger(false);
+
+            if (generatedImg && userImage) {
+              setPendingVisualAssessment({
+                currentImage: userImage,
+                targetImage: generatedImg,
+                gender,
+              });
+              setVisualAssessment(null);
+            } else {
+              setPendingVisualAssessment(null);
             }
-            setHasUnreadAI(true);
+
             setCurrentView(View.Dashboard);
           }}
           onNavigate={setCurrentView}
@@ -232,7 +302,7 @@ const App: React.FC = () => {
       case View.Community:
         return <Community />;
       case View.AIChat:
-        return <AIChat onBack={() => { setCoachTrigger(false); setCurrentView(View.Dashboard); }} coachTrigger={coachTrigger} />;
+        return <AIChat onBack={() => { setCoachTrigger(false); setCurrentView(View.Dashboard); }} coachTrigger={coachTrigger || hasUnreadAI} />;
       case View.EvolutionRecord:
         return <EvolutionRecord onBack={() => setCurrentView(View.Stats)} onNavigate={setCurrentView} customPhotos={customPhotos} onUploadPhoto={handleSaveActionCenter} />;
       case View.EvolutionProgress:

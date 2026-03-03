@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { View } from '../types';
-import { chatWithGemini, chatWithImage, generateIdealBody, FITNESS_COACH_PROMPT, assessBodyFatFromImages } from '../services/gemini';
-import { aiCoachApi } from '../api';
+import { chatWithGemini, chatWithImage, generateIdealBody, FITNESS_COACH_PROMPT } from '../services/gemini';
 import type { AuthUser } from '../api';
 
 interface Props {
@@ -40,14 +39,12 @@ const EvolutionEngine: React.FC<Props> = ({
   const [inputValue, setInputValue] = useState('');
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [isGenerating, setIsGenerating] = useState(true);
-  const [isAssessing, setIsAssessing] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [faceImage, setFaceImage] = useState<string | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const faceInputRef = useRef<HTMLInputElement>(null);
 
   const beforeSrc = userImage || '/ori.png';
-  const afterSrc = generatedImage || userFaceImage || '/Z.png';
 
   // Auto-scroll chat
   useEffect(() => {
@@ -69,35 +66,7 @@ const EvolutionEngine: React.FC<Props> = ({
   }, []);
 
   const handleConfirmComplete = async () => {
-    if (!userImage || !generatedImage) {
-      onComplete(generatedImage, null);
-      return;
-    }
-
-    setIsAssessing(true);
-    addMsg({ text: '正在进行视觉体脂评估...', sender: 'ai' });
-
-    let assessmentResult: { currentBodyFat: number; targetBodyFat: number } | null = null;
-    try {
-      assessmentResult = await assessBodyFatFromImages(userImage, generatedImage, gender || 'male');
-      if (assessmentResult) {
-        try {
-          await aiCoachApi.updateAssessment({
-            bodyFatEstimate: assessmentResult.currentBodyFat,
-            targetBodyFatEstimate: assessmentResult.targetBodyFat,
-            isVisualAssessment: true,
-          });
-        } catch {
-          // Backend save is best-effort
-        }
-        addMsg({ text: `评估完成！当前体脂约 ${assessmentResult.currentBodyFat}%，目标约 ${assessmentResult.targetBodyFat}%。`, sender: 'ai' });
-      }
-    } catch {
-      // Visual assessment is best-effort
-    }
-
-    setIsAssessing(false);
-    onComplete(generatedImage, assessmentResult);
+    onComplete(generatedImage, null);
   };
 
   // Initial AI analysis on mount — focus on "PS yourself"
@@ -260,14 +229,14 @@ const EvolutionEngine: React.FC<Props> = ({
       {/* Confirm button */}
       <button
         onClick={handleConfirmComplete}
-        disabled={isGenerating || isAssessing}
+        disabled={isGenerating}
         className={`w-full py-3 rounded-full text-sm font-bold flex items-center justify-center gap-2 transition-all ${
-          isGenerating || isAssessing
+          isGenerating
             ? 'bg-white/10 text-white/30 cursor-not-allowed'
             : 'bg-[#B8FF00] text-black shadow-[0_0_25px_rgba(184,255,0,0.3)]'
         }`}
       >
-        <span>{isGenerating ? '显化中' : isAssessing ? '正在评估体脂...' : '满意了，开始显化之旅'}</span>
+        <span>{isGenerating ? '显化中' : '满意了，开始显化之旅'}</span>
         <span className="material-icons-round text-lg">arrow_forward</span>
       </button>
     </div>
@@ -279,7 +248,7 @@ const EvolutionEngine: React.FC<Props> = ({
         {/* Future layer (background) */}
         <div className="absolute inset-0 bg-gradient-to-br from-gray-900 to-black">
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-[#B8FF00]/20 rounded-full blur-[80px]" />
-          <img src={afterSrc} className="absolute inset-0 w-full h-full object-contain" alt="Ideal" />
+          {generatedImage && <img src={generatedImage} className="absolute inset-0 w-full h-full object-contain" alt="Ideal" />}
           <div className="absolute top-16 right-5 bg-black/60 px-3 py-1 rounded-full text-[10px] text-[#B8FF00] border border-[#B8FF00]/30 z-10">未来</div>
         </div>
 

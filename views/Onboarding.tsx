@@ -283,6 +283,15 @@ const Onboarding: React.FC<Props> = ({ onComplete }) => {
         <div className="text-xs text-white/60">
           {customIdealImage ? '已选择自定义目标' : '用你自己的参考图替代预设选项'}
         </div>
+        {customIdealImage && (
+          <div className="mt-3 overflow-hidden rounded-2xl border border-[#B8FF00]/40 bg-black/40">
+            <img
+              src={customIdealImage}
+              alt="自定义理想体型预览"
+              className="h-48 w-full object-contain bg-black"
+            />
+          </div>
+        )}
       </label>
     </div>
   );

@@ -409,6 +409,7 @@ const sanitizeCoachReply = (text: string): string => {
       setSending(true);
       void (async () => {
         let saved = false;
+        let usedFallbackPlan = false;
         try {
           await aiCoachApi.saveIntake({
             trainingExperience: intakeDraft.current.trainingExperience || '未填写',
@@ -452,15 +453,16 @@ const sanitizeCoachReply = (text: string): string => {
           setFirstDayPlanData(buildUiPlanFromApi(saveResult.plan || apiPlan));
           saved = true;
         } catch (error) {
-          const message = getApiErrorMessage(error, '保存失败，请稍后重试');
+          const fallbackPlan = buildApiPlanFromUi(mockFirstDayPlan);
+          setFirstDayPlanData(buildUiPlanFromApi(fallbackPlan));
+          saved = true;
+          usedFallbackPlan = true;
+          const message = getApiErrorMessage(error, '保存失败');
           addMessage({
             sender: 'ai',
             type: 'text',
-            text: message,
+            text: `${message}，已先为你匹配一份基础方案，你可以先开始执行。`,
           });
-          setTimeout(() => {
-            addMessage({ sender: 'ai', type: 'intake-frequency' });
-          }, 800);
         } finally {
           setSending(false);
           if (!saved) {
@@ -469,7 +471,9 @@ const sanitizeCoachReply = (text: string): string => {
           addMessage({
             sender: 'ai',
             type: 'text',
-            text: '信息收到。我已经为你生成首日唤醒计划，我们马上开始执行。',
+            text: usedFallbackPlan
+              ? '方案已加载，我们先从首日计划开始，后续再持续优化。'
+              : '信息收到。我已经为你生成首日唤醒计划，我们马上开始执行。',
           });
           setTimeout(() => {
             addMessage({ sender: 'ai', type: 'first-day-plan' });
