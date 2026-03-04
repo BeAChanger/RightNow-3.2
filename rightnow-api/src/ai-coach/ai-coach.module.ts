@@ -648,18 +648,6 @@ class AiCoachService {
       throw new BadRequestException('Plan is required');
     }
 
-    const existing = await this.prisma.aiCoachProgress.findUnique({
-      where: { userId },
-    });
-
-    if (existing?.activePlan) {
-      return {
-        saved: true,
-        plan: this.parsePlanJson(existing.activePlan),
-        dayIndex: existing.dayIndex,
-      };
-    }
-
     const completedTasks = plan.tasks.filter((task) => task.completed).length;
     const progress = await this.prisma.aiCoachProgress.upsert({
       where: { userId },

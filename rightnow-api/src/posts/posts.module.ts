@@ -92,6 +92,57 @@ class PostsService {
     return this.mapPost(post, userId);
   }
 
+  async createFromTrainingRecord(
+    userId: string,
+    body: {
+      trainingRecordId: string;
+      content: string;
+      images?: string[];
+      tags?: string[];
+    }
+  ) {
+    const record = await this.prisma.trainingRecord.findFirst({
+      where: { id: body.trainingRecordId, userId },
+      include: { setDetails: true }
+    });
+
+    if (!record) {
+      throw new NotFoundException('Training record not found');
+    }
+
+    const post = await this.prisma.post.create({
+      data: {
+        userId,
+        content: body.content,
+        images: body.images || (record.photoUrl ? [record.photoUrl] : []),
+        tags: body.tags || ['训练打卡'],
+        sourceType: 'training_record',
+        sourceRecordId: record.id,
+        structuredData: {
+          exercises: record.setDetails.map(s => ({
+            name: s.exerciseName,
+            sets: s.setNumber,
+            reps: s.reps,
+            weight: s.weight
+          }))
+        }
+      },
+      include: {
+        author: true,
+        _count: {
+          select: { comments: true },
+        },
+      },
+    });
+
+    await this.prisma.aiFeedbackCard.updateMany({
+      where: { trainingRecordId: record.id },
+      data: { sharedToPostId: post.id }
+    });
+
+    return this.mapPost(post, userId);
+  }
+
   async remove(userId: string, id: string) {
     const post = await this.prisma.post.findFirst({
       where: { id, userId },
@@ -262,6 +313,19 @@ class PostsController {
     @Body() body: { content: string; images?: string[]; tags?: string[] },
   ) {
     return this.postsService.create(user.sub, body);
+  }
+
+  @Post('from-training')
+  createFromTraining(
+    @CurrentUser() user: { sub: string },
+    @Body() body: {
+      trainingRecordId: string;
+      content: string;
+      images?: string[];
+      tags?: string[];
+    }
+  ) {
+    return this.postsService.createFromTrainingRecord(user.sub, body);
   }
 
   @Delete(':id')

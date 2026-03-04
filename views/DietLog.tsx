@@ -20,6 +20,7 @@ const DietLog: React.FC = () => {
     const [analyzing, setAnalyzing] = useState(false);
 
     const today = new Date().toISOString().split('T')[0];
+    const safeRecords = Array.isArray(records) ? records : [];
 
     useEffect(() => {
         loadData();
@@ -33,8 +34,8 @@ const DietLog: React.FC = () => {
                 dietApi.list(today),
                 dietApi.summary(today),
             ]);
-            setRecords(list);
-            setSummary(sum);
+            setRecords(Array.isArray(list) ? list : []);
+            setSummary(sum && typeof sum === 'object' ? sum : null);
         } catch (e: any) {
             setError(e?.response?.data?.message || '加载失败');
         } finally {
@@ -73,7 +74,7 @@ const DietLog: React.FC = () => {
             });
             setRecords(prev => [newRecord, ...prev]);
             const sum = await dietApi.summary(today);
-            setSummary(sum);
+            setSummary(sum && typeof sum === 'object' ? sum : null);
         } catch (e: any) {
             setError(e?.response?.data?.message || '识别失败，请重试');
         } finally {
@@ -105,7 +106,7 @@ const DietLog: React.FC = () => {
             setFoodName('');
             setFoodDesc('');
             const sum = await dietApi.summary(today);
-            setSummary(sum);
+            setSummary(sum && typeof sum === 'object' ? sum : null);
         } catch (e: any) {
             setError(e?.response?.data?.message || '保存失败');
         } finally {
@@ -117,9 +118,9 @@ const DietLog: React.FC = () => {
     const handleDelete = async (id: string) => {
         try {
             await dietApi.remove(id);
-            setRecords(prev => prev.filter(r => r.id !== id));
+            setRecords(prev => (Array.isArray(prev) ? prev.filter(r => r.id !== id) : []));
             const sum = await dietApi.summary(today);
-            setSummary(sum);
+            setSummary(sum && typeof sum === 'object' ? sum : null);
         } catch (e: any) {
             setError(e?.response?.data?.message || '删除失败');
         }
@@ -166,13 +167,13 @@ const DietLog: React.FC = () => {
                         {error}
                     </div>
                 )}
-                {!loading && records.length === 0 && !error && (
+                {!loading && safeRecords.length === 0 && !error && (
                     <div className="text-center py-12 text-gray-500">
                         <span className="material-icons-round text-4xl mb-2 block opacity-30">restaurant</span>
                         今日暂无饮食记录
                     </div>
                 )}
-                {records.map((record) => (
+                {safeRecords.map((record) => (
                     <div key={record.id} className="glass rounded-[32px] p-4 border-white/5 relative overflow-hidden group">
                         <div className="flex justify-between items-start px-2">
                             <div className="flex-1">

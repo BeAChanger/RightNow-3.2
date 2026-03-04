@@ -53,17 +53,20 @@ const ForumTab: React.FC = () => {
     const [expandedComments, setExpandedComments] = useState<string | null>(null);
     const [comments, setComments] = useState<Record<string, Comment[]>>({});
     const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
+    const safePosts = Array.isArray(posts) ? posts : [];
 
     const loadPosts = async (p: number) => {
         try {
             setLoading(true);
             const res = await postsApi.list(p, 10);
+            const nextPosts = Array.isArray(res.data) ? res.data : [];
             if (p === 1) {
-                setPosts(res.data);
+                setPosts(nextPosts);
             } else {
-                setPosts(prev => [...prev, ...res.data]);
+                setPosts(prev => [...(Array.isArray(prev) ? prev : []), ...nextPosts]);
             }
-            setHasMore(res.data.length === res.limit);
+            const pageLimit = Number.isFinite(res.limit) && res.limit > 0 ? res.limit : 10;
+            setHasMore(nextPosts.length >= pageLimit);
         } catch (err) {
             console.error('Failed to load posts:', err);
         } finally {
@@ -76,9 +79,9 @@ const ForumTab: React.FC = () => {
     const handleLike = async (postId: string) => {
         try {
             await postsApi.toggleLike(postId);
-            setPosts(prev => prev.map(p =>
+            setPosts(prev => (Array.isArray(prev) ? prev.map(p =>
                 p.id === postId ? { ...p, liked: !p.liked, likes: p.liked ? p.likes - 1 : p.likes + 1 } : p
-            ));
+            ) : []));
         } catch (err) {
             console.error('Like failed:', err);
         }
@@ -88,7 +91,7 @@ const ForumTab: React.FC = () => {
         if (!newPostContent.trim()) return;
         try {
             const post = await postsApi.create({ content: newPostContent });
-            setPosts(prev => [post, ...prev]);
+            setPosts(prev => [post, ...(Array.isArray(prev) ? prev : [])]);
             setNewPostContent('');
             setShowCompose(false);
         } catch (err) {
@@ -105,7 +108,7 @@ const ForumTab: React.FC = () => {
         if (!comments[postId]) {
             try {
                 const data = await postsApi.getComments(postId);
-                setComments(prev => ({ ...prev, [postId]: data }));
+                setComments(prev => ({ ...prev, [postId]: Array.isArray(data) ? data : [] }));
             } catch (err) {
                 console.error('Load comments failed:', err);
             }
@@ -117,8 +120,8 @@ const ForumTab: React.FC = () => {
         if (!commentInput.trim()) return;
         try {
             const comment = await postsApi.addComment(postId, commentInput);
-            setComments(prev => ({ ...prev, [postId]: [...(prev[postId] || []), comment] }));
-            setPosts(prev => prev.map(p => p.id === postId ? { ...p, commentCount: p.commentCount + 1 } : p));
+            setComments(prev => ({ ...prev, [postId]: [...(Array.isArray(prev[postId]) ? prev[postId] : []), comment] }));
+            setPosts(prev => (Array.isArray(prev) ? prev.map(p => p.id === postId ? { ...p, commentCount: p.commentCount + 1 } : p) : []));
             setCommentInputs(prev => ({ ...prev, [postId]: '' }));
         } catch (err) {
             console.error('Add comment failed:', err);
@@ -126,11 +129,18 @@ const ForumTab: React.FC = () => {
     };
 
     const formatTime = (dateStr: string) => {
-        const diff = Date.now() - new Date(dateStr).getTime();
+        const timestamp = new Date(dateStr).getTime();
+        if (!Number.isFinite(timestamp)) {
+            return '刚刚';
+        }
+
+        const diff = Date.now() - timestamp;
         const mins = Math.floor(diff / 60000);
-        if (mins < 60) return `${mins}分钟前`;
+        if (mins < 60) return `${Math.max(1, mins)}分钟前`;
+
         const hours = Math.floor(mins / 60);
         if (hours < 24) return `${hours}小时前`;
+
         return `${Math.floor(hours / 24)}天前`;
     };
     return (
@@ -180,25 +190,25 @@ const ForumTab: React.FC = () => {
 
             {/* Posts */}
             <div className="space-y-2 relative z-10">
-                {loading && posts.length === 0 ? (
+                {loading && safePosts.length === 0 ? (
                     <div className="flex justify-center py-12">
                         <div className="w-6 h-6 border-2 border-[#B8FF00] border-t-transparent rounded-full animate-spin"></div>
                     </div>
-                ) : posts.length === 0 ? (
+                ) : safePosts.length === 0 ? (
                     <div className="text-center py-12 text-gray-500 text-sm">暂无动态，快来发布第一条吧</div>
-                ) : posts.map(post => (
+                ) : safePosts.map(post => (
                     <article key={post.id} className="bg-[#111] p-4">
                         <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-3">
-                                {post.author.avatar ? (
+                                {post.author?.avatar ? (
                                     <img src={post.author.avatar} className="w-10 h-10 rounded-full border border-white/10" alt="Avatar" />
                                 ) : (
                                     <div className="w-10 h-10 rounded-full border border-white/10 bg-[#B8FF00]/20 flex items-center justify-center">
-                                        <span className="text-[#B8FF00] text-sm font-bold">{post.author.name.charAt(0)}</span>
+                                        <span className="text-[#B8FF00] text-sm font-bold">{post.author?.name?.charAt(0) || '匿'}</span>
                                     </div>
                                 )}
                                 <div>
-                                    <h4 className="text-sm font-bold text-white">{post.author.name}</h4>
+                                    <h4 className="text-sm font-bold text-white">{post.author?.name || '匿名用户'}</h4>
                                     <p className="text-[10px] text-gray-500">{formatTime(post.createdAt)}</p>
                                 </div>
                             </div>
@@ -232,10 +242,10 @@ const ForumTab: React.FC = () => {
                                 {(comments[post.id] || []).map(c => (
                                     <div key={c.id} className="flex gap-2">
                                         <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center shrink-0">
-                                            <span className="text-[10px] text-gray-400">{c.author.name.charAt(0)}</span>
+                                            <span className="text-[10px] text-gray-400">{c.author?.name?.charAt(0) || '匿'}</span>
                                         </div>
                                         <div>
-                                            <span className="text-xs font-bold text-gray-300">{c.author.name}</span>
+                                            <span className="text-xs font-bold text-gray-300">{c.author?.name || '匿名用户'}</span>
                                             <p className="text-xs text-gray-400">{c.content}</p>
                                         </div>
                                     </div>
@@ -254,7 +264,7 @@ const ForumTab: React.FC = () => {
                         )}
                     </article>
                 ))}
-                {hasMore && posts.length > 0 && (
+                {hasMore && safePosts.length > 0 && (
                     <button
                         onClick={() => { setPage(p => p + 1); loadPosts(page + 1); }}
                         disabled={loading}
@@ -277,12 +287,13 @@ const FriendsTab: React.FC = () => {
     const [friends, setFriends] = useState<Friendship[]>([]);
     const [loading, setLoading] = useState(true);
     const [addId, setAddId] = useState('');
+    const safeFriends = Array.isArray(friends) ? friends : [];
 
     useEffect(() => {
         const loadFriends = async () => {
             try {
                 const data = await friendshipsApi.list();
-                setFriends(data);
+                setFriends(Array.isArray(data) ? data : []);
             } catch (err) {
                 console.error('Failed to load friends:', err);
             } finally {
@@ -296,7 +307,7 @@ const FriendsTab: React.FC = () => {
         if (!addId.trim()) return;
         try {
             const f = await friendshipsApi.request(addId.trim());
-            setFriends(prev => [...prev, f]);
+            setFriends(prev => [...(Array.isArray(prev) ? prev : []), f]);
             setAddId('');
         } catch (err) {
             console.error('Friend request failed:', err);
@@ -306,7 +317,7 @@ const FriendsTab: React.FC = () => {
     const handleAccept = async (id: string) => {
         try {
             const updated = await friendshipsApi.accept(id);
-            setFriends(prev => prev.map(f => f.id === id ? updated : f));
+            setFriends(prev => (Array.isArray(prev) ? prev.map(f => f.id === id ? updated : f) : []));
         } catch (err) {
             console.error('Accept failed:', err);
         }
@@ -315,14 +326,14 @@ const FriendsTab: React.FC = () => {
     const handleRemove = async (id: string) => {
         try {
             await friendshipsApi.remove(id);
-            setFriends(prev => prev.filter(f => f.id !== id));
+            setFriends(prev => (Array.isArray(prev) ? prev.filter(f => f.id !== id) : []));
         } catch (err) {
             console.error('Remove failed:', err);
         }
     };
 
-    const accepted = friends.filter(f => f.status === 'accepted');
-    const pending = friends.filter(f => f.status === 'pending');
+    const accepted = safeFriends.filter(f => f.status === 'accepted');
+    const pending = safeFriends.filter(f => f.status === 'pending');
     return (
         <div className="animate-fade-in p-6">
             {/* Search/Add */}
@@ -356,9 +367,9 @@ const FriendsTab: React.FC = () => {
                                     <div key={f.id} className="flex items-center justify-between bg-[#111]/80 p-4 rounded-2xl border border-[#B8FF00]/20">
                                         <div className="flex items-center gap-3">
                                             <div className="w-12 h-12 rounded-full border border-white/10 bg-[#B8FF00]/20 flex items-center justify-center">
-                                                <span className="text-[#B8FF00] font-bold">{f.user.name.charAt(0)}</span>
+                                                <span className="text-[#B8FF00] font-bold">{f.user?.name?.charAt(0) || '匿'}</span>
                                             </div>
-                                            <h4 className="text-sm font-bold text-white">{f.user.name}</h4>
+                                            <h4 className="text-sm font-bold text-white">{f.user?.name || '匿名用户'}</h4>
                                         </div>
                                         <div className="flex gap-2">
                                             <button onClick={() => handleAccept(f.id)} className="px-3 py-1.5 bg-[#B8FF00] text-black text-xs font-bold rounded-full">接受</button>
@@ -381,16 +392,16 @@ const FriendsTab: React.FC = () => {
                                     <div key={f.id} className="flex items-center justify-between bg-[#111]/80 hover:bg-[#161616] p-4 rounded-2xl border border-white/5 transition-colors cursor-pointer">
                                         <div className="flex items-center gap-3">
                                             <div className="relative">
-                                                {f.user.avatar ? (
+                                                {f.user?.avatar ? (
                                                     <img src={f.user.avatar} className="w-12 h-12 rounded-full border border-white/10" alt="Friend" />
                                                 ) : (
                                                     <div className="w-12 h-12 rounded-full border border-white/10 bg-white/10 flex items-center justify-center">
-                                                        <span className="text-white font-bold">{f.user.name.charAt(0)}</span>
+                                                        <span className="text-white font-bold">{f.user?.name?.charAt(0) || '匿'}</span>
                                                     </div>
                                                 )}
                                                 <div className="absolute bottom-0 right-0 w-3 h-3 bg-[#B8FF00] border-2 border-[#111] rounded-full"></div>
                                             </div>
-                                            <h4 className="text-sm font-bold text-white">{f.user.name}</h4>
+                                            <h4 className="text-sm font-bold text-white">{f.user?.name || '匿名用户'}</h4>
                                         </div>
                                         <button onClick={() => handleRemove(f.id)} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-red-500/20 hover:text-red-400 transition-colors">
                                             <span className="material-icons-round text-[18px]">person_remove</span>

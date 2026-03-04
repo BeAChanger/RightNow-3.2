@@ -22,6 +22,9 @@ import CheckInShare from './views/CheckInShare';
 import EvolutionGallery from './views/EvolutionGallery';
 import ActionCenter from './views/ActionCenter';
 import WeightRecord from './views/WeightRecord';
+import TodoList from './views/TodoList';
+import TrainingLog from './views/TrainingLog';
+import CommunityShare from './views/CommunityShare';
 import BottomNav from './components/BottomNav';
 import FloatingAdvisor from './components/FloatingAdvisor';
 
@@ -54,6 +57,7 @@ const App: React.FC = () => {
   const [isRunningVisualAssessment, setIsRunningVisualAssessment] = useState(false);
 
   const [customPhotos, setCustomPhotos] = useState<string[]>([]);
+  const [shareData, setShareData] = useState<any>(null);
 
   const syncAuthUserState = (user: AuthUser | null) => {
     setAuthUser(user);
@@ -314,6 +318,29 @@ const App: React.FC = () => {
       case View.WeightRecord:
         return <WeightRecord onBack={() => setCurrentView(View.Stats)} />;
 
+      case View.TodoList:
+        return <TodoList onNavigate={setCurrentView} />;
+
+      case View.TrainingLog:
+        return (
+          <TrainingLog
+            onNavigate={(view, data) => {
+              if (data) setShareData(data);
+              setCurrentView(view);
+            }}
+            onBack={() => setCurrentView(View.TodoList)}
+          />
+        );
+
+      case View.CommunityShare:
+        return (
+          <CommunityShare
+            onNavigate={setCurrentView}
+            onBack={() => setCurrentView(View.TrainingLog)}
+            shareData={shareData}
+          />
+        );
+
       // Check-In Flow
       case View.CheckInType:
         return <CheckInType onClose={() => setCurrentView(View.Dashboard)} onNext={() => setCurrentView(View.CheckInSuccess)} />;
@@ -345,7 +372,10 @@ const App: React.FC = () => {
     currentView === View.CheckInShare ||
     currentView === View.EvolutionGallery ||
     currentView === View.WeightRecord ||
-    currentView === View.ActionCenter; // Hide on ActionCenter
+    currentView === View.ActionCenter ||
+    currentView === View.TodoList ||
+    currentView === View.TrainingLog ||
+    currentView === View.CommunityShare;
 
   // Views where BottomNav should be hidden
   const shouldHideBottomNav =
@@ -358,7 +388,10 @@ const App: React.FC = () => {
     currentView === View.EvolutionRecord || // Fixed button overlaps nav
     currentView === View.EvolutionGallery ||
     currentView === View.WeightRecord ||
-    currentView === View.ActionCenter;
+    currentView === View.ActionCenter ||
+    currentView === View.TodoList ||
+    currentView === View.TrainingLog ||
+    currentView === View.CommunityShare;
 
   // Show loading while checking auth
   if (!authChecked) {

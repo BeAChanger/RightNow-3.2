@@ -30,7 +30,8 @@ async function bootstrap() {
     configService.get<string>('PORT', '3000'),
     10,
   ) || 3000;
-  await app.listen(port);
+  const host = configService.get<string>('HOST', '127.0.0.1');
+  await app.listen(port, host);
 }
 
 bootstrap();
