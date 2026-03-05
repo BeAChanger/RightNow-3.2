@@ -18,6 +18,41 @@ export interface DietSummary {
   totalCarbs: number;
 }
 
+export interface NutritionData {
+  calories: number;
+  protein: number;
+  fat: number;
+  carbs: number;
+}
+
+export interface AnalyzePhotoResponse {
+  draftId: string;
+  photoUrl?: string;
+  nutrition: NutritionData;
+}
+
+export interface AnalyzeTextResponse {
+  draftId: string;
+  nutrition: NutritionData;
+}
+
+export interface DietDailySummary {
+  id: string;
+  userId: string;
+  date: string;
+  totalCalories: number;
+  totalProtein: number;
+  totalFat: number;
+  totalCarbs: number;
+  recordCount: number;
+}
+
+export interface CalendarDate {
+  date: string;
+  hasRecords: boolean;
+  totalCalories: number;
+}
+
 function asObject(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return null;
@@ -132,4 +167,39 @@ export const dietApi = {
   async remove(id: string): Promise<void> {
     await client.delete(`/diet/${id}`);
   },
+
+  async analyzePhoto(file: File): Promise<AnalyzePhotoResponse> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const { data } = await client.post<AnalyzePhotoResponse>('/diet/analyze-photo', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return data;
+  },
+
+  async analyzeText(name: string, description?: string): Promise<AnalyzeTextResponse> {
+    const { data } = await client.post<AnalyzeTextResponse>('/diet/analyze-text', { name, description });
+    return data;
+  },
+
+  async confirmRecord(draftId: string, nutrition: NutritionData): Promise<{ record: DietRecord; summary: DietDailySummary }> {
+    const { data } = await client.post<any>('/diet/records', { draftId, ...nutrition });
+    return data;
+  },
+
+  async deleteRecord(id: string): Promise<{ summary: DietDailySummary }> {
+    const { data } = await client.delete<any>(`/diet/records/${id}`);
+    return data;
+  },
+
+  async getRecords(date: string): Promise<{ records: DietRecord[]; summary: DietDailySummary | null }> {
+    const { data } = await client.get<any>('/diet/records', { params: { date } });
+    return data;
+  },
+
+  async getCalendar(startDate: string, endDate: string): Promise<{ dates: CalendarDate[] }> {
+    const { data } = await client.get<any>('/diet/calendar', { params: { startDate, endDate } });
+    return data;
+  },
 };
+
