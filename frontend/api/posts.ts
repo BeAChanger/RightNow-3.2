@@ -1,4 +1,4 @@
-import client from './client';
+﻿import client from './client';
 
 export interface PostItem {
   id: string;
@@ -10,6 +10,15 @@ export interface PostItem {
   liked: boolean;
   commentCount: number;
   createdAt: string;
+  visibility?: 'PUBLIC' | 'BUDDIES_ONLY';
+  postType?: 'NORMAL' | 'PROGRESS_REPORT';
+  aiDraftPayload?: {
+    metrics?: {
+      trainingCount?: number;
+      weightChange?: number;
+      streak?: number;
+    };
+  };
 }
 
 export interface Comment {
@@ -74,7 +83,7 @@ function normalizePostItem(payload: unknown): PostItem | null {
     normalizeAuthor(obj.author) ||
     normalizeAuthor(obj.user) || {
       id: 'unknown',
-      name: '匿名用户',
+      name: '鍖垮悕鐢ㄦ埛',
       avatar: undefined,
     };
 
@@ -114,7 +123,7 @@ function normalizeComment(payload: unknown): Comment | null {
     normalizeAuthor(obj.author) ||
     normalizeAuthor(obj.user) || {
       id: 'unknown',
-      name: '匿名用户',
+      name: '鍖垮悕鐢ㄦ埛',
       avatar: undefined,
     };
 
@@ -203,8 +212,10 @@ function normalizePaginatedPosts(
 }
 
 export const postsApi = {
-  async list(page = 1, limit = 10): Promise<PaginatedPosts> {
-    const { data } = await client.get<unknown>('/posts', { params: { page, limit } });
+  async list(page = 1, limit = 10, visibility?: string): Promise<PaginatedPosts> {
+    const params: any = { page, limit };
+    if (visibility) params.visibility = visibility;
+    const { data } = await client.get<unknown>('/posts', { params });
     return normalizePaginatedPosts(data, page, limit);
   },
 
@@ -217,7 +228,7 @@ export const postsApi = {
     return normalized;
   },
 
-  async create(body: { content: string; images?: string[]; tags?: string[] }): Promise<PostItem> {
+  async create(body: { content: string; images?: string[]; tags?: string[]; visibility?: 'PUBLIC' | 'BUDDIES_ONLY'; postType?: 'NORMAL' | 'PROGRESS_REPORT'; sourceType?: string; sourceRefId?: string; aiDraftPayload?: Record<string, unknown> }): Promise<PostItem> {
     const { data } = await client.post<unknown>('/posts', body);
     const normalized = normalizePostItem(data);
     if (!normalized) {
@@ -260,4 +271,15 @@ export const postsApi = {
     }
     return normalized;
   },
+
+  async generateAiDraft(): Promise<{ content: string; suggestedImages: string[]; metrics?: any }> {
+    const { data } = await client.post<any>('/posts/draft/ai');
+    return data;
+  },
+
+  async generateDraftFromTraining(recordId: string): Promise<{ content: string; suggestedImages: string[]; metrics?: any }> {
+    const { data } = await client.post<any>(`/posts/from-training/${recordId}`);
+    return data;
+  },
 };
+
