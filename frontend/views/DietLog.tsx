@@ -1,8 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { dietApi } from '../api';
-import type { DietRecord, DietSummary } from '../api/diet';
-import { analyzeFoodText, analyzeFoodImage } from '../services/gemini';
-import type { FoodAnalysis } from '../services/gemini';
+﻿import React, { useState, useRef, useEffect } from 'react';
+import { dietApi, uploadApi } from '../api';
+import type { DietRecord, DietSummary, UploadAsset, NutritionData } from '../api';
+import { DietConfirmCard } from '../components/DietConfirmCard';
 
 const DietLog: React.FC = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -18,24 +17,40 @@ const DietLog: React.FC = () => {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
     const [analyzing, setAnalyzing] = useState(false);
+    const [galleryAssets, setGalleryAssets] = useState<UploadAsset[]>([]);
+    const [galleryLoading, setGalleryLoading] = useState(false);
+
+    const [draftData, setDraftData] = useState<{
+        draftId: string;
+        photoUrl?: string;
+        calories: number;
+        protein: number;
+        fat: number;
+        carbs: number;
+    } | null>(null);
+    const [isConfirmCardOpen, setIsConfirmCardOpen] = useState(false);
 
     const today = new Date().toISOString().split('T')[0];
     const safeRecords = Array.isArray(records) ? records : [];
 
     useEffect(() => {
-        loadData();
+        void loadData();
+        void loadGallery();
     }, []);
+
+    useEffect(() => {
+        if (isBottomSheetOpen && galleryAssets.length === 0 && !galleryLoading) {
+            void loadGallery();
+        }
+    }, [isBottomSheetOpen, galleryAssets.length, galleryLoading]);
 
     const loadData = async () => {
         setLoading(true);
         setError('');
         try {
-            const [list, sum] = await Promise.all([
-                dietApi.list(today),
-                dietApi.summary(today),
-            ]);
-            setRecords(Array.isArray(list) ? list : []);
-            setSummary(sum && typeof sum === 'object' ? sum : null);
+            const result = await dietApi.getRecords(today);
+            setRecords(Array.isArray(result.records) ? result.records : []);
+            setSummary(result.summary && typeof result.summary === 'object' ? result.summary : null);
         } catch (e: any) {
             setError(e?.response?.data?.message || '加载失败');
         } finally {
@@ -43,98 +58,141 @@ const DietLog: React.FC = () => {
         }
     };
 
+    const loadGallery = async () => {
+        setGalleryLoading(true);
+        try {
+            const list = await uploadApi.list({ kind: 'general', limit: 24 });
+            const safeList = Array.isArray(list) ? list : [];
+            const realUploads = safeList.filter((asset) => {
+                const url = typeof asset?.url === 'string' ? asset.url.trim() : '';
+                return Boolean(url) && url.includes('/uploads/');
+            });
+            setGalleryAssets(realUploads);
+        } catch (e) {
+            setGalleryAssets([]);
+        } finally {
+            setGalleryLoading(false);
+        }
+    };
+
     const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         e.target.value = '';
         if (!file) return;
+
         setIsBottomSheetOpen(false);
         setAnalyzing(true);
-        setSaving(true);
+        setError('');
+
         try {
-            // Read file as base64
-            const base64 = await new Promise<string>((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = () => resolve(reader.result as string);
-                reader.onerror = reject;
-                reader.readAsDataURL(file);
-            });
+            const result = await dietApi.analyzePhoto(file);
 
-            // AI analyze food image
-            const analysis = await analyzeFoodImage(base64);
-            setAnalyzing(false);
-
-            const newRecord = await dietApi.create({
-                name: analysis.name,
-                calories: analysis.calories,
-                protein: analysis.protein,
-                fat: analysis.fat,
-                carbs: analysis.carbs,
-                date: today,
-                mealType: analysis.mealType,
+            setDraftData({
+                draftId: result.draftId,
+                photoUrl: result.photoUrl,
+                calories: result.nutrition.calories,
+                protein: result.nutrition.protein,
+                fat: result.nutrition.fat,
+                carbs: result.nutrition.carbs,
             });
-            setRecords(prev => [newRecord, ...prev]);
-            const sum = await dietApi.summary(today);
-            setSummary(sum && typeof sum === 'object' ? sum : null);
+            setIsConfirmCardOpen(true);
         } catch (e: any) {
             setError(e?.response?.data?.message || '识别失败，请重试');
         } finally {
-            setSaving(false);
+            setAnalyzing(false);
+        }
+    };
+
+    const handleGalleryImageSelect = async (url: string) => {
+        setIsBottomSheetOpen(false);
+        setAnalyzing(true);
+        setError('');
+
+        try {
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error('加载图片失败');
+            }
+            const blob = await response.blob();
+            const file = new File([blob], 'gallery-image.jpg', { type: blob.type });
+
+            const result = await dietApi.analyzePhoto(file);
+
+            setDraftData({
+                draftId: result.draftId,
+                photoUrl: result.photoUrl,
+                calories: result.nutrition.calories,
+                protein: result.nutrition.protein,
+                fat: result.nutrition.fat,
+                carbs: result.nutrition.carbs,
+            });
+            setIsConfirmCardOpen(true);
+        } catch (e: any) {
+            setError(e?.response?.data?.message || e?.message || '识别失败，请重试');
+        } finally {
             setAnalyzing(false);
         }
     };
 
     const handleTextSubmit = async () => {
         if (!foodName.trim()) return;
-        setSaving(true);
         setAnalyzing(true);
-        try {
-            // AI analyze food nutrition
-            const analysis = await analyzeFoodText(foodName, foodDesc || undefined);
-            setAnalyzing(false);
+        setError('');
 
-            const newRecord = await dietApi.create({
-                name: analysis.name,
-                calories: analysis.calories,
-                protein: analysis.protein,
-                fat: analysis.fat,
-                carbs: analysis.carbs,
-                date: today,
-                mealType: analysis.mealType,
+        try {
+            const result = await dietApi.analyzeText(foodName, foodDesc || undefined);
+
+            setDraftData({
+                draftId: result.draftId,
+                calories: result.nutrition.calories,
+                protein: result.nutrition.protein,
+                fat: result.nutrition.fat,
+                carbs: result.nutrition.carbs,
             });
-            setRecords(prev => [newRecord, ...prev]);
             setIsTextModalOpen(false);
+            setIsConfirmCardOpen(true);
             setFoodName('');
             setFoodDesc('');
-            const sum = await dietApi.summary(today);
-            setSummary(sum && typeof sum === 'object' ? sum : null);
+        } catch (e: any) {
+            setError(e?.response?.data?.message || '识别失败');
+        } finally {
+            setAnalyzing(false);
+        }
+    };
+
+    const handleConfirmDraft = async (nutrition: NutritionData) => {
+        if (!draftData) return;
+
+        setSaving(true);
+        try {
+            const result = await dietApi.confirmRecord(draftData.draftId, nutrition);
+
+            await loadData();
+
+            setIsConfirmCardOpen(false);
+            setDraftData(null);
         } catch (e: any) {
             setError(e?.response?.data?.message || '保存失败');
         } finally {
             setSaving(false);
-            setAnalyzing(false);
         }
+    };
+
+    const handleCancelDraft = () => {
+        setIsConfirmCardOpen(false);
+        setDraftData(null);
     };
 
     const handleDelete = async (id: string) => {
         try {
-            await dietApi.remove(id);
-            setRecords(prev => (Array.isArray(prev) ? prev.filter(r => r.id !== id) : []));
-            const sum = await dietApi.summary(today);
-            setSummary(sum && typeof sum === 'object' ? sum : null);
+            const result = await dietApi.deleteRecord(id);
+
+            setRecords(prev => prev.filter(r => r.id !== id));
+            setSummary(result.summary);
         } catch (e: any) {
             setError(e?.response?.data?.message || '删除失败');
         }
     };
-
-    // Mock recent photos from device gallery
-    const mockGalleryImages = [
-        "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=400&fit=crop",
-        "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400&h=400&fit=crop",
-        "https://images.unsplash.com/photo-1482049016688-2d3e1b311543?w=400&h=400&fit=crop",
-        "https://images.unsplash.com/photo-1484723091791-cdd515f0b2d1?w=400&h=400&fit=crop",
-        "https://images.unsplash.com/photo-1493770348161-369560ae357d?w=400&h=400&fit=crop",
-        "https://images.unsplash.com/photo-1473093295043-cdd812d0e601?w=400&h=400&fit=crop",
-    ];
 
     return (
         <div className="min-h-screen bg-bg-dark text-white pb-24 px-6 pt-12">
@@ -179,7 +237,7 @@ const DietLog: React.FC = () => {
                             <div className="flex-1">
                                 <h3 className="text-xl font-bold font-serif">{record.name}</h3>
                                 <div className="flex items-center gap-2 mt-1 opacity-50">
-                                    <span className="text-lg">🍽️</span>
+                                    <span className="text-lg">🍔</span>
                                     <span className="text-xs font-mono">{record.mealType || '未分类'}</span>
                                 </div>
                             </div>
@@ -276,7 +334,6 @@ const DietLog: React.FC = () => {
                         <span className="text-[#B8FF00] text-xs font-bold">图库</span>
                     </div>
                     <div className="grid grid-cols-3 gap-1">
-                        {/* Live Camera Preview Mock */}
                         <div
                             className="aspect-square bg-gray-800 rounded relative overflow-hidden flex items-center justify-center cursor-pointer active:scale-95 transition-transform"
                             onClick={() => fileInputRef.current?.click()}
@@ -284,15 +341,32 @@ const DietLog: React.FC = () => {
                             <span className="material-icons-round text-white/50 text-4xl">photo_camera</span>
                         </div>
 
-                        {/* Gallery Images */}
-                        {mockGalleryImages.map((src, idx) => (
-                            <div key={idx} className="aspect-square bg-gray-800 rounded relative overflow-hidden cursor-pointer group">
-                                <img src={src} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt={`Recent ${idx}`} />
-                                <div className="absolute top-1 right-1 w-5 h-5 rounded-full border border-white/80 bg-black/20 flex items-center justify-center text-transparent hover:text-white transition-colors">
-                                    <div className="w-4 h-4 rounded-full border border-current"></div>
-                                </div>
+                        {galleryLoading && (
+                            <div className="col-span-2 grid grid-cols-2 gap-1">
+                                {Array.from({ length: 4 }).map((_, idx) => (
+                                    <div key={idx} className="aspect-square rounded bg-white/5 animate-pulse" />
+                                ))}
                             </div>
+                        )}
+
+                        {!galleryLoading && galleryAssets.map((asset) => (
+                            <button
+                                key={asset.id}
+                                onClick={() => handleGalleryImageSelect(asset.url)}
+                                className="aspect-square bg-gray-800 rounded relative overflow-hidden cursor-pointer group active:scale-95 transition-transform"
+                            >
+                                <img src={asset.url} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="Recent" />
+                                <div className="absolute top-1 right-1 w-5 h-5 rounded-full border border-white/80 bg-black/20 flex items-center justify-center text-white">
+                                    <span className="material-icons-round text-[12px]">add</span>
+                                </div>
+                            </button>
                         ))}
+
+                        {!galleryLoading && galleryAssets.length === 0 && (
+                            <div className="col-span-2 aspect-square rounded bg-white/5 flex items-center justify-center text-[11px] text-gray-400 px-3 text-center">
+                                暂无历史上传图片
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -374,8 +448,25 @@ const DietLog: React.FC = () => {
                     </div>
                 </div>
             )}
+
+            {/* Diet Confirm Card */}
+            {isConfirmCardOpen && draftData && (
+                <DietConfirmCard
+                    isOpen={isConfirmCardOpen}
+                    photoUrl={draftData.photoUrl}
+                    initialData={{
+                        calories: draftData.calories,
+                        protein: draftData.protein,
+                        fat: draftData.fat,
+                        carbs: draftData.carbs,
+                    }}
+                    onConfirm={handleConfirmDraft}
+                    onCancel={handleCancelDraft}
+                />
+            )}
         </div>
     );
 };
 
 export default DietLog;
+
