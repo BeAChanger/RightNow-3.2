@@ -44,6 +44,7 @@ model User {
   aiCoachProgress   AiCoachProgress?
   aiCoachProfile    AiCoachProfile?
   aiCoachProfileSnapshots AiCoachProfileSnapshot[]
+  feedbackCards     AiFeedbackCard[]
 }
 
 model WeightRecord {
@@ -78,31 +79,40 @@ model DietRecord {
 }
 
 model TrainingRecord {
-  id          String   @id @default(cuid())
-  userId       String
-  description  String
-  duration     Int?
-  photoUrl     String?
-  date         String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id              String              @id @default(cuid())
+  userId          String
+  description     String
+  duration        Int?
+  photoUrl        String?
+  date            String
+  todayFeeling    String?
+  rawInput        Json?
+  structuredData  Json?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  setDetails      TrainingSetDetail[]
+  feedbackCards   AiFeedbackCard[]
 
   @@index([userId, date])
 }
 
 model Todo {
-  id        String   @id @default(cuid())
-  userId    String
-  title     String
-  category  String
-  date      String
-  completed Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id              String    @id @default(cuid())
+  userId          String
+  title           String
+  category        String
+  date            String
+  completed       Boolean   @default(false)
+  completedSource String?
+  completedAt     DateTime?
+  metadata        Json?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, date])
+  @@index([userId, category, date])
 }
 
 model CheckIn {
@@ -142,18 +152,22 @@ model EvolutionRecord {
 }
 
 model Post {
-  id           String    @id @default(cuid())
-  userId        String
-  content       String
-  images        String[]  @default([])
-  tags          String[]  @default([])
-  likedUserIds  String[]  @default([])
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  author        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  comments      Comment[]
+  id             String    @id @default(cuid())
+  userId         String
+  content        String
+  images         String[]  @default([])
+  tags           String[]  @default([])
+  likedUserIds   String[]  @default([])
+  sourceType     String?
+  sourceRecordId String?
+  structuredData Json?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  author         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comments       Comment[]
 
   @@index([userId, createdAt])
+  @@index([sourceType, sourceRecordId])
 }
 
 model Comment {
@@ -330,4 +344,41 @@ model AiCoachProfileSnapshot {
   user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
+}
+
+model TrainingSetDetail {
+  id                String         @id @default(cuid())
+  trainingRecordId  String
+  exerciseName      String
+  setNumber         Int
+  reps              Int?
+  weight            Float?
+  duration          Int?
+  restTime          Int?
+  notes             String?
+  createdAt         DateTime       @default(now())
+  trainingRecord    TrainingRecord @relation(fields: [trainingRecordId], references: [id], onDelete: Cascade)
+
+  @@index([trainingRecordId])
+  @@index([exerciseName])
+}
+
+model AiFeedbackCard {
+  id                String          @id @default(cuid())
+  userId            String
+  trainingRecordId  String?
+  cardType          String
+  title             String
+  content           String
+  highlights        Json?
+  encouragement     String?
+  suggestions       String?
+  sharedToPostId    String?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trainingRecord    TrainingRecord? @relation(fields: [trainingRecordId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([trainingRecordId])
 }

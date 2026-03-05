@@ -3,7 +3,7 @@ import AssessmentCard, { AssessmentData } from '../components/coach/AssessmentCa
 import IntakeQuestion from '../components/coach/IntakeQuestion';
 import FirstDayPlanCard, { FirstDayPlanData } from '../components/coach/FirstDayPlanCard';
 import WeekSummaryCard from '../components/coach/WeekSummaryCard';
-import { aiCoachApi, getApiErrorMessage } from '../api';
+import { aiCoachApi, getApiErrorMessage, todosApi } from '../api';
 import type { FirstDayPlan, CoachAssessment } from '../api';
 import type { CoachProfile } from '../api';
 import { FITNESS_COACH_PROMPT, chatWithGemini, generateFirstDayPlan } from '../services/gemini';
@@ -238,12 +238,13 @@ const AIChat: React.FC<Props> = ({ onBack, coachTrigger }) => {
 
   const normalizeAnswer = (answer: string | string[]) => (Array.isArray(answer) ? answer.join('；') : answer);
 
-  const parseTrainingDays = (value: string): number => {
-    if (value.includes('1-2')) return 2;
-    if (value.includes('3')) return 3;
-    if (value.includes('4')) return 4;
-    return 5;
-  };
+const parseTrainingDays = (value: string): number => {
+  // Backend requires at least 3 training days for AI coach planning.
+  if (value.includes('1-2')) return 3;
+  if (value.includes('3')) return 3;
+  if (value.includes('4')) return 4;
+  return 5;
+};
 
 const parseDurationMinutes = (value: string): number => {
   if (value.includes('15-30')) return 30;
@@ -451,6 +452,11 @@ const sanitizeCoachReply = (text: string): string => {
 
           const saveResult = await aiCoachApi.saveFirstPlan(apiPlan);
           setFirstDayPlanData(buildUiPlanFromApi(saveResult.plan || apiPlan));
+          try {
+            await todosApi.ensureDaily(new Date().toISOString().slice(0, 10));
+          } catch {
+            // Best effort: plan save success should not be blocked by todo sync failure.
+          }
           saved = true;
         } catch (error) {
           const fallbackPlan = buildApiPlanFromUi(mockFirstDayPlan);

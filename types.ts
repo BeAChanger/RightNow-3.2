@@ -18,7 +18,10 @@ export enum View {
   CheckInShare = 'CHECK_IN_SHARE',
   EvolutionGallery = 'EVOLUTION_GALLERY',
   ActionCenter = 'ACTION_CENTER',
-  WeightRecord = 'WEIGHT_RECORD'
+  WeightRecord = 'WEIGHT_RECORD',
+  TodoList = 'TODO_LIST',
+  TrainingLog = 'TRAINING_LOG',
+  CommunityShare = 'COMMUNITY_SHARE'
 }
 
 export interface UserState {
@@ -38,4 +41,25 @@ export interface Post {
   comments: number;
   desc: string;
   tags: string[];
+}
+
+export interface AiFeedbackCard {
+  id: string;
+  cardType: 'training_feedback' | 'daily_change';
+  title: string;
+  content: string;
+  highlights?: Record<string, any>;
+  encouragement?: string;
+  suggestions?: string;
+  createdAt: string;
+}
+
+export interface TrainingSetDetail {
+  id: string;
+  exerciseName: string;
+  setNumber: number;
+  reps?: number;
+  weight?: number;
+  duration?: number;
+  restTime?: number;
 }

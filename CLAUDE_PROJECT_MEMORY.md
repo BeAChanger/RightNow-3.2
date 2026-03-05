@@ -280,3 +280,73 @@
 - Locked MVP flow as `AI draft -> editable confirm card -> formal save`, where closing the card discards draft (no write).
 - Locked performance/accuracy strategy: single-photo whole-meal recognition, `P95 <= 2s`, launch accuracy `±15%~±20%`, long-term target `±10%`.
 - Locked retention lifecycle: keep photo/details/training samples for natural 30-day window, then Beijing-time next-day `12:00` batch cleanup; preserve read-only daily nutrition aggregates only.
+
+## 28. Auth 500 Startup Unblock (2026-03-04)
+
+- Root cause of frontend login `POST /api/auth/login 500` (with "Service unavailable") was backend not starting due TypeScript compile errors in `rightnow-api`.
+- Fixed backend compile blockers:
+  - exported `TodosService` from `rightnow-api/src/todos/todos.module.ts`,
+  - added explicit callback type for `dayPlan.exercises.map((e: any) => e.name)`,
+  - corrected `TrainingModule` import to `import { TodosModule, TodosService } from '../todos/todos.module'`,
+  - changed `findUnique(...)` to `findUniqueOrThrow(...)` for non-null record mapping in training create flow.
+- Added backend host configurability in `rightnow-api/src/main.ts` (`HOST`, default `127.0.0.1`) to avoid hardcoded wildcard binding.
+- Verification status:
+  - `npm --prefix ./rightnow-api run build` passes.
+  - In Codex sandbox runtime, Node listen fails with `EACCES` on loopback ports (environment restriction), so final runtime validation must be done in user local terminal.
+
+## 29. Windows Reserved Port Mitigation (2026-03-04)
+
+- Confirmed by `netsh interface ipv4 show excludedportrange protocol=tcp`: local reserved range includes `2977-3076`, which contains `3000`; backend listen on `3000` fails with `EACCES`.
+- Updated local defaults to avoid reserved port collision:
+  - `rightnow-api/.env`: `PORT=4000`
+  - `vite.config.ts`: fallback `VITE_API_PROXY_TARGET` changed to `http://localhost:4000`
+  - `LOCAL_DEV_STARTUP.md`: backend port references updated from `3000` to `4000`.
+- Verification: both `npm --prefix ./rightnow-api run build` and root `npm run build` pass.
+
+## 30. ActionCenter Todo Crash Guard (2026-03-04)
+
+- User-reported black screen on entering ActionCenter was traced to runtime `TypeError: todos.filter is not a function` in `views/ActionCenter.tsx`.
+- Implemented minimal defensive fix at both API and view layers:
+  - `api/todos.ts` now normalizes list/item payloads (`array`, nested `data`, or `items`) before returning to UI.
+  - `views/ActionCenter.tsx` now computes from `safeTodos` and guards state update paths (`list` and `toggle`) with `Array.isArray`.
+- Small contract alignment: `api/training.ts` `trainingApi.create(...)` now accepts optional `duration` to match current ActionCenter submit payload.
+- Verification: root `npm run build` passes.
+
+## 31. AI Coach -> Todo Auto Link Fix (2026-03-04)
+
+- User issue: after AI Coach plan generation, ActionCenter/TODO remained empty.
+- Backend todo generation chain updated in `rightnow-api/src/todos/todos.module.ts`:
+  - `list(...)` now calls `ensureDailyTodos(...)` (not only default seed).
+  - `ensureDailyTodos(...)` now prioritizes `AiCoachProgress.activePlan.tasks` as todo source.
+  - Added category mapping from coach task categories to todo categories (`nutrition -> diet`, hydration-like recovery -> `water`, others -> `training`).
+  - Profile fallback now reads `fitnessPlan.weeklyTrainingPlan` (aligned with current profile schema), then hydration/meal defaults, then hard default todos.
+- Frontend sync hardening:
+  - `views/ActionCenter.tsx` now calls `todosApi.ensureDaily(today)` before list fetch.
+  - `views/AIChat.tsx` triggers best-effort `todosApi.ensureDaily(today)` right after `saveFirstPlan(...)` success.
+- Verification: `npm --prefix ./rightnow-api run build` and root `npm run build` both pass.
+
+## 32. ActionCenter Chain + Diet/Community Black Screen Follow-up (2026-03-04)
+
+- Root causes addressed:
+  - AI coach intake could fail with HTTP `400` when user selected "1-2 days/week" (backend requires `>= 3`), causing UI fallback plan to display without persisted progress/todos.
+  - Diet/Community pages still had fragile assumptions about API payload shapes (array/object mismatch), which could trigger runtime black screens.
+- Chain stabilization:
+  - `views/AIChat.tsx`: `parseTrainingDays('1-2')` now maps to `3` to satisfy backend constraint and avoid silent non-persistence.
+  - `rightnow-api/src/todos/todos.module.ts`: `ensureDailyTodos(...)` now replaces same-day non-coach todos with coach-plan todos when `AiCoachProgress.activePlan` exists, preventing stale/default todos from blocking coach sync.
+- Page crash hardening:
+  - `api/diet.ts`, `api/posts.ts`, `api/friendships.ts` now normalize response payloads (`array`, nested `data`, `items`/`records`) before returning typed data.
+  - `views/DietLog.tsx` and `views/Community.tsx` now use defensive `Array.isArray` guards for render/state updates.
+  - `views/Community.tsx` also fixed malformed JSX tags that could cause immediate render failure.
+- Verification:
+  - Frontend build: `npm run build` passes.
+  - Backend build: `npm --prefix ./rightnow-api run build` passes.
+
+## 33. ActionCenter Todo Sync Fallback Hardening (2026-03-04)
+
+- User-followup issue: AI chat could show first-day plan while ActionCenter TODO still displayed empty.
+- `views/ActionCenter.tsx` now uses a resilient load chain:
+  - `todosApi.ensureDaily(today)` is best-effort and no longer blocks subsequent list fetch if it fails.
+  - always performs `todosApi.list(today)` afterward.
+  - if list is empty, it pulls `aiCoachApi.getProgress()` and backfills todos from `activePlan.tasks` via `todosApi.create(...)`, then refetches list.
+- Added defensive rendering (`safeTodos`) and visible error banner in TODO tab to avoid silent-empty states.
+- Verification: root `npm run build` and `npm --prefix ./rightnow-api run build` both pass.

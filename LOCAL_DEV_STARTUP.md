@@ -30,10 +30,10 @@ npm run db:init
 npm --prefix ./rightnow-api run prisma:generate
 ```
 
-如果报 `EPERM ... query_engine-windows.dll.node`（被占用），先停止占用 3000 端口的后端进程，再重试：
+如果报 `EPERM ... query_engine-windows.dll.node`（被占用），先停止占用 4000 端口的后端进程，再重试：
 
 ```powershell
-$pid = (Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty OwningProcess)
+$pid = (Get-NetTCPConnection -LocalPort 4000 -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty OwningProcess)
 if ($pid) { Stop-Process -Id $pid -Force }
 npm --prefix ./rightnow-api run prisma:generate
 ```
@@ -44,7 +44,7 @@ npm --prefix ./rightnow-api run prisma:generate
 npm run dev:api
 ```
 
-默认端口：`http://localhost:3000`
+默认端口：`http://localhost:4000`
 
 ## 5. 启动前端（开发模式）
 
@@ -62,15 +62,15 @@ npm run dev
 ## 6. 快速检查是否启动成功
 
 ```powershell
-Get-NetTCPConnection -LocalPort 3000,5173,5174,5175 -State Listen -ErrorAction SilentlyContinue | Select-Object LocalAddress,LocalPort,OwningProcess
+Get-NetTCPConnection -LocalPort 4000,5173,5174,5175 -State Listen -ErrorAction SilentlyContinue | Select-Object LocalAddress,LocalPort,OwningProcess
 ```
 
 ## 7. 常用“清端口”命令
 
-### 清理 3000（后端）
+### 清理 4000（后端）
 
 ```powershell
-$pid = (Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty OwningProcess)
+$pid = (Get-NetTCPConnection -LocalPort 4000 -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty OwningProcess)
 if ($pid) { Stop-Process -Id $pid -Force }
 ```
 

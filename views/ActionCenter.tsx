@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { trainingApi } from '../api';
 import { todosApi } from '../api';
 import { uploadApi } from '../api';
+import { aiCoachApi } from '../api';
 import type { TodoItem as ApiTodoItem } from '../api/todos';
 
 interface Props {
@@ -25,15 +26,79 @@ const ActionCenter: React.FC<Props> = ({ onClose, onSave }) => {
 
     const today = new Date().toISOString().split('T')[0];
 
+    const mapCoachTaskCategory = (task: { category?: string; title?: string; detail?: string }): string => {
+        if (task.category === 'nutrition') return 'diet';
+        if (task.category === 'recovery') {
+            const text = `${task.title || ''} ${task.detail || ''}`.toLowerCase();
+            if (
+                text.includes('water') ||
+                text.includes('drink') ||
+                text.includes('hydration') ||
+                text.includes('ml')
+            ) {
+                return 'water';
+            }
+        }
+        return 'training';
+    };
+
+    const seedTodosFromCoachPlan = async (date: string): Promise<boolean> => {
+        try {
+            const progress = await aiCoachApi.getProgress();
+            const tasks = Array.isArray(progress?.activePlan?.tasks) ? progress.activePlan.tasks : [];
+            const normalized = tasks
+                .map((task) => ({
+                    title: typeof task?.title === 'string' ? task.title.trim() : '',
+                    detail: typeof task?.detail === 'string' ? task.detail.trim() : '',
+                    category: typeof task?.category === 'string' ? task.category : 'training',
+                }))
+                .filter((task) => task.title.length > 0);
+
+            if (normalized.length === 0) {
+                return false;
+            }
+
+            const results = await Promise.allSettled(
+                normalized.map((task) =>
+                    todosApi.create({
+                        title: task.title,
+                        category: mapCoachTaskCategory(task),
+                        date,
+                    }),
+                ),
+            );
+            return results.some((item) => item.status === 'fulfilled');
+        } catch {
+            return false;
+        }
+    };
+
     useEffect(() => {
         loadTodos();
     }, []);
 
     const loadTodos = async () => {
         setTodosLoading(true);
+        setError('');
         try {
-            const list = await todosApi.list(today);
-            setTodos(list);
+            try {
+                await todosApi.ensureDaily(today);
+            } catch {
+                // Best effort: older backend versions may not expose ensure-daily.
+            }
+
+            let list = await todosApi.list(today);
+            let safeList = Array.isArray(list) ? list : [];
+
+            if (safeList.length === 0) {
+                const seeded = await seedTodosFromCoachPlan(today);
+                if (seeded) {
+                    list = await todosApi.list(today);
+                    safeList = Array.isArray(list) ? list : [];
+                }
+            }
+
+            setTodos(safeList);
         } catch (e: any) {
             setError(e?.response?.data?.message || '加载待办失败');
         } finally {
@@ -56,7 +121,7 @@ const ActionCenter: React.FC<Props> = ({ onClose, onSave }) => {
     const toggleTodo = async (id: string) => {
         try {
             const updated = await todosApi.toggle(id);
-            setTodos(prev => prev.map(t => t.id === id ? updated : t));
+            setTodos(prev => (Array.isArray(prev) ? prev.map(t => t.id === id ? updated : t) : [updated]));
         } catch (e: any) {
             setError(e?.response?.data?.message || '操作失败');
         }
@@ -74,8 +139,9 @@ const ActionCenter: React.FC<Props> = ({ onClose, onSave }) => {
         }
     };
 
-    const completedCount = todos.filter(t => t.completed).length;
-    const progress = todos.length > 0 ? (completedCount / todos.length) * 100 : 0;
+    const safeTodos = Array.isArray(todos) ? todos : [];
+    const completedCount = safeTodos.filter(t => t.completed).length;
+    const progress = safeTodos.length > 0 ? (completedCount / safeTodos.length) * 100 : 0;
 
     return (
         <div className="min-h-screen bg-[#050505] text-white flex flex-col font-sans animate-fade-in relative z-50">
@@ -116,7 +182,7 @@ const ActionCenter: React.FC<Props> = ({ onClose, onSave }) => {
                             <div className="flex justify-between items-end mb-3 relative z-10">
                                 <div>
                                     <span className="text-gray-400 text-[11px] uppercase tracking-widest font-bold">今日完成度</span>
-                                    <div className="text-2xl font-serif font-bold text-white mt-1">{completedCount} <span className="text-gray-500 text-sm">/ {todos.length}</span></div>
+                                    <div className="text-2xl font-serif font-bold text-white mt-1">{completedCount} <span className="text-gray-500 text-sm">/ {safeTodos.length}</span></div>
                                 </div>
                                 <span className="text-[#B8FF00] font-black italic text-xl">{Math.round(progress)}%</span>
                             </div>
@@ -127,16 +193,21 @@ const ActionCenter: React.FC<Props> = ({ onClose, onSave }) => {
 
                         {/* Todo List */}
                         <div className="space-y-3">
+                            {error && (
+                                <div className="bg-red-500/10 border border-red-500/30 rounded-2xl px-5 py-3 text-red-400 text-sm">
+                                    {error}
+                                </div>
+                            )}
                             {todosLoading && (
                                 <div className="text-center py-8 text-gray-500">加载中...</div>
                             )}
-                            {!todosLoading && todos.length === 0 && (
+                            {!todosLoading && safeTodos.length === 0 && (
                                 <div className="text-center py-8 text-gray-500">
                                     <span className="material-icons-round text-3xl mb-2 block opacity-30">checklist</span>
                                     今日暂无待办事项
                                 </div>
                             )}
-                            {todos.map(todo => (
+                            {safeTodos.map(todo => (
                                 <div
                                     key={todo.id}
                                     onClick={() => toggleTodo(todo.id)}
