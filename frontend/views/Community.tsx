@@ -1,8 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { postsApi, friendshipsApi } from '../api';
-import type { PostItem, Comment, Friendship } from '../api';
+import type { PostItem, Comment, Friendship, BuddyRecommendation } from '../api';
+import { ProgressReportCard } from '../components/ProgressReportCard';
+import { View } from '../types';
 
-const Community: React.FC = () => {
+interface CommunityProps {
+    onNavigate: (view: View, data?: any) => void;
+}
+
+const Community: React.FC<CommunityProps> = ({ onNavigate }) => {
     const [activeTab, setActiveTab] = useState<'forum' | 'friends'>('forum');
 
     return (
@@ -13,6 +19,9 @@ const Community: React.FC = () => {
                         社区 <span className="w-1.5 h-1.5 bg-[#B8FF00] rounded-full shadow-[0_0_8px_#B8FF00]"></span>
                     </h1>
                     <div className="flex gap-4 items-center">
+                        <button onClick={() => onNavigate(View.GroupList)} className="text-gray-400 hover:text-[#B8FF00] transition">
+                            <span className="material-icons-outlined">group</span>
+                        </button>
                         <img src="https://picsum.photos/id/64/100/100" className="w-8 h-8 rounded-full border border-white/20" alt="Avatar" />
                     </div>
                 </div>
@@ -37,22 +46,26 @@ const Community: React.FC = () => {
 
             {/* Main Content */}
             <div className="p-0">
-                {activeTab === 'forum' ? <ForumTab /> : <FriendsTab />}
+                {activeTab === 'forum' ? <ForumTab onNavigate={onNavigate} /> : <FriendsTab />}
             </div>
         </div>
     );
 };
 
-const ForumTab: React.FC = () => {
+interface ForumTabProps {
+    onNavigate: (view: View, data?: any) => void;
+}
+
+const ForumTab: React.FC<ForumTabProps> = ({ onNavigate }) => {
     const [posts, setPosts] = useState<PostItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
-    const [showCompose, setShowCompose] = useState(false);
-    const [newPostContent, setNewPostContent] = useState('');
+    const [showPostOptions, setShowPostOptions] = useState(false);
     const [expandedComments, setExpandedComments] = useState<string | null>(null);
     const [comments, setComments] = useState<Record<string, Comment[]>>({});
     const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
+    const [recommendations, setRecommendations] = useState<BuddyRecommendation[]>([]);
     const safePosts = Array.isArray(posts) ? posts : [];
 
     const loadPosts = async (p: number) => {
@@ -74,7 +87,18 @@ const ForumTab: React.FC = () => {
         }
     };
 
-    useEffect(() => { loadPosts(1); }, []);
+    useEffect(() => {
+        loadPosts(1);
+        const loadRecs = async () => {
+            try {
+                const data = await friendshipsApi.getRecommendations();
+                setRecommendations(data.slice(0, 3));
+            } catch (err) {
+                console.error('Failed to load recommendations:', err);
+            }
+        };
+        loadRecs();
+    }, []);
 
     const handleLike = async (postId: string) => {
         try {
@@ -87,15 +111,13 @@ const ForumTab: React.FC = () => {
         }
     };
 
-    const handleCreatePost = async () => {
-        if (!newPostContent.trim()) return;
+    const handleAiPost = async () => {
+        setShowPostOptions(false);
         try {
-            const post = await postsApi.create({ content: newPostContent });
-            setPosts(prev => [post, ...(Array.isArray(prev) ? prev : [])]);
-            setNewPostContent('');
-            setShowCompose(false);
+            const draft = await postsApi.generateAiDraft();
+            onNavigate(View.DraftConfirm, draft);
         } catch (err) {
-            console.error('Create post failed:', err);
+            console.error('AI draft failed:', err);
         }
     };
 
@@ -143,47 +165,63 @@ const ForumTab: React.FC = () => {
 
         return `${Math.floor(hours / 24)}天前`;
     };
+
+    const handleAddBuddy = async (userId: string) => {
+        try {
+            await friendshipsApi.request(userId);
+            setRecommendations(prev => prev.filter(r => r.userId !== userId));
+        } catch (err) {
+            console.error('Add buddy failed:', err);
+        }
+    };
+
     return (
         <div className="animate-fade-in pb-20">
-            {/* AI Banner */}
-            <div className="m-4 p-4 rounded-2xl bg-gradient-to-r from-[#B8FF00]/10 to-transparent border border-[#B8FF00]/20 flex items-start gap-3 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-[#B8FF00]/5 blur-2xl"></div>
-                <div className="w-8 h-8 rounded-full bg-[#B8FF00]/20 flex items-center justify-center shrink-0">
-                    <span className="material-icons-round text-[#B8FF00] text-sm">smart_toy</span>
+            {/* 搭子推荐区 */}
+            {recommendations.length > 0 && (
+                <div className="m-4 p-4 rounded-2xl bg-[#1A1A1A] border border-white/5">
+                    <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                            <span className="material-icons-round text-[#B8FF00] text-lg">group</span>
+                            为你推荐搭子
+                        </h3>
+                        <button onClick={() => onNavigate(View.BuddyRecommend)} className="text-xs text-[#B8FF00] font-bold">查看全部</button>
+                    </div>
+                    <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">
+                        {recommendations.map((buddy) => (
+                            <div key={buddy.userId} className="flex-shrink-0 w-24 text-center">
+                                {buddy.avatar ? (
+                                    <img src={buddy.avatar} className="w-16 h-16 rounded-full border border-white/10 mx-auto mb-2" alt={buddy.name} />
+                                ) : (
+                                    <div className="w-16 h-16 rounded-full bg-[#B8FF00]/20 border border-[#B8FF00]/30 mx-auto mb-2 flex items-center justify-center">
+                                        <span className="text-[#B8FF00] font-bold text-lg">{buddy.name.charAt(0)}</span>
+                                    </div>
+                                )}
+                                <div className="text-xs text-white font-bold truncate px-1">{buddy.name}</div>
+                                <div className="text-[10px] text-[#B8FF00] mt-0.5">{buddy.matchScore}%</div>
+                                <button onClick={() => handleAddBuddy(buddy.userId)} className="mt-2 px-2 py-1 bg-[#B8FF00] text-black text-[10px] font-bold rounded">添加</button>
+                            </div>
+                        ))}
+                    </div>
                 </div>
-                <div>
-                    <h3 className="text-sm font-bold text-[#B8FF00] mb-1 flex items-center gap-1">
-                        AI 社交托管 <span className="px-1.5 py-0.5 bg-[#B8FF00] text-black text-[8px] rounded uppercase font-black">Beta</span>
-                    </h3>
-                    <p className="text-[11px] text-[#B8FF00]/70 leading-relaxed">
-                        未来规划：你只需专注训练记录，AI 将自动分析数据，为你生成高赞动态、智能匹配运动搭子并代理社交互动。
-                    </p>
-                </div>
-            </div>
+            )}
 
-            {/* Compose Modal */}
-            {showCompose && (
-                <div className="fixed inset-0 bg-black/80 z-50 flex items-end">
-                    <div className="w-full bg-[#111] rounded-t-3xl p-6 animate-fade-in">
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-base font-bold">发布动态</h3>
-                            <button onClick={() => setShowCompose(false)} className="text-gray-400">
-                                <span className="material-icons-round">close</span>
+            {/* Post Options Modal */}
+            {showPostOptions && (
+                <div className="fixed inset-0 bg-black/80 z-50 flex items-end" onClick={() => setShowPostOptions(false)}>
+                    <div className="w-full bg-[#111] rounded-t-3xl p-6 animate-fade-in" onClick={e => e.stopPropagation()}>
+                        <h3 className="text-base font-bold mb-4 text-center">选择发帖方式</h3>
+                        <div className="space-y-3">
+                            <button onClick={() => { setShowPostOptions(false); onNavigate(View.ManualPost); }} className="w-full py-4 bg-[#1A1A1A] hover:bg-[#222] rounded-xl text-white font-bold transition-colors flex items-center justify-center gap-2">
+                                <span className="material-icons-round">edit</span>
+                                手动发帖
+                            </button>
+                            <button onClick={handleAiPost} className="w-full py-4 bg-[#B8FF00] hover:bg-[#a3e000] rounded-xl text-black font-bold transition-colors flex items-center justify-center gap-2">
+                                <span className="material-icons-round">auto_awesome</span>
+                                AI 帮我发
                             </button>
                         </div>
-                        <textarea
-                            value={newPostContent}
-                            onChange={e => setNewPostContent(e.target.value)}
-                            placeholder="分享你的训练心得..."
-                            className="w-full bg-[#1A1A1A] rounded-2xl p-4 text-sm text-white placeholder-gray-500 outline-none border border-white/5 focus:border-[#B8FF00]/50 min-h-[120px] resize-none"
-                        />
-                        <button
-                            onClick={handleCreatePost}
-                            disabled={!newPostContent.trim()}
-                            className={`w-full mt-4 py-3 rounded-xl font-bold text-sm transition-all ${newPostContent.trim() ? 'bg-[#B8FF00] text-black' : 'bg-white/10 text-gray-500'}`}
-                        >
-                            发布
-                        </button>
+                        <button onClick={() => setShowPostOptions(false)} className="w-full mt-4 py-3 text-gray-400 text-sm">取消</button>
                     </div>
                 </div>
             )}
@@ -196,74 +234,89 @@ const ForumTab: React.FC = () => {
                     </div>
                 ) : safePosts.length === 0 ? (
                     <div className="text-center py-12 text-gray-500 text-sm">暂无动态，快来发布第一条吧</div>
-                ) : safePosts.map(post => (
-                    <article key={post.id} className="bg-[#111] p-4">
-                        <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-3">
-                                {post.author?.avatar ? (
-                                    <img src={post.author.avatar} className="w-10 h-10 rounded-full border border-white/10" alt="Avatar" />
-                                ) : (
-                                    <div className="w-10 h-10 rounded-full border border-white/10 bg-[#B8FF00]/20 flex items-center justify-center">
-                                        <span className="text-[#B8FF00] text-sm font-bold">{post.author?.name?.charAt(0) || '匿'}</span>
+                ) : safePosts.map(post => {
+                    const isProgressReport = post.aiDraftPayload?.metrics;
+
+                    if (isProgressReport) {
+                        return (
+                            <ProgressReportCard
+                                key={post.id}
+                                post={post}
+                                onLike={handleLike}
+                                onComment={handleToggleComments}
+                            />
+                        );
+                    }
+
+                    return (
+                        <article key={post.id} className="bg-[#111] p-4">
+                            <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-3">
+                                    {post.author?.avatar ? (
+                                        <img src={post.author.avatar} className="w-10 h-10 rounded-full border border-white/10" alt="Avatar" />
+                                    ) : (
+                                        <div className="w-10 h-10 rounded-full border border-white/10 bg-[#B8FF00]/20 flex items-center justify-center">
+                                            <span className="text-[#B8FF00] text-sm font-bold">{post.author?.name?.charAt(0) || '匿'}</span>
+                                        </div>
+                                    )}
+                                    <div>
+                                        <h4 className="text-sm font-bold text-white">{post.author?.name || '匿名用户'}</h4>
+                                        <p className="text-[10px] text-gray-500">{formatTime(post.createdAt)}</p>
                                     </div>
-                                )}
-                                <div>
-                                    <h4 className="text-sm font-bold text-white">{post.author?.name || '匿名用户'}</h4>
-                                    <p className="text-[10px] text-gray-500">{formatTime(post.createdAt)}</p>
                                 </div>
                             </div>
-                        </div>
-                        <p className="text-sm text-gray-300 leading-relaxed mb-3">{post.content}</p>
-                        {post.images && post.images.length > 0 && (
-                            <div className={`grid ${post.images.length === 1 ? 'grid-cols-1' : 'grid-cols-2'} gap-2 mb-4`}>
-                                {post.images.map((img, idx) => (
-                                    <div key={idx} className="aspect-square bg-white/5 rounded-xl overflow-hidden relative group">
-                                        <img src={img} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt={`Post img ${idx + 1}`} />
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                        <div className="flex items-center justify-between text-gray-400 border-t border-white/5 pt-3">
-                            <button onClick={() => handleLike(post.id)} className={`flex items-center gap-1.5 transition-colors ${post.liked ? 'text-[#B8FF00]' : 'hover:text-[#B8FF00]'}`}>
-                                <span className="material-icons-round text-[18px]">{post.liked ? 'favorite' : 'favorite_border'}</span>
-                                <span className="text-xs font-bold">{post.likes}</span>
-                            </button>
-                            <button onClick={() => handleToggleComments(post.id)} className="flex items-center gap-1.5 hover:text-white transition-colors">
-                                <span className="material-icons-round text-[18px]">chat_bubble_outline</span>
-                                <span className="text-xs font-bold">{post.commentCount}</span>
-                            </button>
-                            <button className="flex items-center gap-1.5 hover:text-white transition-colors">
-                                <span className="material-icons-round text-[18px]">share</span>
-                            </button>
-                        </div>
-                        {/* Comments Section */}
-                        {expandedComments === post.id && (
-                            <div className="mt-3 pt-3 border-t border-white/5 space-y-3">
-                                {(comments[post.id] || []).map(c => (
-                                    <div key={c.id} className="flex gap-2">
-                                        <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center shrink-0">
-                                            <span className="text-[10px] text-gray-400">{c.author?.name?.charAt(0) || '匿'}</span>
+                            <p className="text-sm text-gray-300 leading-relaxed mb-3">{post.content}</p>
+                            {post.images && post.images.length > 0 && (
+                                <div className={`grid ${post.images.length === 1 ? 'grid-cols-1' : 'grid-cols-2'} gap-2 mb-4`}>
+                                    {post.images.map((img, idx) => (
+                                        <div key={idx} className="aspect-square bg-white/5 rounded-xl overflow-hidden relative group">
+                                            <img src={img} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt={`Post img ${idx + 1}`} />
                                         </div>
-                                        <div>
-                                            <span className="text-xs font-bold text-gray-300">{c.author?.name || '匿名用户'}</span>
-                                            <p className="text-xs text-gray-400">{c.content}</p>
-                                        </div>
-                                    </div>
-                                ))}
-                                <div className="flex gap-2">
-                                    <input
-                                        value={commentInputs[post.id] || ''}
-                                        onChange={e => setCommentInputs(prev => ({ ...prev, [post.id]: e.target.value }))}
-                                        onKeyDown={e => e.key === 'Enter' && handleAddComment(post.id)}
-                                        placeholder="写评论..."
-                                        className="flex-1 bg-[#1A1A1A] rounded-full px-3 py-1.5 text-xs text-white placeholder-gray-500 outline-none border border-white/5"
-                                    />
-                                    <button onClick={() => handleAddComment(post.id)} className="text-[#B8FF00] text-xs font-bold">发送</button>
+                                    ))}
                                 </div>
+                            )}
+                            <div className="flex items-center justify-between text-gray-400 border-t border-white/5 pt-3">
+                                <button onClick={() => handleLike(post.id)} className={`flex items-center gap-1.5 transition-colors ${post.liked ? 'text-[#B8FF00]' : 'hover:text-[#B8FF00]'}`}>
+                                    <span className="material-icons-round text-[18px]">{post.liked ? 'favorite' : 'favorite_border'}</span>
+                                    <span className="text-xs font-bold">{post.likes}</span>
+                                </button>
+                                <button onClick={() => handleToggleComments(post.id)} className="flex items-center gap-1.5 hover:text-white transition-colors">
+                                    <span className="material-icons-round text-[18px]">chat_bubble_outline</span>
+                                    <span className="text-xs font-bold">{post.commentCount}</span>
+                                </button>
+                                <button className="flex items-center gap-1.5 hover:text-white transition-colors">
+                                    <span className="material-icons-round text-[18px]">share</span>
+                                </button>
                             </div>
-                        )}
-                    </article>
-                ))}
+                            {/* Comments Section */}
+                            {expandedComments === post.id && (
+                                <div className="mt-3 pt-3 border-t border-white/5 space-y-3">
+                                    {(comments[post.id] || []).map(c => (
+                                        <div key={c.id} className="flex gap-2">
+                                            <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center shrink-0">
+                                                <span className="text-[10px] text-gray-400">{c.author?.name?.charAt(0) || '匿'}</span>
+                                            </div>
+                                            <div>
+                                                <span className="text-xs font-bold text-gray-300">{c.author?.name || '匿名用户'}</span>
+                                                <p className="text-xs text-gray-400">{c.content}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    <div className="flex gap-2">
+                                        <input
+                                            value={commentInputs[post.id] || ''}
+                                            onChange={e => setCommentInputs(prev => ({ ...prev, [post.id]: e.target.value }))}
+                                            onKeyDown={e => e.key === 'Enter' && handleAddComment(post.id)}
+                                            placeholder="写评论..."
+                                            className="flex-1 bg-[#1A1A1A] rounded-full px-3 py-1.5 text-xs text-white placeholder-gray-500 outline-none border border-white/5"
+                                        />
+                                        <button onClick={() => handleAddComment(post.id)} className="text-[#B8FF00] text-xs font-bold">发送</button>
+                                    </div>
+                                </div>
+                            )}
+                        </article>
+                    );
+                })}
                 {hasMore && safePosts.length > 0 && (
                     <button
                         onClick={() => { setPage(p => p + 1); loadPosts(page + 1); }}
@@ -276,9 +329,11 @@ const ForumTab: React.FC = () => {
             </div>
 
             {/* Floating Post Button */}
-            <button onClick={() => setShowCompose(true)} className="fixed bottom-24 right-6 w-14 h-14 bg-[#B8FF00] rounded-full shadow-[0_10px_20px_rgba(184,255,0,0.3)] flex items-center justify-center active:scale-95 transition-transform z-40">
-                <span className="material-icons-round text-black text-3xl">edit</span>
-            </button>
+            <div className="fixed bottom-28 left-1/2 -translate-x-1/2 z-40 flex flex-col items-center">
+                <button onClick={() => setShowPostOptions(true)} className="w-16 h-16 bg-[#B8FF00] rounded-full shadow-[0_0_20px_rgba(184,255,0,0.4)] flex items-center justify-center hover:scale-110 active:scale-95 transition-all duration-300">
+                    <span className="material-icons-round text-black text-3xl notranslate">add</span>
+                </button>
+            </div>
         </div>
     );
 };
