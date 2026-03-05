@@ -6,15 +6,15 @@
   "scripts": {
     "dev": "vite",
     "dev:web": "vite",
-    "dev:api": "npm --prefix ./rightnow-api run start:dev",
-    "db:up": "docker compose -f ./rightnow-api/docker-compose.yml up -d",
-    "db:down": "docker compose -f ./rightnow-api/docker-compose.yml down",
-    "db:logs": "docker compose -f ./rightnow-api/docker-compose.yml logs -f postgres",
-    "db:push": "npm --prefix ./rightnow-api run prisma:push",
-    "db:seed": "npm --prefix ./rightnow-api run prisma:seed",
-    "db:init": "npm run db:push && npm run db:seed",
+    "dev:api": "npm --prefix .. run dev:backend",
+    "db:up": "npm --prefix .. run db:up",
+    "db:down": "npm --prefix .. run db:down",
+    "db:logs": "npm --prefix .. run db:logs",
+    "db:push": "npm --prefix .. run db:push",
+    "db:seed": "npm --prefix .. run db:seed",
+    "db:init": "npm --prefix .. run db:init",
     "build": "vite build",
-    "build:api": "npm --prefix ./rightnow-api run build",
+    "build:api": "npm --prefix .. run build:backend",
     "preview": "vite preview"
   },
   "dependencies": {

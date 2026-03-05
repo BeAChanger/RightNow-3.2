@@ -1,89 +1,74 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-# RightNow Fitness 本地开发环境启动脚本
+set -euo pipefail
 
-echo "🚀 启动 RightNow Fitness 开发环境..."
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-# 检查依赖
-check_dependencies() {
-    echo "📦 检查依赖..."
-
-    if ! command -v node &> /dev/null; then
-        echo "❌ Node.js 未安装"
-        exit 1
-    fi
-
-    if ! command -v python &> /dev/null; then
-        echo "❌ Python 未安装"
-        exit 1
-    fi
-
-    echo "✅ 依赖检查通过"
+require_cmd() {
+  if ! command -v "$1" >/dev/null 2>&1; then
+    echo "[ERROR] Missing command: $1"
+    exit 1
+  fi
 }
 
-# 启动后端
-start_backend() {
-    echo "🔧 启动后端服务 (端口 5000)..."
-    cd backend
-    npm run start:dev &
-    BACKEND_PID=$!
-    cd ..
-    echo "✅ 后端启动 PID: $BACKEND_PID"
-}
-
-# 启动前端
-start_frontend() {
-    echo "🎨 启动前端服务 (端口 5173)..."
-    cd frontend
-    npm run dev &
-    FRONTEND_PID=$!
-    cd ..
-    echo "✅ 前端启动 PID: $FRONTEND_PID"
-}
-
-# 启动 RAG 服务
-start_rag() {
-    echo "🤖 启动 RAG 服务 (端口 8000)..."
-    cd rag-service
-    python main.py &
-    RAG_PID=$!
-    cd ..
-    echo "✅ RAG 服务启动 PID: $RAG_PID"
-}
-
-# 主函数
-main() {
-    check_dependencies
-
-    echo ""
-    start_backend
-    sleep 3
-
-    start_frontend
-    sleep 2
-
-    start_rag
-
-    echo ""
-    echo "✨ 所有服务已启动！"
-    echo "📱 前端: http://localhost:5173"
-    echo "🔧 后端: http://localhost:5000"
-    echo "🤖 RAG: http://localhost:8000"
-    echo ""
-    echo "按 Ctrl+C 停止所有服务"
-
-    # 等待用户中断
-    wait
-}
-
-# 清理函数
 cleanup() {
-    echo ""
-    echo "🛑 停止所有服务..."
-    pkill -P $$
-    exit 0
+  echo ""
+  echo "[INFO] Stopping services..."
+  if [[ -n "${FRONTEND_PID:-}" ]]; then
+    kill "$FRONTEND_PID" >/dev/null 2>&1 || true
+  fi
+  if [[ -n "${BACKEND_PID:-}" ]]; then
+    kill "$BACKEND_PID" >/dev/null 2>&1 || true
+  fi
+  if [[ -n "${RAG_PID:-}" ]]; then
+    kill "$RAG_PID" >/dev/null 2>&1 || true
+  fi
 }
 
-trap cleanup SIGINT SIGTERM
+trap cleanup EXIT INT TERM
 
-main
+require_cmd npm
+require_cmd python
+
+cd "$ROOT_DIR"
+
+echo "[1/6] Starting PostgreSQL container..."
+if command -v docker >/dev/null 2>&1; then
+  docker compose -f backend/docker-compose.yml up -d
+else
+  echo "[WARN] Docker not found. Skip DB startup; ensure PostgreSQL is already running."
+fi
+
+echo "[2/6] Pushing Prisma schema..."
+npm run db:push
+
+echo "[3/6] Seeding demo data..."
+npm run db:seed
+
+echo "[4/6] Starting backend (http://localhost:5000)..."
+npm run dev:backend &
+BACKEND_PID=$!
+
+sleep 3
+
+echo "[5/6] Starting frontend (http://localhost:5173)..."
+npm run dev:frontend &
+FRONTEND_PID=$!
+
+if [[ -d "$ROOT_DIR/rag-service" ]]; then
+  echo "[6/6] Starting RAG service (http://localhost:8000)..."
+  npm run dev:rag &
+  RAG_PID=$!
+else
+  echo "[6/6] RAG service directory not found, skip."
+fi
+
+echo ""
+echo "[OK] RightNow services are starting."
+echo "Frontend: http://localhost:5173"
+echo "Backend:  http://localhost:5000"
+echo "RAG:      http://localhost:8000"
+echo ""
+echo "Press Ctrl+C to stop all started services."
+
+wait

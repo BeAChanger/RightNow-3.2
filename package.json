@@ -7,9 +7,17 @@
     "backend"
   ],
   "scripts": {
-    "dev:frontend": "cd frontend && npm run dev",
-    "dev:backend": "cd backend && npm run start:dev",
-    "dev:rag": "cd rag-service && python main.py",
-    "install:all": "npm install && cd frontend && npm install && cd ../backend && npm install"
+    "dev:frontend": "npm --workspace frontend run dev",
+    "dev:backend": "npm --workspace backend run start:dev",
+    "dev:rag": "python rag-service/main.py",
+    "db:up": "docker compose -f backend/docker-compose.yml up -d",
+    "db:down": "docker compose -f backend/docker-compose.yml down",
+    "db:logs": "docker compose -f backend/docker-compose.yml logs -f postgres",
+    "db:push": "npm --workspace backend run prisma:push",
+    "db:seed": "npm --workspace backend run prisma:seed",
+    "db:init": "npm run db:push && npm run db:seed",
+    "build:frontend": "npm --workspace frontend run build",
+    "build:backend": "npm --workspace backend run build",
+    "install:all": "npm install"
   }
 }
