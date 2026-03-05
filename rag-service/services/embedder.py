@@ -1,8 +1,10 @@
-from sentence_transformers import SentenceTransformer
+﻿from sentence_transformers import SentenceTransformer
+import config
+
 
 class EmbeddingService:
     def __init__(self):
-        self.model = SentenceTransformer('all-MiniLM-L6-v2')
+        self.model = SentenceTransformer(config.EMBEDDING_MODEL)
 
     def embed_text(self, text: str):
         return self.model.encode(text).tolist()

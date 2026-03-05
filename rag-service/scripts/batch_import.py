@@ -1,5 +1,4 @@
-import os
-from pathlib import Path
+﻿from pathlib import Path
 import sys
 sys.path.append(str(Path(__file__).parent.parent))
 
@@ -9,7 +8,7 @@ from services.retriever import RetrievalService
 import config
 
 def batch_import_all():
-    processor = PDFProcessor()
+    processor = PDFProcessor(config.CHUNK_SIZE, config.CHUNK_OVERLAP)
     embedder = EmbeddingService()
     retriever = RetrievalService(config.CHROMA_PERSIST_DIR)
 
@@ -17,7 +16,7 @@ def batch_import_all():
         "01comprehensive": "comprehensive",
         "02kinesiology": "kinesiology",
         "03nutrition": "nutrition",
-        "05PRACTICAL": "practical"
+        "05practical": "practical"
     }
 
     total_files = 0
@@ -88,3 +87,5 @@ def batch_import_all():
 if __name__ == "__main__":
     result = batch_import_all()
     print(f"\n完成！处理 {result['files']} 个文件，添加 {result['chunks']} 个块")
+
+
