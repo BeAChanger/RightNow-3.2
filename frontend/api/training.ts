@@ -11,6 +11,15 @@ export interface TrainingRecord {
   rawInput?: string;
   structuredData?: any;
   setDetails?: TrainingSetDetail[];
+  conversationId?: string;
+  workoutMode?: boolean;
+}
+
+export interface TrainingCalendarDate {
+  date: string;
+  hasTraining: boolean;
+  totalDuration: number;
+  exerciseCount: number;
 }
 
 export const trainingApi = {
@@ -21,7 +30,15 @@ export const trainingApi = {
     return data;
   },
 
-  async create(body: { description: string; duration?: number; todayFeeling?: string; photoUrl?: string; date?: string }): Promise<{ record: TrainingRecord; feedbackCard: AiFeedbackCard }> {
+  async create(body: {
+    description: string;
+    duration?: number;
+    todayFeeling?: string;
+    photoUrl?: string;
+    date?: string;
+    conversationId?: string;
+    workoutMode?: boolean;
+  }): Promise<{ record: TrainingRecord; feedbackCard: AiFeedbackCard }> {
     const { data } = await client.post<{ record: TrainingRecord; feedbackCard: AiFeedbackCard }>('/training', body);
     return data;
   },
@@ -44,6 +61,22 @@ export const trainingApi = {
     const params: Record<string, string> = {};
     if (date) params.date = date;
     const { data } = await client.get<AiFeedbackCard[]>('/training/feedback', { params });
+    return data;
+  },
+
+  async extractFromConversation(body: { messages: Array<{ role: string; content: string }> }): Promise<{
+    exercises: Array<{ name: string; sets: number; reps: number; weight?: number; notes?: string }>;
+    duration: number | null;
+    feeling: string;
+  }> {
+    const { data } = await client.post('/training/extract-from-conversation', body);
+    return data;
+  },
+
+  async getCalendar(startDate: string, endDate: string): Promise<{ dates: TrainingCalendarDate[] }> {
+    const { data } = await client.get<{ dates: TrainingCalendarDate[] }>('/training/calendar', {
+      params: { startDate, endDate },
+    });
     return data;
   },
 };

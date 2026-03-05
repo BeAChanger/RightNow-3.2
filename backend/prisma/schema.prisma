@@ -7,11 +7,24 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum UserRole {
+  USER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  FROZEN
+}
+
 model User {
   id                String            @id @default(cuid())
   email             String            @unique
   passwordHash      String
   name              String
+  role              UserRole          @default(USER)
+  status            UserStatus        @default(ACTIVE)
   avatar            String?
   gender            String?
   height            Float?
@@ -26,6 +39,7 @@ model User {
   updatedAt         DateTime          @updatedAt
   weightRecords     WeightRecord[]
   dietRecords       DietRecord[]
+  dietDailySummaries DietDailySummary[]
   trainingRecords   TrainingRecord[]
   todos             Todo[]
   checkins          CheckIn[]
@@ -45,6 +59,10 @@ model User {
   aiCoachProfile    AiCoachProfile?
   aiCoachProfileSnapshots AiCoachProfileSnapshot[]
   feedbackCards     AiFeedbackCard[]
+  promptTemplatesCreated PromptTemplate[] @relation("PromptTemplateCreatedBy")
+  promptTemplatesUpdated PromptTemplate[] @relation("PromptTemplateUpdatedBy")
+  knowledgeSourcesUploaded KnowledgeSource[] @relation("KnowledgeSourceUploadedBy")
+  adminAuditLogs    AdminAuditLog[]   @relation("AdminAuditActor")
 }
 
 model WeightRecord {
@@ -61,6 +79,11 @@ model WeightRecord {
   @@index([userId, date])
 }
 
+enum DietRecordStatus {
+  DRAFT
+  CONFIRMED
+}
+
 model DietRecord {
   id        String   @id @default(cuid())
   userId    String
@@ -71,10 +94,33 @@ model DietRecord {
   carbs     Float?
   date      String
   mealType  String?
+  status    DietRecordStatus @default(DRAFT)
+  photoUrl  String?
+  aiCalories  Int?
+  aiProtein   Float?
+  aiFat       Float?
+  aiCarbs     Float?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId, date, status])
+}
+
+model DietDailySummary {
+  id          String   @id @default(cuid())
+  userId      String
+  date        String
+  totalCalories Int    @default(0)
+  totalProtein  Float  @default(0)
+  totalFat      Float  @default(0)
+  totalCarbs    Float  @default(0)
+  recordCount   Int    @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
   @@index([userId, date])
 }
 
@@ -88,6 +134,8 @@ model TrainingRecord {
   todayFeeling    String?
   rawInput        Json?
   structuredData  Json?
+  conversationId  String?
+  workoutMode     Boolean             @default(false)
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
   user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -151,23 +199,42 @@ model EvolutionRecord {
   @@index([userId, createdAt])
 }
 
+enum PostVisibility {
+  PUBLIC
+  BUDDIES_ONLY
+}
+
+enum PostType {
+  NORMAL
+  PROGRESS_REPORT
+}
+
+enum SourceType {
+  MANUAL
+  AI_DRAFT
+  TRAINING_FEEDBACK
+}
+
 model Post {
-  id             String    @id @default(cuid())
+  id             String          @id @default(cuid())
   userId         String
   content        String
-  images         String[]  @default([])
-  tags           String[]  @default([])
-  likedUserIds   String[]  @default([])
-  sourceType     String?
-  sourceRecordId String?
+  images         String[]        @default([])
+  tags           String[]        @default([])
+  likedUserIds   String[]        @default([])
+  visibility     PostVisibility  @default(PUBLIC)
+  postType       PostType        @default(NORMAL)
+  sourceType     SourceType?
+  sourceRefId    String?
+  aiDraftPayload Json?
   structuredData Json?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-  author         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  author         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   comments       Comment[]
 
   @@index([userId, createdAt])
-  @@index([sourceType, sourceRecordId])
+  @@index([visibility, postType, createdAt])
 }
 
 model Comment {
@@ -188,6 +255,8 @@ model Friendship {
   requesterId String
   receiverId  String
   status      String
+  matchScore  Float?
+  matchReason String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   requester   User     @relation("FriendshipRequester", fields: [requesterId], references: [id], onDelete: Cascade)
@@ -382,3 +451,104 @@ model AiFeedbackCard {
   @@index([userId, createdAt])
   @@index([trainingRecordId])
 }
+model PromptTemplate {
+  id         String   @id @default(cuid())
+  key        String
+  scene      String
+  content    String
+  variables  Json?
+  enabled    Boolean  @default(true)
+  createdBy  String
+  updatedBy  String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  creator    User     @relation("PromptTemplateCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
+  updater    User     @relation("PromptTemplateUpdatedBy", fields: [updatedBy], references: [id], onDelete: Restrict)
+
+  @@unique([key, scene])
+  @@index([scene, enabled])
+}
+
+model KnowledgeSource {
+  id          String   @id @default(cuid())
+  sourceName  String   @unique
+  domain      String
+  fileType    String?
+  chunksCount Int      @default(0)
+  status      String   @default("ACTIVE")
+  uploadedBy  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  uploader    User?    @relation("KnowledgeSourceUploadedBy", fields: [uploadedBy], references: [id], onDelete: SetNull)
+
+  @@index([domain, status])
+}
+
+model AdminAuditLog {
+  id         String   @id @default(cuid())
+  actorId    String
+  action     String
+  targetType String
+  targetId   String?
+  diff       Json?
+  ip         String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+  actor      User     @relation("AdminAuditActor", fields: [actorId], references: [id], onDelete: Cascade)
+
+  @@index([actorId, createdAt])
+  @@index([action, createdAt])
+}
+
+enum GroupRole {
+  CREATOR
+  ADMIN
+  MEMBER
+}
+
+enum GroupMessageType {
+  TEXT
+  IMAGE
+  SYSTEM
+}
+
+model Group {
+  id          String        @id @default(cuid())
+  name        String
+  avatar      String?
+  description String?
+  memberCount Int           @default(1)
+  maxMembers  Int           @default(200)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  members     GroupMember[]
+  messages    GroupMessage[]
+
+  @@index([createdAt])
+}
+
+model GroupMember {
+  id        String    @id @default(cuid())
+  groupId   String
+  userId    String
+  role      GroupRole @default(MEMBER)
+  joinedAt  DateTime  @default(now())
+  group     Group     @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+  @@index([userId])
+}
+
+model GroupMessage {
+  id        String           @id @default(cuid())
+  groupId   String
+  senderId  String
+  content   String
+  type      GroupMessageType @default(TEXT)
+  createdAt DateTime         @default(now())
+  group     Group            @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@index([groupId, createdAt])
+}
+
+

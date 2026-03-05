@@ -13,11 +13,11 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { AiModule } from '../ai/ai.module';
+import { AiService } from '../ai/ai.service';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
-import { AiService } from '../ai/ai.service';
-import { AiModule } from '../ai/ai.module';
 import { TodosModule, TodosService } from '../todos/todos.module';
 
 @Injectable()
@@ -48,19 +48,21 @@ class TrainingService {
       photoUrl?: string;
       date?: string;
       todayFeeling?: string;
-      rawInput?: any;
+      rawInput?: unknown;
+      conversationId?: string;
+      workoutMode?: boolean;
     },
   ) {
     const description = body.description?.trim() || 'Workout completed';
     const duration = this.parseOptionalInteger(body.duration);
     const date = body.date || new Date().toISOString().slice(0, 10);
 
-    let structuredData = null;
+    let structuredData: any = null;
     try {
       structuredData = await this.aiService.extractTrainingData({
         description: body.description,
         photoUrl: body.photoUrl,
-        rawInput: body.rawInput
+        rawInput: body.rawInput,
       });
     } catch (error) {
       console.error('AI extraction failed:', error);
@@ -74,15 +76,26 @@ class TrainingService {
         photoUrl: body.photoUrl?.trim() || null,
         date,
         todayFeeling: body.todayFeeling?.trim() || null,
-        rawInput: body.rawInput || null,
+        rawInput: (body.rawInput as object) || null,
         structuredData,
+        conversationId: body.conversationId || null,
+        workoutMode: body.workoutMode || false,
       },
     });
 
     if (structuredData?.exercises) {
-      const setDetails = [];
+      const setDetails: Array<{
+        trainingRecordId: string;
+        exerciseName: string;
+        setNumber: number;
+        reps: number | null;
+        weight: number | null;
+        duration: number | null;
+        restTime: number | null;
+      }> = [];
+
       for (const exercise of structuredData.exercises) {
-        for (let i = 0; i < exercise.sets.length; i++) {
+        for (let i = 0; i < exercise.sets.length; i += 1) {
           setDetails.push({
             trainingRecordId: record.id,
             exerciseName: exercise.name,
@@ -90,10 +103,11 @@ class TrainingService {
             reps: exercise.sets[i].reps,
             weight: exercise.sets[i].weight,
             duration: exercise.sets[i].duration,
-            restTime: exercise.sets[i].restTime
+            restTime: exercise.sets[i].restTime,
           });
         }
       }
+
       if (setDetails.length > 0) {
         await this.prisma.trainingSetDetail.createMany({ data: setDetails });
       }
@@ -101,17 +115,17 @@ class TrainingService {
 
     await this.todosService.autoComplete(userId, 'training', date);
 
-    let feedbackCard = null;
+    let feedbackCard: any = null;
     if (structuredData) {
       try {
-        const feedbackData = await this.aiService.generateFeedback(structuredData);
+        const feedbackData = await this.aiService.generateFeedback(structuredData, 'training.generate_feedback');
         feedbackCard = await this.prisma.aiFeedbackCard.create({
           data: {
             userId,
             trainingRecordId: record.id,
             cardType: 'training_feedback',
-            ...feedbackData
-          }
+            ...feedbackData,
+          },
         });
       } catch (error) {
         console.error('Feedback generation failed:', error);
@@ -120,12 +134,12 @@ class TrainingService {
 
     const fullRecord = await this.prisma.trainingRecord.findUniqueOrThrow({
       where: { id: record.id },
-      include: { setDetails: true }
+      include: { setDetails: true },
     });
 
     return {
       record: this.mapRecord(fullRecord),
-      feedbackCard
+      feedbackCard,
     };
   }
 
@@ -178,7 +192,7 @@ class TrainingService {
   async generateDailyChange(userId: string, date: string) {
     const records = await this.prisma.trainingRecord.findMany({
       where: { userId, date },
-      include: { setDetails: true }
+      include: { setDetails: true },
     });
 
     if (records.length === 0) {
@@ -188,36 +202,104 @@ class TrainingService {
     const lastRecord = await this.prisma.trainingRecord.findFirst({
       where: { userId, date: { lt: date } },
       orderBy: { date: 'desc' },
-      include: { setDetails: true }
+      include: { setDetails: true },
     });
 
-    const prompt = `基于今日训练和历史数据，生成"今日变化"总结：
-
-今日训练：
-${JSON.stringify(records, null, 2)}
-
-上次训练：
-${lastRecord ? JSON.stringify(lastRecord, null, 2) : '无'}
-
-要求：
-1. 突出进步（重量提升、次数增加、新动作等）
-2. 语气积极鼓励
-3. 数据可视化建议
-
-返回 JSON 格式（同反馈卡片结构）。只返回 JSON，不要其他文字。`;
-
     try {
-      const feedbackData = await this.aiService.generateFeedback({ records, lastRecord });
+      const feedbackData = await this.aiService.generateFeedback(
+        { records, lastRecord },
+        'training.daily_change_feedback',
+      );
+
       return await this.prisma.aiFeedbackCard.create({
         data: {
           userId,
           cardType: 'daily_change',
-          ...feedbackData
-        }
+          ...feedbackData,
+        },
       });
-    } catch (error) {
+    } catch {
       throw new BadRequestException('Failed to generate daily change');
     }
+  }
+
+  async extractFromConversation(userId: string, messages: Array<{ role: string; content: string }>) {
+    const conversationText = messages.map(m => `${m.role}: ${m.content}`).join('\n');
+
+    const prompt = `从以下对话中提取训练数据，返回JSON格式：
+{
+  "exercises": [
+    {
+      "name": "动作名称",
+      "sets": 组数,
+      "reps": 次数,
+      "weight": 重量(kg),
+      "notes": "备注"
+    }
+  ],
+  "duration": 总时长(分钟),
+  "feeling": "训练感受"
+}
+
+对话内容：
+${conversationText}`;
+
+    try {
+      const result = await this.aiService.requestGemini(prompt, { temperature: 0.3, maxOutputTokens: 1024 });
+      return JSON.parse(result);
+    } catch (error) {
+      console.error('Extraction failed:', error);
+      return { exercises: [], duration: null, feeling: '' };
+    }
+  }
+
+  async getCalendar(userId: string, startDate: string, endDate: string) {
+    const records = await this.prisma.trainingRecord.findMany({
+      where: {
+        userId,
+        date: { gte: startDate, lte: endDate },
+      },
+      select: {
+        date: true,
+        duration: true,
+        structuredData: true,
+      },
+    });
+
+    const dateMap = new Map<string, { duration: number; exerciseCount: number }>();
+
+    for (const record of records) {
+      const existing = dateMap.get(record.date) || { duration: 0, exerciseCount: 0 };
+      existing.duration += record.duration || 0;
+      existing.exerciseCount += (record.structuredData as any)?.exercises?.length || 0;
+      dateMap.set(record.date, existing);
+    }
+
+    const dates: Array<{
+      date: string;
+      hasTraining: boolean;
+      totalDuration: number;
+      exerciseCount: number;
+    }> = [];
+
+    const current = new Date(startDate);
+    const end = new Date(endDate);
+
+    while (current <= end) {
+      const dateStr = current.toISOString().slice(0, 10);
+      const data = dateMap.get(dateStr);
+
+      dates.push({
+        date: dateStr,
+        hasTraining: !!data,
+        totalDuration: data?.duration || 0,
+        exerciseCount: data?.exerciseCount || 0,
+      });
+
+      current.setDate(current.getDate() + 1);
+    }
+
+    return { dates };
   }
 
   private parseOptionalInteger(value: unknown): number | null {
@@ -266,9 +348,35 @@ class TrainingController {
   create(
     @CurrentUser() user: { sub: string },
     @Body()
-    body: { description?: string; duration?: number; photoUrl?: string; date?: string },
+    body: {
+      description?: string;
+      duration?: number;
+      photoUrl?: string;
+      date?: string;
+      todayFeeling?: string;
+      rawInput?: unknown;
+      conversationId?: string;
+      workoutMode?: boolean;
+    },
   ) {
     return this.trainingService.create(user.sub, body);
+  }
+
+  @Post('extract-from-conversation')
+  extractFromConversation(
+    @CurrentUser() user: { sub: string },
+    @Body() body: { messages: Array<{ role: string; content: string }> },
+  ) {
+    return this.trainingService.extractFromConversation(user.sub, body.messages);
+  }
+
+  @Get('calendar')
+  getCalendar(
+    @CurrentUser() user: { sub: string },
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+  ) {
+    return this.trainingService.getCalendar(user.sub, startDate, endDate);
   }
 
   @Put(':id')
@@ -289,7 +397,7 @@ class TrainingController {
   @Post('daily-change')
   generateDailyChange(
     @CurrentUser() user: { sub: string },
-    @Query('date') date?: string
+    @Query('date') date?: string,
   ) {
     const targetDate = date || new Date().toISOString().slice(0, 10);
     return this.trainingService.generateDailyChange(user.sub, targetDate);
@@ -298,7 +406,7 @@ class TrainingController {
   @Get('feedback')
   listFeedbackCards(
     @CurrentUser() user: { sub: string },
-    @Query('date') date?: string
+    @Query('date') date?: string,
   ) {
     return this.prisma.aiFeedbackCard.findMany({
       where: {
@@ -306,11 +414,11 @@ class TrainingController {
         ...(date && {
           createdAt: {
             gte: new Date(date),
-            lt: new Date(date + 'T23:59:59')
-          }
-        })
+            lt: new Date(`${date}T23:59:59`),
+          },
+        }),
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
     });
   }
 }
