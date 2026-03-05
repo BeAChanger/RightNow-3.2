@@ -21,7 +21,13 @@ export enum View {
   WeightRecord = 'WEIGHT_RECORD',
   TodoList = 'TODO_LIST',
   TrainingLog = 'TRAINING_LOG',
-  CommunityShare = 'COMMUNITY_SHARE'
+  CommunityShare = 'COMMUNITY_SHARE',
+  DraftConfirm = 'DRAFT_CONFIRM',
+  BuddyRecommend = 'BUDDY_RECOMMEND',
+  GroupList = 'GROUP_LIST',
+  GroupChat = 'GROUP_CHAT',
+  GroupSettings = 'GROUP_SETTINGS',
+  ManualPost = 'MANUAL_POST'
 }
 
 export interface UserState {
