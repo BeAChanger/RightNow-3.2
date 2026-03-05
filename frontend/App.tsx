@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { View } from './types';
-import { authApi, TOKEN_KEY, aiCoachApi } from './api';
+import { authApi, TOKEN_KEY, aiCoachApi, postsApi } from './api';
 import type { AuthUser } from './api';
 import { assessBodyFatFromImages } from './services/gemini';
 import Login from './views/Login';
@@ -24,7 +24,14 @@ import ActionCenter from './views/ActionCenter';
 import WeightRecord from './views/WeightRecord';
 import TodoList from './views/TodoList';
 import TrainingLog from './views/TrainingLog';
+import WorkoutHub from './views/WorkoutHub';
 import CommunityShare from './views/CommunityShare';
+import DraftConfirm from './views/DraftConfirm';
+import BuddyRecommend from './views/BuddyRecommend';
+import GroupList from './views/GroupList';
+import GroupChat from './views/GroupChat';
+import GroupSettings from './views/GroupSettings';
+import ManualPost from './views/ManualPost';
 import BottomNav from './components/BottomNav';
 import FloatingAdvisor from './components/FloatingAdvisor';
 
@@ -58,6 +65,8 @@ const App: React.FC = () => {
 
   const [customPhotos, setCustomPhotos] = useState<string[]>([]);
   const [shareData, setShareData] = useState<any>(null);
+  const [draftData, setDraftData] = useState<any>(null);
+  const [currentGroupId, setCurrentGroupId] = useState<number | null>(null);
 
   const syncAuthUserState = (user: AuthUser | null) => {
     setAuthUser(user);
@@ -200,7 +209,7 @@ const App: React.FC = () => {
 
   const handleSplashComplete = () => {
     localStorage.setItem('rightnow_has_seen_splash', 'true');
-    // Already logged in → skip login, go to Onboarding
+    // Already logged in 鈫?skip login, go to Onboarding
     if (authUser) {
       setCurrentView(getPostAuthView(authUser));
     } else {
@@ -304,7 +313,18 @@ const App: React.FC = () => {
       case View.Diet:
         return <DietLog />;
       case View.Community:
-        return <Community />;
+        return <Community onNavigate={(view, data) => {
+          if (data) setDraftData(data);
+          setCurrentView(view);
+        }} />;
+      case View.BuddyRecommend:
+        return <BuddyRecommend onNavigate={setCurrentView} />;
+      case View.GroupList:
+        return <GroupList onNavigate={(view, groupId) => { setCurrentView(view); if (groupId) setCurrentGroupId(groupId); }} />;
+      case View.GroupChat:
+        return currentGroupId ? <GroupChat groupId={currentGroupId} authUser={authUser} onNavigate={(view, groupId) => { setCurrentView(view); if (groupId) setCurrentGroupId(groupId); }} /> : null;
+      case View.GroupSettings:
+        return currentGroupId ? <GroupSettings groupId={currentGroupId} authUser={authUser} onNavigate={(view, groupId) => { setCurrentView(view); if (groupId) setCurrentGroupId(groupId); }} /> : null;
       case View.AIChat:
         return <AIChat onBack={() => { setCoachTrigger(false); setCurrentView(View.Dashboard); }} coachTrigger={coachTrigger || hasUnreadAI} />;
       case View.EvolutionRecord:
@@ -314,7 +334,16 @@ const App: React.FC = () => {
       case View.EvolutionGallery: // New case
         return <EvolutionGallery onBack={() => setCurrentView(View.EvolutionRecord)} customPhotos={customPhotos} />;
       case View.ActionCenter:
-        return <ActionCenter onClose={() => setCurrentView(View.Dashboard)} onSave={handleSaveActionCenter} />;
+        return (
+          <ActionCenter
+            onClose={() => setCurrentView(View.Dashboard)}
+            onSave={handleSaveActionCenter}
+            onNavigate={(view, data) => {
+              if (data) setDraftData(data);
+              setCurrentView(view);
+            }}
+          />
+        );
       case View.WeightRecord:
         return <WeightRecord onBack={() => setCurrentView(View.Stats)} />;
 
@@ -323,7 +352,7 @@ const App: React.FC = () => {
 
       case View.TrainingLog:
         return (
-          <TrainingLog
+          <WorkoutHub
             onNavigate={(view, data) => {
               if (data) setShareData(data);
               setCurrentView(view);
@@ -340,6 +369,29 @@ const App: React.FC = () => {
             shareData={shareData}
           />
         );
+
+      case View.DraftConfirm:
+        return draftData ? (
+          <DraftConfirm
+            draft={draftData}
+            onPublish={async (data) => {
+              await postsApi.create({
+                content: data.content,
+                images: data.images,
+                visibility: data.visibility,
+                postType: 'PROGRESS_REPORT',
+                sourceType: 'AI_DRAFT',
+                aiDraftPayload: draftData?.metrics ? { metrics: draftData.metrics } : undefined,
+              });
+              setDraftData(null);
+              setCurrentView(View.Community);
+            }}
+            onCancel={() => setCurrentView(View.Community)}
+          />
+        ) : null;
+
+      case View.ManualPost:
+        return <ManualPost onNavigate={setCurrentView} />;
 
       // Check-In Flow
       case View.CheckInType:
@@ -375,7 +427,8 @@ const App: React.FC = () => {
     currentView === View.ActionCenter ||
     currentView === View.TodoList ||
     currentView === View.TrainingLog ||
-    currentView === View.CommunityShare;
+    currentView === View.CommunityShare ||
+    currentView === View.Stats;
 
   // Views where BottomNav should be hidden
   const shouldHideBottomNav =
@@ -391,7 +444,8 @@ const App: React.FC = () => {
     currentView === View.ActionCenter ||
     currentView === View.TodoList ||
     currentView === View.TrainingLog ||
-    currentView === View.CommunityShare;
+    currentView === View.CommunityShare ||
+    currentView === View.ManualPost;
 
   // Show loading while checking auth
   if (!authChecked) {
@@ -410,7 +464,7 @@ const App: React.FC = () => {
   const coachMessage = visualAssessment
     ? (() => {
         const weeks = Math.max(8, Math.ceil((visualAssessment.currentBodyFat - visualAssessment.targetBodyFat) / 0.5));
-        return `当前约 ${visualAssessment.currentBodyFat}%，目标约 ${visualAssessment.targetBodyFat}%，大约需要 ${weeks} 周。点我开始你的教练之旅！`;
+        return `褰撳墠绾?${visualAssessment.currentBodyFat}%锛岀洰鏍囩害 ${visualAssessment.targetBodyFat}%锛屽ぇ绾﹂渶瑕?${weeks} 鍛ㄣ€傜偣鎴戝紑濮嬩綘鐨勬暀缁冧箣鏃咃紒`;
       })()
     : undefined;
 
@@ -439,3 +493,5 @@ const App: React.FC = () => {
 };
 
 export default App;
+
+
