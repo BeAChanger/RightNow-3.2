@@ -45,6 +45,9 @@ model User {
   aiCoachProfile    AiCoachProfile?
   aiCoachProfileSnapshots AiCoachProfileSnapshot[]
   feedbackCards     AiFeedbackCard[]
+  trainingSessions  TrainingSession[]
+  evolutionStages      EvolutionStage[]
+  evolutionAssessments EvolutionAssessment[]
 }
 
 model WeightRecord {
@@ -88,13 +91,34 @@ model TrainingRecord {
   todayFeeling    String?
   rawInput        Json?
   structuredData  Json?
+  targetMuscle    String?
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
   user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   setDetails      TrainingSetDetail[]
   feedbackCards   AiFeedbackCard[]
+  trainingSession TrainingSession?
 
   @@index([userId, date])
+  @@index([userId, targetMuscle, date])
+}
+
+model TrainingSession {
+  id               String          @id @default(cuid())
+  userId           String
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status           String          @default("in_progress")
+  startTime        DateTime        @default(now())
+  endTime          DateTime?
+  conversationLog  Json            @default("[]")
+  contextData      Json?
+  trainingRecordId String?         @unique
+  trainingRecord   TrainingRecord? @relation(fields: [trainingRecordId], references: [id])
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@index([userId, status])
+  @@index([userId, startTime])
 }
 
 model Todo {
@@ -147,6 +171,42 @@ model EvolutionRecord {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assessments EvolutionAssessment[]
+
+  @@index([userId, createdAt])
+}
+
+model EvolutionStage {
+  id              String   @id @default(cuid())
+  userId          String
+  stageIndex      Int
+  targetBodyFat   Float
+  title           String
+  previewImageUrl String?
+  isUnlocked      Boolean  @default(false)
+  unlockedAt      DateTime?
+  actualImageUrl  String?
+  qualifiedCount  Int      @default(0)
+  lastQualifiedAt DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, stageIndex])
+  @@index([userId, stageIndex])
+}
+
+model EvolutionAssessment {
+  id                 String          @id @default(cuid())
+  userId             String
+  recordId           String          @unique
+  bodyFatEstimate    Float
+  geminiBodyFat      Float?
+  isGeminiCalibrated Boolean         @default(false)
+  assessmentCount    Int
+  createdAt          DateTime        @default(now())
+  user               User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  record             EvolutionRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
 }
@@ -382,3 +442,4 @@ model AiFeedbackCard {
   @@index([userId, createdAt])
   @@index([trainingRecordId])
 }
+

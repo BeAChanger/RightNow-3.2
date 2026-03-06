@@ -1,10 +1,11 @@
-# RightNow Fitness 文档中心
+﻿# RightNow Fitness 文档中心
 
 ## 快速开始
 
 - [本地启动指南](existing/LOCAL_STARTUP_GUIDE.md)
 - [系统架构](ARCHITECTURE.md)
 - [协作指南](COLLABORATION_GUIDE.md)
+- [AI模型策略](AI_MODEL_POLICY.md)
 
 ## 按角色查看
 
@@ -49,3 +50,5 @@
 
 - [Claude项目记忆](existing/CLAUDE_PROJECT_MEMORY.md)
 - [Claude指令](existing/CLAUDE.md)
+
+

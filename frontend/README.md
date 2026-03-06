@@ -1,4 +1,4 @@
-# RightNow Fitness (此刻健身)
+﻿# RightNow Fitness (此刻健身)
 
 > **通过 AI 视觉锚点消除反馈延迟，让用户"看见"未来的自己。**
 > *Believe is Seeing.*
@@ -125,9 +125,10 @@ npm run dev
 
 ## ⚠️ 注意事项 (Notes)
 
-- **API Key**: 目前 AI 功能（对话、图像生成）为前端模拟展示（Mock Data），无需配置 API Key 即可体验完整交互流程。
+- **API Key**: 真实 AI 能力（对话、图像生成）依赖 Gemini API，缺少 key 时会返回提示信息。
 - **移动端适配**: 项目专为移动端 Web (H5) 优化，建议在浏览器中使用"手机模式"或在手机上访问以获得最佳体验。
-- **环境变量**: 如需配置 Gemini API Key，请在 `.env.local` 文件中设置 `VITE_GEMINI_API_KEY`。
+- **环境变量**: 前端在 `.env.local` 设置 `VITE_GEMINI_API_KEY`，后端在 `backend/.env` 设置 `GEMINI_API_KEY`。
+- **模型策略**: 见 `../docs/AI_MODEL_POLICY.md`。
 
 ---
 
@@ -138,3 +139,4 @@ npm run dev
 ---
 
 *RightNow Fitness - Believe is Seeing.* 🏋️‍♂️✨
+

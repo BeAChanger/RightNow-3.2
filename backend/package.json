@@ -10,7 +10,7 @@
     "start:prod": "node dist/main.js",
     "postinstall": "prisma generate",
     "prisma:generate": "prisma generate",
-    "prisma:push": "prisma db push",
+    "prisma:push": "prisma db push --skip-generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "ts-node --project tsconfig.json prisma/seed.ts"
   },
@@ -24,6 +24,7 @@
     "@nestjs/jwt": "^10.2.0",
     "@nestjs/passport": "^10.0.3",
     "@nestjs/platform-express": "^10.4.15",
+    "@prisma/adapter-pg": "^7.4.2",
     "@prisma/client": "^6.4.1",
     "bcrypt": "^5.1.1",
     "class-transformer": "^0.5.1",
@@ -48,3 +49,4 @@
     "typescript": "^5.7.3"
   }
 }
+

@@ -1,8 +1,10 @@
-/**
+﻿/**
  * Gemini AI Service
- * 瀵硅瘽妯″瀷: Gemini 3 Flash (gemini-3-flash-preview)
- * 鍥惧儚鐢熸垚: Nano Banana 2 (gemini-3.1-flash-image-preview)
+ * 闂傚倸鍊搁崐鎼佸磹閹间礁纾圭€瑰嫭鍣磋ぐ鎺戠倞妞ゆ帒顦伴弲顏堟偡濠婂啰效婵犫偓娓氣偓濮婅櫣绱掑Ο铏逛紘濠碘槅鍋勭€氭澘顕ｉ崨濠勭懝闁逞屽墴瀵鎮㈤崗灏栨嫽闂佸湱铏庨崰妤咁敁閺嶎厽鈷戦梺顐ゅ仜閼活垶宕㈤幖浣圭厽闁硅櫣鍋涢々顒勬煙楠炲灝鐏╅柍瑙勫灩閳ь剨缍嗘禍鐐哄磹閻愮儤鈷戦梻鍫熶緱閻掗箖鏌涙惔銈夊摵闁哄懓鍩栭妶锝夊礃閳圭偓瀚藉┑鐐舵彧缂嶁偓婵☆偄瀚。鍧楁⒒娴ｇ懓顕滅€光偓閹间礁钃熼柕濞垮劗濡插牊鎱ㄥΔ鈧Λ娆撳煝閸儲鈷戦悹鍥ｂ偓铏亖闂佹悶鍔嬬划娆撶嵁閸愵喖鐒洪柛鎰ㄦ櫅閸斿懘姊洪幐搴ｇ畵閻庢凹鍠氱划鍫ュ醇閵夛腹鎷洪柣鐘叉搐瀵爼宕径瀣ㄤ簻妞ゆ劑鍩勫Σ鎼佹偂閵堝鐓涚€广儱娴锋禍瑙勭箾瀹割喕绨奸柛瀣姍閹綊宕堕鍕闂? Gemini 3 Flash (gemini-3-flash-preview)
+ * 闂傚倸鍊搁崐鎼佸磹閹间礁纾归柟闂寸绾惧綊鏌ｉ幋锝呅撻柛濠傛健閺屻劑寮撮悙娴嬪亾閸濄儳涓嶉柡宥庡幗閻撴洘銇勯幇鍓佺ɑ缂佲偓閳ь剛绱掗悙顒€鍔ゆ繛纭风節瀵鏁嶉崟顏呭媰闁荤姴娲﹁ぐ鍐╂叏鎼达絿纾奸柣鎰靛墮閸斻倖绻涚涵椋庣瘈鐎殿喖顭烽幃銏ゆ偂鎼达絿鏆伴梻浣虹帛椤ㄥ懘鎮у鍏炬盯宕熼鐘碉紲闂佸憡鎸嗛崘褍顥氶梺璇叉捣閻熸娊宕惰閻ゅ嫰姊洪棃娑辩劸闁稿孩鐟╅幃銏ゆ偂鎼达紕鈧厼顪冮妶鍡樷拹闁稿骸纾弫顕€宕稿Δ浣叉嫽婵炶揪绲肩拃锕傛倿閻愵兙浜滈柟瀛樼箓閺嗭絿鈧娲樼换鍫ョ嵁鐎ｎ喗鏅濋柍褜鍓熼幏鎴︽偄閸忚偐鍙嗗┑鐘绘涧濡厼危閸濄儳纾兼い鎰╁灮鏁堥梺鍝勬湰缁嬫挻绂掗敂鐐珰婵炴潙顑呮禍鐐繆閵堝懏鍣圭紒鈧径鎰厵闂傚倸顕崝宥夋煃? Gemini 3.1 Flash Lite/Image Preview (fallback)
  */
+
+import apiClient from '../api/client';
 
 const API_KEY = () => import.meta.env.VITE_GEMINI_API_KEY || '';
 
@@ -11,12 +13,13 @@ const GEMINI_UPLOAD_BASE = 'https://generativelanguage.googleapis.com/upload/v1b
 const GEMINI_MODELS_DOC_URL = 'https://ai.google.dev/gemini-api/docs/models?hl=zh-cn';
 const GEMINI_IMAGE_MODEL_DOC_URL = 'https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-image-preview?hl=zh-cn';
 
-const PRIMARY_CHAT_MODEL = 'gemini-3-flash-preview';
-const FALLBACK_CHAT_MODEL = 'gemini-2.5-flash';
-const CHAT_MODEL_CANDIDATES = [PRIMARY_CHAT_MODEL, FALLBACK_CHAT_MODEL];
-const IMAGE_MODEL = 'gemini-3.1-flash-image-preview';
+const INTERACTIVE_MODEL = 'gemini-3-flash-preview';
+const CHAT_MODEL_CANDIDATES = [INTERACTIVE_MODEL];
+const DEFAULT_IMAGE_GEN_MODEL = 'gemini-3.1-flash-lite-preview';
+const FALLBACK_IMAGE_GEN_MODEL = 'gemini-3.1-flash-image-preview';
+const IMAGE_GENERATION_MODEL_CANDIDATES = [DEFAULT_IMAGE_GEN_MODEL, FALLBACK_IMAGE_GEN_MODEL];
 const ALLOWED_CHAT_MODELS = new Set(CHAT_MODEL_CANDIDATES);
-const ALLOWED_IMAGE_MODELS = new Set([IMAGE_MODEL]);
+const ALLOWED_IMAGE_MODELS = new Set(IMAGE_GENERATION_MODEL_CANDIDATES);
 
 type GeminiInputModality = 'text' | 'image' | 'video' | 'audio' | 'pdf';
 const ALLOWED_INPUT_MODALITIES = new Set<GeminiInputModality>(['text', 'image', 'video', 'audio']);
@@ -82,6 +85,98 @@ export interface GeminiMultimodalMediaInput {
   displayName?: string;
 }
 const SAFE_BG_PROMPT = 'Use a clean dark charcoal gray seamless background without gradients, noise, or shadows.';
+
+type ManagedPromptCode =
+  | 'training.extract_data'
+  | 'training.generate_feedback'
+  | 'training.daily_change_feedback'
+  | 'core.fitness_coach_system'
+  | 'core.coach_assessment_system'
+  | 'core.coach_knowledge_intro'
+  | 'core.food_analysis_system'
+  | 'core.visual_assessment_system'
+  | 'chat.free_chat_system'
+  | 'app.generate_fitness_plan_user_prompt'
+  | 'image.safe_bg_prompt'
+  | 'image.generate_ideal_body.with_refinement_and_reference'
+  | 'image.generate_ideal_body.with_refinement_and_image'
+  | 'image.generate_ideal_body.with_refinement_text_only'
+  | 'image.generate_ideal_body.with_image'
+  | 'image.generate_ideal_body.text_only'
+  | 'food.analyze_text_user_prompt'
+  | 'food.analyze_image_user_prompt'
+  | 'insights.generate_data_insights_user_prompt'
+  | 'coach.generate_first_day_plan_user_prompt'
+  | 'coach.generate_follow_up_user_prompt'
+  | 'coach.generate_week_summary_user_prompt'
+  | 'coach.visual_assessment_user_prompt'
+  | 'evolution.analyze_body_with_image_user_prompt'
+  | 'evolution.refinement_ack_user_prompt'
+  | 'evolution.face_merge_refinement_text';
+
+interface ManagedPromptRenderResponse {
+  code: ManagedPromptCode;
+  scene: string;
+  key: string;
+  source: 'db' | 'fallback';
+  templateId: string | null;
+  prompt: string;
+}
+
+const managedPromptCache = new Map<string, string>();
+
+function renderLocalTemplate(template: string, variables: Record<string, unknown>): string {
+  return template.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (_match, variableName: string) => {
+    const value = variables[variableName];
+    if (value === undefined || value === null) {
+      return '';
+    }
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+      return String(value);
+    }
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return String(value);
+    }
+  });
+}
+
+function toPromptCacheKey(code: ManagedPromptCode, variables: Record<string, unknown>): string {
+  return `${code}::${JSON.stringify(variables)}`;
+}
+
+async function resolveManagedPrompt(
+  code: ManagedPromptCode,
+  fallbackTemplate: string,
+  variables: Record<string, unknown> = {},
+  useCache = false,
+): Promise<string> {
+  const cacheKey = toPromptCacheKey(code, variables);
+  if (useCache && managedPromptCache.has(cacheKey)) {
+    return managedPromptCache.get(cacheKey)!;
+  }
+
+  try {
+    const { data } = await apiClient.post<ManagedPromptRenderResponse>('/prompts/runtime/render', {
+      code,
+      variables,
+    });
+    const prompt = typeof data?.prompt === 'string' && data.prompt.trim()
+      ? data.prompt
+      : renderLocalTemplate(fallbackTemplate, variables);
+    if (useCache) {
+      managedPromptCache.set(cacheKey, prompt);
+    }
+    return prompt;
+  } catch {
+    const prompt = renderLocalTemplate(fallbackTemplate, variables);
+    if (useCache) {
+      managedPromptCache.set(cacheKey, prompt);
+    }
+    return prompt;
+  }
+}
 
 function getGeminiApiKey(): string {
   const key = API_KEY();
@@ -429,35 +524,94 @@ async function requestGeminiContentWithFallback(
   throw new Error(lastErrorMessage);
 }
 
-// 鍋ヨ韩鏁欑粌 system prompt
 export const FITNESS_COACH_PROMPT = [
   '你是 RightNow Fitness 的 AI 健身教练。',
   '请使用简体中文回答，语气专业、简洁、鼓励。',
   '优先提供可执行的训练、饮食和恢复建议。',
 ].join(' ');
 
-// 引导式对话问题序列
+export const COACH_ASSESSMENT_PROMPT = [
+  '你是 RightNow Fitness 的 AI 体测分析师。',
+  '根据用户身体数据给出简洁阶段判断（1-2 句）。',
+  '语气专业但有温度，使用中文，直接返回文字。',
+].join('\n');
+
+const FREE_CHAT_SYSTEM_FALLBACK = [
+  '你是 RightNow Fitness 的 AI 健身教练。',
+  '回复用中文，不超过100字，不要使用*号或markdown。',
+  '语气专业、友好、可执行。',
+].join(' ');
+
+const EVOLUTION_ANALYZE_BODY_FALLBACK =
+  '请分析这张身体照片，用户目标是“{{styleLabel}}”体型。给出简短身体评估（2-3句话），然后告诉用户可以通过对话描述想要的调整，比如“手臂再粗一点”“腰再细一点”来PS理想身材。';
+
+const EVOLUTION_REFINEMENT_ACK_FALLBACK =
+  '用户想调整理想身材：“{{userText}}”。请简短确认（1-2句话），告诉用户正在根据要求重新生成。';
+
+const EVOLUTION_FACE_MERGE_FALLBACK = '将这张正脸照的面部特征融合到身材图上，保持身材不变，替换面部。';
+
+const FITNESS_PLAN_USER_PROMPT_FALLBACK = [
+  '基于以下用户信息，生成一份详细的个性化健身方案：',
+  '用户信息：',
+  '- 性别：{{genderLabel}}',
+  '- 身高：{{height}}cm，体重：{{weight}}kg，年龄：{{age}}岁',
+  '- 目标体型：{{bodyStyle}}',
+  '- 运动基础：{{exerciseBase}}',
+  '- 饮食习惯：{{dietHabit}}',
+  '- 作息规律：{{sleepPattern}}',
+  '- 职业：{{occupation}}',
+  '',
+  '请生成包含以下内容的方案（用 JSON 格式）：',
+  '1. mealPlan: 每日三餐具体食谱（早/中/晚/加餐）',
+  '2. waterPlan: 喝水时间表（具体时间点和水量）',
+  '3. trainingPlan: 每周训练计划（每天训练内容、组数、时长）',
+  '4. summary: 一段鼓励性总结（2-3句话）',
+  '',
+  '请直接返回 JSON，不要 markdown 代码块。',
+].join('\n');
+
+const FOOD_ANALYSIS_SYSTEM_PROMPT_FALLBACK = [
+  '你是专业营养师。根据用户描述估算营养成分。',
+  '必须返回纯 JSON（不要 markdown 代码块），格式：',
+  '{"name":"食物名","calories":数字,"protein":数字,"fat":数字,"carbs":数字,"mealType":"早餐|午餐|晚餐|加餐"}',
+  '所有数值为整数；calories 单位为千卡，其他单位为克。',
+].join('\n');
+
+const DATA_INSIGHTS_PROMPT_FALLBACK = [
+  '你是健身营养顾问。请根据以下今日数据给出 2-3 条中文建议（每条不超过 30 字）。',
+  '直接返回 JSON 数组，如 ["建议1","建议2"]，不要 markdown。',
+  '今日摄入：{{totalCalories}} 千卡',
+  '蛋白质：{{totalProtein}}g，脂肪：{{totalFat}}g，碳水：{{totalCarbs}}g',
+  '最新体重：{{latestWeight}} kg',
+  '体重趋势：{{weightTrend}}',
+  '近30天打卡：{{checkinCount}} 天',
+].join('\n');
+
+const COACH_KNOWLEDGE_INTRO_FALLBACK = [
+  '你正在基于 RightNow Fitness 知识库生成教练回复。',
+  '请优先使用下方知识内容作为事实依据。',
+  '如用户提供实测数据，与估算冲突时以实测数据为准。',
+].join(' ');
+
+const VISUAL_ASSESSMENT_SYSTEM_PROMPT_FALLBACK = [
+  '你是专业的体脂评估助手。',
+  '根据两张身体照片估算体脂率：第一张是当前身材，第二张是理想身材。',
+  '返回纯 JSON（不要 markdown 代码块）：',
+  '{"currentBodyFat": number, "targetBodyFat": number}',
+  '数值保留 1 位小数。',
+].join('\n');
+
+const VISUAL_ASSESSMENT_USER_PROMPT_FALLBACK =
+  '用户性别：{{genderLabel}}。请分析以下两张照片，第一张是当前身材，第二张是理想身材，并估算各自体脂率。';
+
+const SAFE_PHOTO_STYLE_FALLBACK =
+  'Use realistic, non-explicit fitness outfit and natural studio quality. {{safeBgPrompt}}';
+
 export const GUIDED_QUESTIONS = [
-  {
-    id: 'exercise_base',
-    question: '你之前有运动基础吗？比如健身、跑步或球类运动，大概坚持了多久？',
-    field: 'exerciseBase',
-  },
-  {
-    id: 'diet_habit',
-    question: '聊聊你目前的饮食习惯：一天几餐，偏好哪些食物，有没有忌口？',
-    field: 'dietHabit',
-  },
-  {
-    id: 'sleep_pattern',
-    question: '你的作息如何？一般几点睡、几点起？睡眠质量怎么样？',
-    field: 'sleepPattern',
-  },
-  {
-    id: 'occupation',
-    question: '你从事什么工作？日常久坐多还是活动多？',
-    field: 'occupation',
-  },
+  { id: 'exercise_base', field: 'exerciseBase', question: '你的运动基础如何？' },
+  { id: 'diet_habit', field: 'dietHabit', question: '你的日常饮食习惯如何？' },
+  { id: 'sleep_pattern', field: 'sleepPattern', question: '你的作息规律如何？' },
+  { id: 'occupation', field: 'occupation', question: '你的职业类型是？' },
 ];
 
 export interface GeminiMessage {
@@ -465,9 +619,56 @@ export interface GeminiMessage {
   parts: GeminiMessagePart[];
 }
 
-/**
- * 璋冪敤 Gemini 鏂囨湰瀵硅瘽
- */
+function normalizeHistory(history: GeminiMessage[]): GeminiMessage[] {
+  if (!Array.isArray(history)) {
+    return [];
+  }
+  return history
+    .filter((item) => item && (item.role === 'user' || item.role === 'model') && Array.isArray(item.parts))
+    .map((item) => ({
+      role: item.role,
+      parts: item.parts,
+    }));
+}
+
+function parseJsonSafely<T>(raw: string): T | null {
+  try {
+    const cleaned = raw.replace(/```json?\s*/gi, '').replace(/```/g, '').trim();
+    return JSON.parse(cleaned) as T;
+  } catch {
+    return null;
+  }
+}
+
+export async function getFreeChatSystemPrompt(): Promise<string> {
+  return resolveManagedPrompt('chat.free_chat_system', FREE_CHAT_SYSTEM_FALLBACK, {}, true);
+}
+
+export async function getEvolutionAnalyzeBodyPrompt(styleLabel: string): Promise<string> {
+  return resolveManagedPrompt(
+    'evolution.analyze_body_with_image_user_prompt',
+    EVOLUTION_ANALYZE_BODY_FALLBACK,
+    { styleLabel },
+  );
+}
+
+export async function getEvolutionRefinementAckPrompt(userText: string): Promise<string> {
+  return resolveManagedPrompt(
+    'evolution.refinement_ack_user_prompt',
+    EVOLUTION_REFINEMENT_ACK_FALLBACK,
+    { userText },
+  );
+}
+
+export async function getEvolutionFaceMergeRefinementText(): Promise<string> {
+  return resolveManagedPrompt(
+    'evolution.face_merge_refinement_text',
+    EVOLUTION_FACE_MERGE_FALLBACK,
+    {},
+    true,
+  );
+}
+
 export async function chatWithMultimodal(
   userText: string,
   mediaInputs: GeminiMultimodalMediaInput[] = [],
@@ -476,7 +677,7 @@ export async function chatWithMultimodal(
 ): Promise<string> {
   try {
     const key = getGeminiApiKey();
-    const parts: GeminiMessagePart[] = [{ text: userText }];
+    const parts: GeminiMessagePart[] = [{ text: userText || '请继续。' }];
     const modalities: GeminiInputModality[] = ['text'];
 
     for (const input of mediaInputs) {
@@ -488,21 +689,26 @@ export async function chatWithMultimodal(
     const data = await requestGeminiContentWithFallback(
       key,
       {
-        contents: [...history, { role: 'user', parts }],
+        contents: [...normalizeHistory(history), { role: 'user', parts }],
         system_instruction: { parts: [{ text: systemPrompt }] },
       },
       { modalities },
     );
 
-    return extractFirstTextCandidate(data) || 'Received. Let me think...';
+    return extractFirstTextCandidate(data) || '收到，我再想一下。';
   } catch (error) {
     if (error instanceof GeminiPolicyError) {
-      if (error.code === 'MISSING_API_KEY') return MISSING_API_KEY_MESSAGE;
-      if (error.code === 'PDF_DISABLED') return 'PDF upload is currently not supported.';
+      if (error.code === 'MISSING_API_KEY') {
+        return MISSING_API_KEY_MESSAGE;
+      }
+      if (error.code === 'PDF_DISABLED') {
+        return '当前不支持 PDF 输入。';
+      }
     }
     return GENERIC_GEMINI_ERROR_MESSAGE;
   }
 }
+
 export async function chatWithGemini(
   userText: string,
   systemPrompt: string = FITNESS_COACH_PROMPT,
@@ -511,8 +717,8 @@ export async function chatWithGemini(
   try {
     const key = getGeminiApiKey();
     const contents: GeminiMessage[] = [
-      ...history,
-      { role: 'user', parts: [{ text: userText }] },
+      ...normalizeHistory(history),
+      { role: 'user', parts: [{ text: userText || '请继续。' }] },
     ];
 
     const data = await requestGeminiContentWithFallback(
@@ -523,7 +729,8 @@ export async function chatWithGemini(
       },
       { modalities: ['text'] },
     );
-    return extractFirstTextCandidate(data) || '收到，让我想想...';
+
+    return extractFirstTextCandidate(data) || '收到，我再想一下。';
   } catch (error) {
     if (error instanceof GeminiPolicyError && error.code === 'MISSING_API_KEY') {
       return MISSING_API_KEY_MESSAGE;
@@ -531,23 +738,15 @@ export async function chatWithGemini(
     return GENERIC_GEMINI_ERROR_MESSAGE;
   }
 }
-/**
- * 璋冪敤 Gemini 澶氭ā鎬侊紙甯﹀浘鐗囷級
- */
+
 export async function chatWithImage(
   userText: string,
   imageBase64: string,
   systemPrompt: string = FITNESS_COACH_PROMPT,
 ): Promise<string> {
-  return chatWithMultimodal(
-    userText,
-    [{ type: 'image', dataUrl: imageBase64 }],
-    systemPrompt,
-  );
+  return chatWithMultimodal(userText, [{ type: 'image', dataUrl: imageBase64 }], systemPrompt);
 }
-/**
- * 鍩轰簬鐢ㄦ埛淇℃伅鐢熸垚涓€у寲鍋ヨ韩鏂规
- */
+
 export async function generateFitnessPlan(userInfo: {
   gender: string;
   height: number;
@@ -559,30 +758,26 @@ export async function generateFitnessPlan(userInfo: {
   sleepPattern: string;
   occupation: string;
 }): Promise<string> {
-  const prompt = `基于以下用户信息，生成一份详细的个性化健身方案：
-用户信息：
-- 性别：${userInfo.gender === 'male' ? '男' : '女'}
-- 身高：${userInfo.height}cm，体重：${userInfo.weight}kg，年龄：${userInfo.age}岁
-- 目标体型：${userInfo.bodyStyle}
-- 运动基础：${userInfo.exerciseBase}
-- 饮食习惯：${userInfo.dietHabit}
-- 作息规律：${userInfo.sleepPattern}
-- 职业：${userInfo.occupation}
+  const prompt = await resolveManagedPrompt(
+    'app.generate_fitness_plan_user_prompt',
+    FITNESS_PLAN_USER_PROMPT_FALLBACK,
+    {
+      genderLabel: userInfo.gender === 'male' ? '男' : '女',
+      height: userInfo.height,
+      weight: userInfo.weight,
+      age: userInfo.age,
+      bodyStyle: userInfo.bodyStyle,
+      exerciseBase: userInfo.exerciseBase,
+      dietHabit: userInfo.dietHabit,
+      sleepPattern: userInfo.sleepPattern,
+      occupation: userInfo.occupation,
+    },
+  );
 
-请生成包含以下内容的方案（用 JSON 格式）：
-1. mealPlan: 每日三餐具体食谱（早/中/晚/加餐）
-2. waterPlan: 喝水时间表（具体时间点和水量）
-3. trainingPlan: 每周训练计划（每天的训练内容、组数、时长）
-4. summary: 一段鼓励性的总结（2-3句话）
-
-请直接返回 JSON，不要加 markdown 代码块。`;
-
-  return chatWithGemini(prompt);
+  const systemPrompt = await resolveManagedPrompt('core.fitness_coach_system', FITNESS_COACH_PROMPT, {}, true);
+  return chatWithGemini(prompt, systemPrompt);
 }
 
-/**
- * 鍘嬬缉鍥剧墖鍒版寚瀹氭渶澶у搴︼紝杩斿洖 base64 data URL
- */
 function compressImage(base64DataUrl: string, maxWidth = 800): Promise<string> {
   return new Promise((resolve) => {
     const img = new Image();
@@ -593,7 +788,11 @@ function compressImage(base64DataUrl: string, maxWidth = 800): Promise<string> {
       const canvas = document.createElement('canvas');
       canvas.width = w;
       canvas.height = h;
-      const ctx = canvas.getContext('2d')!;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        resolve(base64DataUrl);
+        return;
+      }
       ctx.drawImage(img, 0, 0, w, h);
       resolve(canvas.toDataURL('image/jpeg', 0.8));
     };
@@ -602,10 +801,6 @@ function compressImage(base64DataUrl: string, maxWidth = 800): Promise<string> {
   });
 }
 
-/**
- * Nano Banana 2 鍥惧儚鐢熸垚 鈥?鍩轰簬鐢ㄦ埛鐓х墖+鐩爣浣撳瀷鐢熸垚鐞嗘兂韬潗
- * 杩斿洖 base64 鍥剧墖鏁版嵁鎴?null
- */
 export async function generateIdealBody(params: {
   currentImageBase64?: string;
   referenceImageBase64?: string;
@@ -617,7 +812,7 @@ export async function generateIdealBody(params: {
   let key = '';
   try {
     key = getGeminiApiKey();
-    ensureAllowedImageModel(IMAGE_MODEL);
+    IMAGE_GENERATION_MODEL_CANDIDATES.forEach((model) => ensureAllowedImageModel(model));
   } catch {
     return null;
   }
@@ -630,25 +825,68 @@ export async function generateIdealBody(params: {
   const genderLabel = params.gender === 'male' ? 'male' : 'female';
   const hasImage = !!params.currentImageBase64;
   const hasReferenceImage = !!params.referenceImageBase64;
+
   const safeIdentityInstruction = params.conservative
     ? 'Keep identity, hairstyle, and facial traits close to source; avoid exact face copy.'
     : 'Keep identity, hairstyle, and core facial traits consistent.';
-  const safePhotoStyle = `Use realistic, non-explicit fitness outfit and natural studio quality. ${SAFE_BG_PROMPT}`;
+
+  const safeBgPrompt = await resolveManagedPrompt('image.safe_bg_prompt', SAFE_BG_PROMPT, {}, true);
+  const safePhotoStyle = renderLocalTemplate(SAFE_PHOTO_STYLE_FALLBACK, { safeBgPrompt });
 
   let prompt: string;
   if (params.refinement && hasImage && hasReferenceImage) {
-    prompt = `Image 1 is current body and image 2 is face reference. Blend face traits from image 2 into image 1 while preserving body posture. ${safeIdentityInstruction} Additional adjustment: ${params.refinement}. ${safePhotoStyle}`;
+    prompt = await resolveManagedPrompt(
+      'image.generate_ideal_body.with_refinement_and_reference',
+      'Image 1 is current body and image 2 is face reference. Blend face traits from image 2 into image 1 while preserving body posture. {{safeIdentityInstruction}} Additional adjustment: {{refinement}}. {{safePhotoStyle}}',
+      {
+        safeIdentityInstruction,
+        refinement: params.refinement,
+        safePhotoStyle,
+      },
+    );
   } else if (params.refinement && hasImage) {
-    prompt = `Adjust this person's body according to: ${params.refinement}. Keep overall identity consistent. ${safeIdentityInstruction} ${safePhotoStyle}`;
+    prompt = await resolveManagedPrompt(
+      'image.generate_ideal_body.with_refinement_and_image',
+      "Adjust this person's body according to: {{refinement}}. Keep overall identity consistent. {{safeIdentityInstruction}} {{safePhotoStyle}}",
+      {
+        refinement: params.refinement,
+        safeIdentityInstruction,
+        safePhotoStyle,
+      },
+    );
   } else if (params.refinement) {
-    prompt = `Generate a full-body ${genderLabel} fitness photo with ${target} body type. Extra requirement: ${params.refinement}. ${safePhotoStyle}`;
+    prompt = await resolveManagedPrompt(
+      'image.generate_ideal_body.with_refinement_text_only',
+      'Generate a full-body {{genderLabel}} fitness photo with {{target}} body type. Extra requirement: {{refinement}}. {{safePhotoStyle}}',
+      {
+        genderLabel,
+        target,
+        refinement: params.refinement,
+        safePhotoStyle,
+      },
+    );
   } else if (hasImage) {
-    prompt = `Based on this person photo, transform body type toward ${target}. Keep identity and improve body proportion naturally. ${safeIdentityInstruction} ${safePhotoStyle}`;
+    prompt = await resolveManagedPrompt(
+      'image.generate_ideal_body.with_image',
+      'Based on this person photo, transform body type toward {{target}}. Keep identity and improve body proportion naturally. {{safeIdentityInstruction}} {{safePhotoStyle}}',
+      {
+        target,
+        safeIdentityInstruction,
+        safePhotoStyle,
+      },
+    );
   } else {
-    prompt = `Generate a realistic full-body ${genderLabel} fitness photo with ${target} body type. ${safePhotoStyle}`;
+    prompt = await resolveManagedPrompt(
+      'image.generate_ideal_body.text_only',
+      'Generate a realistic full-body {{genderLabel}} fitness photo with {{target}} body type. {{safePhotoStyle}}',
+      {
+        genderLabel,
+        target,
+        safePhotoStyle,
+      },
+    );
   }
 
-  // 120 绉掕秴鏃讹紙鎱㈢綉缁滈渶瑕佹洿闀挎椂闂达級
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 120_000);
 
@@ -657,34 +895,20 @@ export async function generateIdealBody(params: {
 
     if (params.currentImageBase64) {
       const compressed = await compressImage(params.currentImageBase64, 600);
-      const base64Data = compressed.includes(',')
-        ? compressed.split(',')[1]
-        : compressed;
-      const mimeType = compressed.includes(';')
-        ? compressed.split(';')[0].split(':')[1]
-        : 'image/jpeg';
+      const base64Data = compressed.includes(',') ? compressed.split(',')[1] : compressed;
+      const mimeType = compressed.includes(';') ? compressed.split(';')[0].split(':')[1] : 'image/jpeg';
       parts.push({ inline_data: { mime_type: mimeType, data: base64Data } });
-      console.log('[generateIdealBody] image compressed, payload size:', Math.round(base64Data.length / 1024), 'KB');
     }
 
     if (params.referenceImageBase64) {
       const compressed = await compressImage(params.referenceImageBase64, 600);
-      const base64Data = compressed.includes(',')
-        ? compressed.split(',')[1]
-        : compressed;
-      const mimeType = compressed.includes(';')
-        ? compressed.split(';')[0].split(':')[1]
-        : 'image/jpeg';
+      const base64Data = compressed.includes(',') ? compressed.split(',')[1] : compressed;
+      const mimeType = compressed.includes(';') ? compressed.split(';')[0].split(':')[1] : 'image/jpeg';
       parts.push({ inline_data: { mime_type: mimeType, data: base64Data } });
-      console.log('[generateIdealBody] reference image compressed, payload size:', Math.round(base64Data.length / 1024), 'KB');
     }
 
-    console.log('[generateIdealBody] sending request, hasImage:', hasImage, 'style:', params.targetStyle);
-    const t0 = Date.now();
-
-    const res = await fetch(
-      `${GEMINI_BASE}/models/${IMAGE_MODEL}:generateContent?key=${key}`,
-      {
+    for (const model of IMAGE_GENERATION_MODEL_CANDIDATES) {
+      const res = await fetch(`${GEMINI_BASE}/models/${model}:generateContent?key=${key}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -692,60 +916,41 @@ export async function generateIdealBody(params: {
           generationConfig: { responseModalities: ['image', 'text'] },
         }),
         signal: controller.signal,
-      },
-    );
+      });
 
-    console.log('[generateIdealBody] response status:', res.status, 'took:', Math.round((Date.now() - t0) / 1000), 's');
+      const data = await res.json();
+      if (!res.ok) {
+        continue;
+      }
 
-    const data = await res.json();
-    console.log('[generateIdealBody] json parsed, took:', Math.round((Date.now() - t0) / 1000), 's total');
+      const candidate = data?.candidates?.[0]?.content?.parts;
+      if (!Array.isArray(candidate)) {
+        continue;
+      }
 
-    if (!res.ok) {
-      console.error('[generateIdealBody] API error:', res.status, JSON.stringify(data).slice(0, 500));
-      return null;
-    }
-    const candidate = data.candidates?.[0]?.content?.parts;
-    if (!candidate) {
-      console.error('[generateIdealBody] no candidates:', JSON.stringify(data).slice(0, 500));
-      return null;
-    }
+      const imagePart = candidate.find((p: any) =>
+        p?.inline_data?.mime_type?.startsWith('image/')
+        || p?.inlineData?.mimeType?.startsWith('image/'));
 
-    // Debug: log actual response structure to identify field naming
-    console.log('[generateIdealBody] parts keys:', candidate.map((p: any) => Object.keys(p)));
+      if (!imagePart) {
+        continue;
+      }
 
-    // Check both snake_case (inline_data) and camelCase (inlineData) 鈥?Gemini API may use either
-    const imgPart = candidate.find((p: any) =>
-      p.inline_data?.mime_type?.startsWith('image/') ||
-      p.inlineData?.mimeType?.startsWith('image/')
-    );
-    if (imgPart) {
-      const iData = imgPart.inline_data || imgPart.inlineData;
-      const mimeType = iData.mime_type || iData.mimeType;
-      const b64 = iData.data;
-      console.log('[generateIdealBody] success! size:', Math.round(b64.length / 1024), 'KB, total:', Math.round((Date.now() - t0) / 1000), 's');
-      return `data:${mimeType};base64,${b64}`;
+      const inlineData = imagePart.inline_data || imagePart.inlineData;
+      const mimeType = inlineData.mime_type || inlineData.mimeType;
+      const b64 = inlineData.data;
+      if (typeof mimeType === 'string' && typeof b64 === 'string' && b64) {
+        return `data:${mimeType};base64,${b64}`;
+      }
     }
 
-    const textPart = candidate.find((p: any) => p.text);
-    if (textPart) {
-      console.warn('[generateIdealBody] text only:', textPart.text.slice(0, 200));
-    } else {
-      console.warn('[generateIdealBody] no image or text found, parts:', JSON.stringify(candidate).slice(0, 500));
-    }
     return null;
-  } catch (err) {
-    if (err instanceof DOMException && err.name === 'AbortError') {
-      console.error('[generateIdealBody] TIMEOUT (120s)');
-    } else {
-      console.error('[generateIdealBody] FAILED:', err);
-    }
+  } catch {
     return null;
   } finally {
     clearTimeout(timeout);
   }
 }
-
-// 鈹€鈹€鈹€ 楗鍒嗘瀽 鈹€鈹€鈹€
 
 export interface FoodAnalysis {
   name: string;
@@ -756,54 +961,68 @@ export interface FoodAnalysis {
   mealType: string;
 }
 
-const FOOD_ANALYSIS_PROMPT = `你是专业营养师。根据用户描述估算营养成分。
-必须返回纯 JSON（不要 markdown 代码块），格式：
-{"name":"食物名","calories":数字,"protein":数字,"fat":数字,"carbs":数字,"mealType":"早餐|午餐|晚餐|加餐"}
-所有数值为整数；calories 单位为千卡，其他单位为克。`;
-
 function parseFoodJSON(text: string): FoodAnalysis {
-  const cleaned = text.replace(/```json?\s*/g, '').replace(/```/g, '').trim();
-  try {
-    const obj = JSON.parse(cleaned);
+  const parsed = parseJsonSafely<Partial<FoodAnalysis>>(text);
+  if (!parsed) {
     return {
-      name: obj.name || '鏈煡椋熺墿',
-      calories: Math.round(Number(obj.calories) || 0),
-      protein: Math.round(Number(obj.protein) || 0),
-      fat: Math.round(Number(obj.fat) || 0),
-      carbs: Math.round(Number(obj.carbs) || 0),
-      mealType: obj.mealType || '鍔犻',
+      name: '未知食物',
+      calories: 0,
+      protein: 0,
+      fat: 0,
+      carbs: 0,
+      mealType: '加餐',
     };
-  } catch {
-    return { name: '鏈煡椋熺墿', calories: 0, protein: 0, fat: 0, carbs: 0, mealType: '鍔犻' };
   }
+
+  return {
+    name: parsed.name || '未知食物',
+    calories: Math.round(Number(parsed.calories) || 0),
+    protein: Math.round(Number(parsed.protein) || 0),
+    fat: Math.round(Number(parsed.fat) || 0),
+    carbs: Math.round(Number(parsed.carbs) || 0),
+    mealType: parsed.mealType || '加餐',
+  };
 }
 
-/**
- * 鏂囧瓧鎻忚堪 鈫?AI 鍒嗘瀽钀ュ吇鎴愬垎
- */
 export async function analyzeFoodText(foodName: string, description?: string): Promise<FoodAnalysis> {
-  const query = description ? `${foodName}（${description}）` : foodName;
-  const reply = await chatWithGemini(`鍒嗘瀽杩欎釜椋熺墿鐨勮惀鍏绘垚鍒嗭細${query}`, FOOD_ANALYSIS_PROMPT);
-  return parseFoodJSON(reply);
-}
+  const query = description ? `${foodName}，${description}` : foodName;
 
-/**
- * 椋熺墿鐓х墖 鈫?AI 澶氭ā鎬佽瘑鍒?+ 钀ュ吇鍒嗘瀽
- */
-export async function analyzeFoodImage(imageBase64: string): Promise<FoodAnalysis> {
-  const reply = await chatWithImage(
-    '识别这张图片中的食物并估算营养成分，返回纯 JSON。',
-    imageBase64,
-    FOOD_ANALYSIS_PROMPT,
+  const userPrompt = await resolveManagedPrompt(
+    'food.analyze_text_user_prompt',
+    '分析这个食物的营养成分：{{query}}',
+    { query },
   );
+
+  const systemPrompt = await resolveManagedPrompt(
+    'core.food_analysis_system',
+    FOOD_ANALYSIS_SYSTEM_PROMPT_FALLBACK,
+    {},
+    true,
+  );
+
+  const reply = await chatWithGemini(userPrompt, systemPrompt);
   return parseFoodJSON(reply);
 }
 
-// 鈹€鈹€鈹€ 鏁版嵁鐪嬫澘 AI 寤鸿 鈹€鈹€鈹€
+export async function analyzeFoodImage(imageBase64: string): Promise<FoodAnalysis> {
+  const userPrompt = await resolveManagedPrompt(
+    'food.analyze_image_user_prompt',
+    '识别这张图片中的食物并估算营养成分，返回纯 JSON。',
+    {},
+    true,
+  );
 
-/**
- * 鏍规嵁鐢ㄦ埛鏁版嵁鐢熸垚涓€у寲 AI 寤鸿
- */
+  const systemPrompt = await resolveManagedPrompt(
+    'core.food_analysis_system',
+    FOOD_ANALYSIS_SYSTEM_PROMPT_FALLBACK,
+    {},
+    true,
+  );
+
+  const reply = await chatWithImage(userPrompt, imageBase64, systemPrompt);
+  return parseFoodJSON(reply);
+}
+
 export async function generateDataInsights(context: {
   totalCalories?: number;
   totalProtein?: number;
@@ -813,44 +1032,45 @@ export async function generateDataInsights(context: {
   weightTrend?: string;
   checkinCount?: number;
 }): Promise<string[]> {
-  const prompt = `你是健身营养顾问。请根据以下今日数据给出 2-3 条中文建议（每条不超过 30 字）。
-直接返回 JSON 数组，如 ["建议1","建议2"]，不要 markdown。
-今日摄入：${context.totalCalories ?? '未记录'} 千卡
-蛋白质：${context.totalProtein ?? '--'}g，脂肪：${context.totalFat ?? '--'}g，碳水：${context.totalCarbs ?? '--'}g
-最新体重：${context.latestWeight ?? '未记录'} kg
-体重趋势：${context.weightTrend || '暂无数据'}
-近30天打卡：${context.checkinCount ?? 0} 天`;
+  const userPrompt = await resolveManagedPrompt(
+    'insights.generate_data_insights_user_prompt',
+    DATA_INSIGHTS_PROMPT_FALLBACK,
+    {
+      totalCalories: context.totalCalories ?? '--',
+      totalProtein: context.totalProtein ?? '--',
+      totalFat: context.totalFat ?? '--',
+      totalCarbs: context.totalCarbs ?? '--',
+      latestWeight: context.latestWeight ?? '--',
+      weightTrend: context.weightTrend || '暂无数据',
+      checkinCount: context.checkinCount ?? 0,
+    },
+  );
 
-  const reply = await chatWithGemini(prompt, FITNESS_COACH_PROMPT);
-  try {
-    const cleaned = reply.replace(/```json?\s*/g, '').replace(/```/g, '').trim();
-    const arr = JSON.parse(cleaned);
-    if (Array.isArray(arr)) return arr.map(String).slice(0, 3);
-  } catch { /* fallback */ }
-  return ['记录今日饮食，让 AI 生成个性化建议'];
+  const systemPrompt = await resolveManagedPrompt(
+    'core.fitness_coach_system',
+    FITNESS_COACH_PROMPT,
+    {},
+    true,
+  );
+
+  const reply = await chatWithGemini(userPrompt, systemPrompt);
+  const parsed = parseJsonSafely<unknown>(reply);
+  if (Array.isArray(parsed)) {
+    return parsed.map((item) => String(item)).slice(0, 3);
+  }
+
+  return [
+    '今天先把蛋白质补齐一份。',
+    '训练后 30 分钟内注意补水。',
+    '睡前减少高油高糖摄入。',
+  ];
 }
-
-export const COACH_ASSESSMENT_PROMPT = [
-  '你是 RightNow Fitness 的 AI 教练评估引擎。',
-  '请基于健康与运动科学给出稳健建议。',
-  '输出默认使用简体中文；如要求 JSON 时仅输出 JSON。',
-  '当用户目标周期不现实时，自动给出更安全可行的区间。',
-].join(' ');
-
-const COACH_KNOWLEDGE_INTRO = [
-  '你正在基于 RightNow Fitness 知识库生成教练回复。',
-  '请优先使用下方知识内容作为事实依据。',
-  '如用户提供实测数据，与估算冲突时以实测数据为准。',
-].join(' ');
-
-type CoachKnowledgeDomain = 'nutrition' | 'exercise' | 'training' | 'metrics';
 
 export interface CoachPlanTask {
   id: string;
   title: string;
   category: 'training' | 'nutrition' | 'recovery' | 'habit';
   detail: string;
-  completed?: boolean;
 }
 
 export interface CoachFirstDayPlan {
@@ -868,88 +1088,113 @@ export interface CoachPlanGenerationContext {
   constraints?: string[];
 }
 
-async function loadKnowledgeFile(path: string): Promise<string> {
-  try {
-    const res = await fetch(path);
-    if (!res.ok) {
-      return '';
-    }
-    return await res.text();
-  } catch {
-    return '';
-  }
-}
-
 export async function buildCoachKnowledgePrompt(
-  domains: CoachKnowledgeDomain[] = ['nutrition', 'exercise', 'training', 'metrics'],
-  userQuery: string = '',
+  domains: string[] = ['training', 'nutrition'],
+  queryText?: string,
 ): Promise<string> {
-  if (!userQuery) {
-    return COACH_KNOWLEDGE_INTRO;
+  const knowledgeIntro = await resolveManagedPrompt(
+    'core.coach_knowledge_intro',
+    COACH_KNOWLEDGE_INTRO_FALLBACK,
+    {},
+    true,
+  );
+
+  if (!queryText?.trim()) {
+    return knowledgeIntro;
   }
 
   try {
-    const domainMap: Record<CoachKnowledgeDomain, string> = {
-      nutrition: 'nutrition',
-      exercise: 'kinesiology',
-      training: 'comprehensive',
-      metrics: 'comprehensive',
-    };
-
-    const ragDomain = domainMap[domains[0]] || 'comprehensive';
-    const response = await fetch('http://localhost:8000/search', {
+    const response = await fetch('/api/chat/search', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query: userQuery, top_k: 5, domain: ragDomain }),
+      body: JSON.stringify({
+        query: queryText,
+        topK: 4,
+        domains,
+      }),
     });
 
-    const data = await response.json();
-    const knowledgeContext = data.results.documents[0]
-      .map((doc: string, i: number) => `[来源${i + 1}] ${doc}`)
+    if (!response.ok) {
+      return knowledgeIntro;
+    }
+
+    const payload = (await response.json()) as {
+      data?: { documents?: string[] };
+      documents?: string[];
+    };
+
+    const documents =
+      (Array.isArray(payload?.data?.documents) ? payload.data.documents : undefined)
+      ?? (Array.isArray(payload?.documents) ? payload.documents : []);
+
+    if (documents.length === 0) {
+      return knowledgeIntro;
+    }
+
+    const knowledgeContext = documents
+      .map((doc, index) => `[知识片段${index + 1}] ${doc}`)
       .join('\n\n');
 
-    return `${COACH_KNOWLEDGE_INTRO}\n\n以下是相关的专业知识：\n\n${knowledgeContext}`;
-  } catch (error) {
-    console.error('RAG service error:', error);
-    return COACH_KNOWLEDGE_INTRO;
+    return `${knowledgeIntro}\n\n以下是检索到的知识库内容，请优先依据这些内容回答：\n${knowledgeContext}`;
+  } catch {
+    return knowledgeIntro;
   }
 }
 
 export async function generateFirstDayPlan(
   context: CoachPlanGenerationContext,
 ): Promise<CoachFirstDayPlan> {
-  const queryText = `首日训练计划 ${context.assessmentSummary} ${context.intakeSummary || ''}`;
+  const queryText = `首日计划生成，用户体测摘要：${context.assessmentSummary} ${context.intakeSummary || ''}`;
   const knowledgePrompt = await buildCoachKnowledgePrompt(['training', 'nutrition'], queryText);
-  const prompt = [
-    '根据用户评估数据，生成首日教练计划，并严格返回 JSON。',
-    '返回字段：headline、tasks、nutritionNote、recoveryNote、coachMessage。',
-    '每个 task 包含：id、title、category(training/nutrition/recovery/habit)、detail。',
-    `用户体测摘要：${context.assessmentSummary}`,
-    context.intakeSummary ? `用户问卷摘要：${context.intakeSummary}` : '',
-    context.constraints?.length ? `约束条件：${context.constraints.join(' | ')}` : '',
-  ].filter(Boolean).join('\n');
+
+  const prompt = await resolveManagedPrompt(
+    'coach.generate_first_day_plan_user_prompt',
+    [
+      '根据用户评估数据，生成首日教练计划，并严格返回 JSON。',
+      '返回字段：headline、tasks、nutritionNote、recoveryNote、coachMessage。',
+      '每个 task 包含：id、title、category(training/nutrition/recovery/habit)、detail。',
+      '用户体测摘要：{{assessmentSummary}}',
+      '{{intakeSummary}}',
+      '{{constraintsText}}',
+    ].join('\n'),
+    {
+      assessmentSummary: context.assessmentSummary,
+      intakeSummary: context.intakeSummary ? `用户问卷摘要：${context.intakeSummary}` : '',
+      constraintsText: context.constraints?.length ? `约束条件：${context.constraints.join(' | ')}` : '',
+    },
+  );
 
   const reply = await chatWithGemini(prompt, knowledgePrompt);
-  try {
-    const cleaned = reply.replace(/```json?\s*/g, '').replace(/```/g, '').trim();
-    const parsed = JSON.parse(cleaned) as CoachFirstDayPlan;
-    if (parsed && Array.isArray(parsed.tasks)) {
-      return parsed;
-    }
-  } catch {
-    // fall through to deterministic fallback
+  const parsed = parseJsonSafely<CoachFirstDayPlan>(reply);
+  if (parsed && Array.isArray(parsed.tasks)) {
+    return parsed;
   }
 
   return {
-    headline: '第一天先把节奏建立起来',
+    headline: '今日先做三件小事，建立执行节奏。',
     tasks: [
-      { id: 'train-1', title: '完成一次基础训练', category: 'training', detail: '控制强度，优先动作质量。' },
-      { id: 'eat-1', title: '保证三次蛋白摄入', category: 'nutrition', detail: '每餐先保证蛋白质来源。' },
-      { id: 'sleep-1', title: '今晚提前休息', category: 'recovery', detail: '保证恢复，为明天留出余量。' },
+      {
+        id: 'train-1',
+        title: '全身激活训练',
+        category: 'training',
+        detail: '热身8分钟 + 主训练20分钟（深蹲、俯卧撑、划船各3组）+ 拉伸5分钟。',
+      },
+      {
+        id: 'eat-1',
+        title: '蛋白优先的一日饮食',
+        category: 'nutrition',
+        detail: '每餐保证优质蛋白，晚餐控制油炸和高糖，训练后补充水分。',
+      },
+      {
+        id: 'sleep-1',
+        title: '恢复与作息',
+        category: 'recovery',
+        detail: '今晚尽量在固定时间入睡，睡前30分钟不看高刺激内容。',
+      },
     ],
-    nutritionNote: '今天先追求稳定，不追求极端节食。',
-    recoveryNote: '训练后补水，今晚优先保证睡眠。',
-    coachMessage: '先把第一天完成，比做得完美更重要。',
+    nutritionNote: '今天优先保证蛋白质和补水，避免高油高糖。',
+    recoveryNote: '训练后做拉伸，保证睡眠质量。',
+    coachMessage: '你不需要一次做到完美，先把今天完成，节奏就会建立起来。',
   };
 }
 
@@ -957,52 +1202,59 @@ export async function generateCoachFollowUp(
   dayIndex: number,
   context: CoachPlanGenerationContext,
 ): Promise<string> {
-  const queryText = `第${dayIndex}天跟进建议 ${context.assessmentSummary}`;
+  const queryText = `第${dayIndex}天跟进，用户体测摘要：${context.assessmentSummary}`;
   const knowledgePrompt = await buildCoachKnowledgePrompt(['training', 'nutrition'], queryText);
-  const prompt = [
-    '生成一条简洁的中文每日教练跟进消息，用于 AI 教练每日签到。',
-    `当前是第 ${dayIndex} 天。`,
-    `用户体测摘要：${context.assessmentSummary}`,
-    context.intakeSummary ? `用户问卷摘要：${context.intakeSummary}` : '',
-  ].filter(Boolean).join('\n');
+
+  const prompt = await resolveManagedPrompt(
+    'coach.generate_follow_up_user_prompt',
+    [
+      '生成一条简洁的中文每日教练跟进消息，用于 AI 教练每日签到。',
+      '当前是第 {{dayIndex}} 天。',
+      '用户体测摘要：{{assessmentSummary}}',
+      '{{intakeSummary}}',
+    ].join('\n'),
+    {
+      dayIndex,
+      assessmentSummary: context.assessmentSummary,
+      intakeSummary: context.intakeSummary ? `用户问卷摘要：${context.intakeSummary}` : '',
+    },
+  );
 
   const reply = await chatWithGemini(prompt, knowledgePrompt);
-  return reply.trim() || '今天继续按计划推进，先完成最关键的一项。';
+  return reply.trim() || '今天也别追求完美，先完成一个最小行动。';
 }
 
 export async function generateWeekSummary(
   context: CoachPlanGenerationContext,
 ): Promise<string> {
-  const queryText = `周总结与下周建议 ${context.assessmentSummary}`;
+  const queryText = `周总结生成，用户体测摘要：${context.assessmentSummary}`;
   const knowledgePrompt = await buildCoachKnowledgePrompt(['training', 'nutrition'], queryText);
-  const prompt = [
-    '生成一段简洁的中文周总结，回顾用户本周表现。',
-    '突出执行趋势、坚持程度，以及下周最值得微调的一个方向。',
-    `用户体测摘要：${context.assessmentSummary}`,
-    context.intakeSummary ? `用户问卷摘要：${context.intakeSummary}` : '',
-    context.constraints?.length ? `约束条件：${context.constraints.join(' | ')}` : '',
-  ].filter(Boolean).join('\n');
+
+  const prompt = await resolveManagedPrompt(
+    'coach.generate_week_summary_user_prompt',
+    [
+      '生成一段简洁的中文周总结，回顾用户本周表现。',
+      '突出执行趋势、坚持程度，以及下周最值得微调的一个方向。',
+      '用户体测摘要：{{assessmentSummary}}',
+      '{{intakeSummary}}',
+      '{{constraintsText}}',
+    ].join('\n'),
+    {
+      assessmentSummary: context.assessmentSummary,
+      intakeSummary: context.intakeSummary ? `用户问卷摘要：${context.intakeSummary}` : '',
+      constraintsText: context.constraints?.length ? `约束条件：${context.constraints.join(' | ')}` : '',
+    },
+  );
 
   const reply = await chatWithGemini(prompt, knowledgePrompt);
-  return reply.trim() || '这一周你已经完成了从目标到执行的第一轮建立，下周继续稳住节奏。';
+  return reply.trim() || '这一周你已经建立了连续执行的基础，下周继续把节奏稳住。';
 }
-
-// --- 瑙嗚浣撹剛璇勪及 ---
 
 export interface VisualBodyFatResult {
   currentBodyFat: number;
   targetBodyFat: number;
 }
 
-const VISUAL_ASSESSMENT_PROMPT = `你是专业的体脂评估助手。
-根据两张身体照片估算体脂率：
-- 第一张是当前身材，第二张是理想身材。
-- 返回纯 JSON（不要 markdown 代码块），格式：
-{"currentBodyFat": number, "targetBodyFat": number}
-- 数值保留 1 位小数。`;
-
-/**
- * 鍩轰簬涓ゅ紶鐓х墖锛堝綋鍓嶈韩鏉?+ 鐞嗘兂韬潗锛夎繘琛岃瑙変綋鑴傝瘎浼? */
 export async function assessBodyFatFromImages(
   currentImageBase64: string,
   idealImageBase64: string,
@@ -1015,17 +1267,29 @@ export async function assessBodyFatFromImages(
     return null;
   }
 
+  const userPrompt = await resolveManagedPrompt(
+    'coach.visual_assessment_user_prompt',
+    VISUAL_ASSESSMENT_USER_PROMPT_FALLBACK,
+    {
+      genderLabel: gender === 'male' ? '男' : '女',
+    },
+  );
+
+  const systemPrompt = await resolveManagedPrompt(
+    'core.visual_assessment_system',
+    VISUAL_ASSESSMENT_SYSTEM_PROMPT_FALLBACK,
+    {},
+    true,
+  );
+
   try {
     const parts: Array<{ text?: string; inline_data?: { mime_type: string; data: string } }> = [];
+    parts.push({ text: userPrompt });
 
-    parts.push({ text: `用户性别：${gender === 'male' ? '男' : '女'}。请分析以下两张照片，第一张是当前身材，第二张是理想身材，并估算各自体脂率。` });
-
-    // Current photo
     const current64 = currentImageBase64.includes(',') ? currentImageBase64.split(',')[1] : currentImageBase64;
     const currentMime = currentImageBase64.includes(';') ? currentImageBase64.split(';')[0].split(':')[1] : 'image/jpeg';
     parts.push({ inline_data: { mime_type: currentMime, data: current64 } });
 
-    // Ideal photo
     const ideal64 = idealImageBase64.includes(',') ? idealImageBase64.split(',')[1] : idealImageBase64;
     const idealMime = idealImageBase64.includes(';') ? idealImageBase64.split(';')[0].split(':')[1] : 'image/jpeg';
     parts.push({ inline_data: { mime_type: idealMime, data: ideal64 } });
@@ -1034,35 +1298,29 @@ export async function assessBodyFatFromImages(
       key,
       {
         contents: [{ role: 'user', parts }],
-        system_instruction: { parts: [{ text: VISUAL_ASSESSMENT_PROMPT }] },
+        system_instruction: { parts: [{ text: systemPrompt }] },
       },
       { modalities: ['text', 'image'] },
     );
 
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    const cleaned = text.replace(/```json?\s*/g, '').replace(/```/g, '').trim();
-    const parsed = JSON.parse(cleaned);
+    const text = extractFirstTextCandidate(data) || '';
+    const parsed = parseJsonSafely<{ currentBodyFat?: unknown; targetBodyFat?: unknown }>(text);
+    if (!parsed) {
+      return null;
+    }
 
-    if (typeof parsed.currentBodyFat === 'number' && typeof parsed.targetBodyFat === 'number') {
+    const currentBodyFat = Number(parsed.currentBodyFat);
+    const targetBodyFat = Number(parsed.targetBodyFat);
+
+    if (Number.isFinite(currentBodyFat) && Number.isFinite(targetBodyFat)) {
       return {
-        currentBodyFat: Math.round(parsed.currentBodyFat * 10) / 10,
-        targetBodyFat: Math.round(parsed.targetBodyFat * 10) / 10,
+        currentBodyFat: Math.round(currentBodyFat * 10) / 10,
+        targetBodyFat: Math.round(targetBodyFat * 10) / 10,
       };
     }
+
     return null;
-  } catch (err) {
-    console.error('[assessBodyFatFromImages] failed:', err);
+  } catch {
     return null;
   }
 }
-
-
-
-
-
-
-
-
-
-
-

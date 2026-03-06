@@ -5,6 +5,7 @@ import {
   Delete,
   Get,
   Injectable,
+  Logger,
   Module,
   NotFoundException,
   Param,
@@ -19,10 +20,17 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { buildUploadUrl, imageUploadOptions } from '../common/upload.util';
 import { PrismaService } from '../prisma/prisma.service';
+import { EvolutionStageService } from '../evolution-stage/evolution-stage.service';
+import { EvolutionStageModule } from '../evolution-stage/evolution-stage.module';
 
 @Injectable()
 class EvolutionService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(EvolutionService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly evolutionStageService?: EvolutionStageService,
+  ) {}
 
   async list(userId: string) {
     const records = await this.prisma.evolutionRecord.findMany({
@@ -47,6 +55,13 @@ class EvolutionService {
         status: 'RECORD',
       },
     });
+
+    if (this.evolutionStageService) {
+      this.evolutionStageService.assessUpload(userId, record.id).catch((error) => {
+        const message = error instanceof Error ? error.message : 'unknown error';
+        this.logger.warn(`Assessment failed for record ${record.id}: ${message}`);
+      });
+    }
 
     return this.mapRecord(record);
   }
@@ -162,6 +177,7 @@ class EvolutionController {
 }
 
 @Module({
+  imports: [EvolutionStageModule],
   controllers: [EvolutionController],
   providers: [EvolutionService],
 })

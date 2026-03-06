@@ -1,196 +1,196 @@
-# CLAUDE_PROJECT_MEMORY.md
-> 本文件是 Claude Code、Codex 及其他代理共享的仓库记忆源。记录稳定事实、关键决策、当前进度和交接信息。
+﻿# CLAUDE_PROJECT_MEMORY.md
+> 鏈枃浠舵槸 Claude Code銆丆odex 鍙婂叾浠栦唬鐞嗗叡浜殑浠撳簱璁板繂婧愩€傝褰曠ǔ瀹氫簨瀹炪€佸叧閿喅绛栥€佸綋鍓嶈繘搴﹀拰浜ゆ帴淇℃伅銆?
 
 ---
 
-## 1. 项目快照
+## 1. 椤圭洰蹇収
 
-- 项目：RightNow Fitness 前端 + 配套后端
-- 目标：构建一个移动端优先的健身应用，包含 AI 对话、体型进化、记录追踪和社区能力
-- 当前形态：前端为 React + TypeScript + Vite SPA；后端位于 `rightnow-api/`，为 NestJS
-- 共享记忆协议生效日期：2026-03-01
+- 椤圭洰锛歊ightNow Fitness 鍓嶇 + 閰嶅鍚庣
+- 鐩爣锛氭瀯寤轰竴涓Щ鍔ㄧ浼樺厛鐨勫仴韬簲鐢紝鍖呭惈 AI 瀵硅瘽銆佷綋鍨嬭繘鍖栥€佽褰曡拷韪拰绀惧尯鑳藉姏
+- 褰撳墠褰㈡€侊細鍓嶇涓?React + TypeScript + Vite SPA锛涘悗绔綅浜?`rightnow-api/`锛屼负 NestJS
+- 鍏变韩璁板繂鍗忚鐢熸晥鏃ユ湡锛?026-03-01
 
 ---
 
-## 2. 技术栈
+## 2. 鎶€鏈爤
 
-| 层级 | 技术 | 版本 | 备注 |
+| 灞傜骇 | 鎶€鏈?| 鐗堟湰 | 澶囨敞 |
 |------|------|------|------|
-| 前端框架 | React | 19.2.4 | SPA，无 React Router |
-| 语言 | TypeScript | 5.8.2 | |
-| 构建工具 | Vite | 6.2.0 | 默认开发端口 5173 |
-| 样式 | Tailwind CSS | - | 深色主题，主色 #B8FF00 |
-| 3D 渲染 | Three.js + R3F + Drei | - | Hero3D 组件 |
-| 图表 | Recharts | 3.7.0 | |
-| AI | Google Gemini API | 1.5-flash | EvolutionEngine 对话 |
-| 后端框架 | NestJS | - | `rightnow-api/` |
+| 鍓嶇妗嗘灦 | React | 19.2.4 | SPA锛屾棤 React Router |
+| 璇█ | TypeScript | 5.8.2 | |
+| 鏋勫缓宸ュ叿 | Vite | 6.2.0 | 榛樿寮€鍙戠鍙?5173 |
+| 鏍峰紡 | Tailwind CSS | - | 娣辫壊涓婚锛屼富鑹?#B8FF00 |
+| 3D 娓叉煋 | Three.js + R3F + Drei | - | Hero3D 缁勪欢 |
+| 鍥捐〃 | Recharts | 3.7.0 | |
+| AI | Google Gemini API | 1.5-flash | EvolutionEngine 瀵硅瘽 |
+| 鍚庣妗嗘灦 | NestJS | - | `rightnow-api/` |
 | ORM | Prisma | 6.19.2 | |
-| 数据库 | PostgreSQL | 16-alpine | Docker，端口 15433 |
-| 认证 | JWT + bcrypt | - | |
+| 鏁版嵁搴?| PostgreSQL | 16-alpine | Docker锛岀鍙?15433 |
+| 璁よ瘉 | JWT + bcrypt | - | |
 
 ---
 
-## 3. 协作模式与分工（2026-03-02 更新）
+## 3. 鍗忎綔妯″紡涓庡垎宸ワ紙2026-03-02 鏇存柊锛?
 
-本项目有三类协作者，文档和 PR 需同时面向人类和 AI Agent 可读。
+鏈」鐩湁涓夌被鍗忎綔鑰咃紝鏂囨。鍜?PR 闇€鍚屾椂闈㈠悜浜虹被鍜?AI Agent 鍙銆?
 
-### 负责人（用户）+ AI Agent
-- **负责模块**：AI 教练（`views/AIChat.tsx`）、数据看板（`views/DataDashboard.tsx`）、待办/TODO 功能
-- **工作方式**：用户定方向 → Claude Code 架构设计 → Codex 代码实现
-- **工作分支**：`feat/ai-chat`、`dev`
+### 璐熻矗浜猴紙鐢ㄦ埛锛? AI Agent
+- **璐熻矗妯″潡**锛欰I 鏁欑粌锛坄views/AIChat.tsx`锛夈€佹暟鎹湅鏉匡紙`views/DataDashboard.tsx`锛夈€佸緟鍔?TODO 鍔熻兘
+- **宸ヤ綔鏂瑰紡**锛氱敤鎴峰畾鏂瑰悜 鈫?Claude Code 鏋舵瀯璁捐 鈫?Codex 浠ｇ爜瀹炵幇
+- **宸ヤ綔鍒嗘敮**锛歚feat/ai-chat`銆乣dev`
 
-### 技术团队（人类开发者）
-- **负责模块**：饮食拍摄（`views/DietLog.tsx`）、社区功能（`views/Community.tsx`）
-- **参考文档**：`COMMUNITY_FEATURE_SPEC.md`（社区功能规格书，已在项目中）
-- **工作分支**：`feat/diet-camera`、`feat/community`
+### 鎶€鏈洟闃燂紙浜虹被寮€鍙戣€咃級
+- **璐熻矗妯″潡**锛氶ギ椋熸媿鎽勶紙`views/DietLog.tsx`锛夈€佺ぞ鍖哄姛鑳斤紙`views/Community.tsx`锛?
+- **鍙傝€冩枃妗?*锛歚COMMUNITY_FEATURE_SPEC.md`锛堢ぞ鍖哄姛鑳借鏍间功锛屽凡鍦ㄩ」鐩腑锛?
+- **宸ヤ綔鍒嗘敮**锛歚feat/diet-camera`銆乣feat/community`
 
-### UI/前端优化
-- **负责方**：Antigravity Agent
-- **工作分支**：`feat/ui-polish`
+### UI/鍓嶇浼樺寲
+- **璐熻矗鏂?*锛欰ntigravity Agent
+- **宸ヤ綔鍒嗘敮**锛歚feat/ui-polish`
 
-### Git 工作流
-- **仓库**：`BeAChanger/RightNow-3.2`（Private，GitHub）
-- **分支策略**：
-  - `main` — 稳定版，只通过 PR 合入
-  - `dev` — 集成分支，所有 feature 先合到这里
-  - `feat/*` — 功能分支，按模块划分
-- **合并流程**：feature → PR → dev（集成测试）→ PR → main
-- **详细规则**：见 `GIT_WORKFLOW.md`
-
----
-
-## 4. 架构与约定
-
-### 前端
-
-- 路由：使用 `View` 枚举 + `useState<View>` 切换视图，不使用 React Router
-- 状态：`App.tsx` 提升管理用户基础数据，再通过 props 下传
-- API 层：`api/client.ts` 负责 Axios 实例、JWT 附加和响应解包；`api/index.ts` 统一导出
-- UI 语言：全中文
-- 图标：Google Material Icons（Outlined / Round）
-- 设计约束：移动端优先，支持安全区域
-
-### 后端
-
-- 框架：NestJS，模块化结构
-- 认证接口：`POST /auth/register`、`POST /auth/login`、`GET /auth/me`
-- 数据层：PostgreSQL + Prisma
-- 已有模块：`auth`、`weight`、`diet`、`training`、`todos`、`checkins`、`evolution`、`posts`、`friendships`、`chat`、`upload`、`user`
-- CORS：`http://localhost:5173`
-
-### 协作约定
-
-- 本文件是项目状态唯一共享事实源，不再拆分为多个代理专用记忆文件
-- 所有共享技能统一注册在 `SKILL_REGISTRY.md`，技能文件存放于 `skills/<name>/SKILL.md`
-- 4 个核心技能（fankui、project-orchestrator、feature-co-creation-socratic-frontend、skill-co-learn）已全局安装到各 Agent 默认路径
-- 高价值经验沉淀与三体 Agent 共学优先参考 `skills/skill-co-learn/SKILL.md`
-- 产品功能共创与 `/function-talk` 优先参考 `skills/feature-co-creation-socratic-frontend/SKILL.md`
-- 详细参考可回看 `.claude/commands/*.md`，但项目状态应回写到本文件
+### Git 宸ヤ綔娴?
+- **浠撳簱**锛歚BeAChanger/RightNow-3.2`锛圥rivate锛孏itHub锛?
+- **鍒嗘敮绛栫暐**锛?
+  - `main` 鈥?绋冲畾鐗堬紝鍙€氳繃 PR 鍚堝叆
+  - `dev` 鈥?闆嗘垚鍒嗘敮锛屾墍鏈?feature 鍏堝悎鍒拌繖閲?
+  - `feat/*` 鈥?鍔熻兘鍒嗘敮锛屾寜妯″潡鍒掑垎
+- **鍚堝苟娴佺▼**锛歠eature 鈫?PR 鈫?dev锛堥泦鎴愭祴璇曪級鈫?PR 鈫?main
+- **璇︾粏瑙勫垯**锛氳 `GIT_WORKFLOW.md`
 
 ---
 
-## 5. 当前稳定决策
+## 4. 鏋舵瀯涓庣害瀹?
 
-- 所有界面文案必须保持中文，不维护英文 UI
-- 不创建重复页面文件，尤其避免恢复此前已清理的 `*Screen.tsx` 副本
-- 保留用户已有改动，不做重置式操作
-- 优先模块化推进，一次聚焦一个模块
-- 默认按“最小可行改动”修复问题，避免过度工程化
+### 鍓嶇
+
+- 璺敱锛氫娇鐢?`View` 鏋氫妇 + `useState<View>` 鍒囨崲瑙嗗浘锛屼笉浣跨敤 React Router
+- 鐘舵€侊細`App.tsx` 鎻愬崌绠＄悊鐢ㄦ埛鍩虹鏁版嵁锛屽啀閫氳繃 props 涓嬩紶
+- API 灞傦細`api/client.ts` 璐熻矗 Axios 瀹炰緥銆丣WT 闄勫姞鍜屽搷搴旇В鍖咃紱`api/index.ts` 缁熶竴瀵煎嚭
+- UI 璇█锛氬叏涓枃
+- 鍥炬爣锛欸oogle Material Icons锛圤utlined / Round锛?
+- 璁捐绾︽潫锛氱Щ鍔ㄧ浼樺厛锛屾敮鎸佸畨鍏ㄥ尯鍩?
+
+### 鍚庣
+
+- 妗嗘灦锛歂estJS锛屾ā鍧楀寲缁撴瀯
+- 璁よ瘉鎺ュ彛锛歚POST /auth/register`銆乣POST /auth/login`銆乣GET /auth/me`
+- 鏁版嵁灞傦細PostgreSQL + Prisma
+- 宸叉湁妯″潡锛歚auth`銆乣weight`銆乣diet`銆乣training`銆乣todos`銆乣checkins`銆乣evolution`銆乣posts`銆乣friendships`銆乣chat`銆乣upload`銆乣user`
+- CORS锛歚http://localhost:5173`
+
+### 鍗忎綔绾﹀畾
+
+- 鏈枃浠舵槸椤圭洰鐘舵€佸敮涓€鍏变韩浜嬪疄婧愶紝涓嶅啀鎷嗗垎涓哄涓唬鐞嗕笓鐢ㄨ蹇嗘枃浠?
+- 鎵€鏈夊叡浜妧鑳界粺涓€娉ㄥ唽鍦?`SKILL_REGISTRY.md`锛屾妧鑳芥枃浠跺瓨鏀句簬 `skills/<name>/SKILL.md`
+- 4 涓牳蹇冩妧鑳斤紙fankui銆乸roject-orchestrator銆乫eature-co-creation-socratic-frontend銆乻kill-co-learn锛夊凡鍏ㄥ眬瀹夎鍒板悇 Agent 榛樿璺緞
+- 楂樹环鍊肩粡楠屾矇娣€涓庝笁浣?Agent 鍏卞浼樺厛鍙傝€?`skills/skill-co-learn/SKILL.md`
+- 浜у搧鍔熻兘鍏卞垱涓?`/function-talk` 浼樺厛鍙傝€?`skills/feature-co-creation-socratic-frontend/SKILL.md`
+- 璇︾粏鍙傝€冨彲鍥炵湅 `.claude/commands/*.md`锛屼絾椤圭洰鐘舵€佸簲鍥炲啓鍒版湰鏂囦欢
 
 ---
 
-## 6. 最近重要变更
+## 5. 褰撳墠绋冲畾鍐崇瓥
 
-| 日期 | 负责方 | 类型 | 描述 |
+- 鎵€鏈夌晫闈㈡枃妗堝繀椤讳繚鎸佷腑鏂囷紝涓嶇淮鎶よ嫳鏂?UI
+- 涓嶅垱寤洪噸澶嶉〉闈㈡枃浠讹紝灏ゅ叾閬垮厤鎭㈠姝ゅ墠宸叉竻鐞嗙殑 `*Screen.tsx` 鍓湰
+- 淇濈暀鐢ㄦ埛宸叉湁鏀瑰姩锛屼笉鍋氶噸缃紡鎿嶄綔
+- 浼樺厛妯″潡鍖栨帹杩涳紝涓€娆¤仛鐒︿竴涓ā鍧?
+- 榛樿鎸夆€滄渶灏忓彲琛屾敼鍔ㄢ€濅慨澶嶉棶棰橈紝閬垮厤杩囧害宸ョ▼鍖?
+
+---
+
+## 6. 鏈€杩戦噸瑕佸彉鏇?
+
+| 鏃ユ湡 | 璐熻矗鏂?| 绫诲瀷 | 鎻忚堪 |
 |------|--------|------|------|
-| 2026-02-28 | 双方 | 配置 | Docker PostgreSQL 启动，Prisma schema 同步完成 |
-| 2026-02-28 | 双方 | 功能 | 完成全部 10 个模块中英文统一，UI 全中文化 |
-| 2026-02-28 | 双方 | 修复 | 修复 `vite-env.d.ts` 和 `Onboarding.tsx` 编码损坏问题 |
-| 2026-02-28 | 双方 | 重构 | 合并重复文件（`Login/LoginScreen`、`Register/RegisterScreen`） |
-| 2026-02-28 | 双方 | 功能 | `Login.tsx` 合并演示账号能力（`demo@rightnow.fit`） |
-| 2026-03-01 | Codex | 协作 | 建立共享记忆协议，新增 `AGENTS.md` 与 `shared-skills/` 统一跨代理工作流 |
-| 2026-03-01 | Codex | 协作 | 新增正式仓库技能 `skills/fankui/SKILL.md`，对齐 Claude 的 `/fankui` 工作流 |
-| 2026-03-01 | Codex | 修复 | 修复显化页首屏生成状态、强化生图安全 prompt 与纯色背景约束，并修复正脸融合未传参考图的 bug |
-| 2026-03-01 | Codex | 修复 | 修复打卡成功页错误跳回 Onboarding、修复浮动助手定时器泄漏与拖拽误触，并校正 `checkinsApi.latest()` 的可空返回类型 |
-| 2026-03-01 | Codex | 修复 | 修复数据看板 AI 建议缓存不刷新、修复饮食页同图重复上传不触发、修复社区评论输入跨帖子串值，并限制“加载更多”重复触发 |
-| 2026-03-01 | Codex | 文档 | 检查并恢复本地开发环境，确认 `5173` 与 `3000` 可访问，并新增 `LOCAL_DEV_STARTUP.md` 启动指南 |
-| 2026-03-01 | Codex | 协作 | 将 `skills/skill-co-learn/SKILL.md` 升级为 v4.0 全局/项目智能版，新增强制 Scope 判断与路径智能适配规则 |
-| 2026-03-02 | Claude Code | 配置 | 建立 Git 多人多 Agent 协作模式：新建 Private 仓库 BeAChanger/RightNow-3.2，创建 dev + 5 个 feat/* 分支，编写 GIT_WORKFLOW.md |
-| 2026-03-02 | Claude Code | 协作 | 统一技能系统：新建 SKILL_REGISTRY.md 注册表，合并 shared-skills/ → skills/，4 个核心技能全局安装到 Claude Code / Codex / Antigravity，入口文件统一指向注册表 |
-| 2026-03-02 | Claude Code | 文档 | 明确三方协作分工：负责人+Agent（AI教练/数据看板/TODO）、技术团队（饮食拍摄/社区）、Antigravity（UI），删除已解决的问题反馈文件夹，更新所有协作文档保持一致 |
+| 2026-02-28 | 鍙屾柟 | 閰嶇疆 | Docker PostgreSQL 鍚姩锛孭risma schema 鍚屾瀹屾垚 |
+| 2026-02-28 | 鍙屾柟 | 鍔熻兘 | 瀹屾垚鍏ㄩ儴 10 涓ā鍧椾腑鑻辨枃缁熶竴锛孶I 鍏ㄤ腑鏂囧寲 |
+| 2026-02-28 | 鍙屾柟 | 淇 | 淇 `vite-env.d.ts` 鍜?`Onboarding.tsx` 缂栫爜鎹熷潖闂 |
+| 2026-02-28 | 鍙屾柟 | 閲嶆瀯 | 鍚堝苟閲嶅鏂囦欢锛坄Login/LoginScreen`銆乣Register/RegisterScreen`锛?|
+| 2026-02-28 | 鍙屾柟 | 鍔熻兘 | `Login.tsx` 鍚堝苟婕旂ず璐﹀彿鑳藉姏锛坄demo@rightnow.fit`锛?|
+| 2026-03-01 | Codex | 鍗忎綔 | 寤虹珛鍏变韩璁板繂鍗忚锛屾柊澧?`AGENTS.md` 涓?`shared-skills/` 缁熶竴璺ㄤ唬鐞嗗伐浣滄祦 |
+| 2026-03-01 | Codex | 鍗忎綔 | 鏂板姝ｅ紡浠撳簱鎶€鑳?`skills/fankui/SKILL.md`锛屽榻?Claude 鐨?`/fankui` 宸ヤ綔娴?|
+| 2026-03-01 | Codex | 淇 | 淇鏄惧寲椤甸灞忕敓鎴愮姸鎬併€佸己鍖栫敓鍥惧畨鍏?prompt 涓庣函鑹茶儗鏅害鏉燂紝骞朵慨澶嶆鑴歌瀺鍚堟湭浼犲弬鑰冨浘鐨?bug |
+| 2026-03-01 | Codex | 淇 | 淇鎵撳崱鎴愬姛椤甸敊璇烦鍥?Onboarding銆佷慨澶嶆诞鍔ㄥ姪鎵嬪畾鏃跺櫒娉勬紡涓庢嫋鎷借瑙︼紝骞舵牎姝?`checkinsApi.latest()` 鐨勫彲绌鸿繑鍥炵被鍨?|
+| 2026-03-01 | Codex | 淇 | 淇鏁版嵁鐪嬫澘 AI 寤鸿缂撳瓨涓嶅埛鏂般€佷慨澶嶉ギ椋熼〉鍚屽浘閲嶅涓婁紶涓嶈Е鍙戙€佷慨澶嶇ぞ鍖鸿瘎璁鸿緭鍏ヨ法甯栧瓙涓插€硷紝骞堕檺鍒垛€滃姞杞芥洿澶氣€濋噸澶嶈Е鍙?|
+| 2026-03-01 | Codex | 鏂囨。 | 妫€鏌ュ苟鎭㈠鏈湴寮€鍙戠幆澧冿紝纭 `5173` 涓?`3000` 鍙闂紝骞舵柊澧?`LOCAL_DEV_STARTUP.md` 鍚姩鎸囧崡 |
+| 2026-03-01 | Codex | 鍗忎綔 | 灏?`skills/skill-co-learn/SKILL.md` 鍗囩骇涓?v4.0 鍏ㄥ眬/椤圭洰鏅鸿兘鐗堬紝鏂板寮哄埗 Scope 鍒ゆ柇涓庤矾寰勬櫤鑳介€傞厤瑙勫垯 |
+| 2026-03-02 | Claude Code | 閰嶇疆 | 寤虹珛 Git 澶氫汉澶?Agent 鍗忎綔妯″紡锛氭柊寤?Private 浠撳簱 BeAChanger/RightNow-3.2锛屽垱寤?dev + 5 涓?feat/* 鍒嗘敮锛岀紪鍐?GIT_WORKFLOW.md |
+| 2026-03-02 | Claude Code | 鍗忎綔 | 缁熶竴鎶€鑳界郴缁燂細鏂板缓 SKILL_REGISTRY.md 娉ㄥ唽琛紝鍚堝苟 shared-skills/ 鈫?skills/锛? 涓牳蹇冩妧鑳藉叏灞€瀹夎鍒?Claude Code / Codex / Antigravity锛屽叆鍙ｆ枃浠剁粺涓€鎸囧悜娉ㄥ唽琛?|
+| 2026-03-02 | Claude Code | 鏂囨。 | 鏄庣‘涓夋柟鍗忎綔鍒嗗伐锛氳礋璐ｄ汉+Agent锛圓I鏁欑粌/鏁版嵁鐪嬫澘/TODO锛夈€佹妧鏈洟闃燂紙楗鎷嶆憚/绀惧尯锛夈€丄ntigravity锛圲I锛夛紝鍒犻櫎宸茶В鍐崇殑闂鍙嶉鏂囦欢澶癸紝鏇存柊鎵€鏈夊崗浣滄枃妗ｄ繚鎸佷竴鑷?|
 
 ---
 
-## 7. 当前待办
+## 7. 褰撳墠寰呭姙
 
-### 负责人 + AI Agent（当前执行中）
-- [ ] AI 教练功能完善（`AIChat.tsx`） — 对话体验、上下文记忆、训练建议
-- [ ] 数据看板功能完善（`DataDashboard.tsx`） — 统计图表、趋势分析
-- [ ] 待办/TODO 功能 — 用户训练计划管理
+### 璐熻矗浜?+ AI Agent锛堝綋鍓嶆墽琛屼腑锛?
+- [ ] AI 鏁欑粌鍔熻兘瀹屽杽锛坄AIChat.tsx`锛?鈥?瀵硅瘽浣撻獙銆佷笂涓嬫枃璁板繂銆佽缁冨缓璁?
+- [ ] 鏁版嵁鐪嬫澘鍔熻兘瀹屽杽锛坄DataDashboard.tsx`锛?鈥?缁熻鍥捐〃銆佽秼鍔垮垎鏋?
+- [ ] 寰呭姙/TODO 鍔熻兘 鈥?鐢ㄦ埛璁粌璁″垝绠＄悊
 
-### 技术团队（人类开发者负责）
-- [ ] 饮食拍摄功能（`feat/diet-camera`） — 拍照识别、卡路里计算
-- [ ] 社区功能（`feat/community`） — 详见 `COMMUNITY_FEATURE_SPEC.md`
+### 鎶€鏈洟闃燂紙浜虹被寮€鍙戣€呰礋璐ｏ級
+- [ ] 楗鎷嶆憚鍔熻兘锛坄feat/diet-camera`锛?鈥?鎷嶇収璇嗗埆銆佸崱璺噷璁＄畻
+- [ ] 绀惧尯鍔熻兘锛坄feat/community`锛?鈥?璇﹁ `COMMUNITY_FEATURE_SPEC.md`
 
-### 基础联调
-- [ ] 本地联调测试（后端 `start:dev` + 前端 `dev`）
-- [ ] 注册/登录流程端到端验证
-- [ ] Onboarding 数据提交到后端验证
-
----
-
-## 8. 风险与阻塞
-
-- 前后端虽已具备基础结构，但联调验证尚未完整闭环
-- 共享记忆机制刚建立，后续需要持续回写，才能真正形成跨代理上下文连续性
-- 生产构建已通过，但前端主包仍约 714.69 kB，存在后续拆包优化空间
+### 鍩虹鑱旇皟
+- [ ] 鏈湴鑱旇皟娴嬭瘯锛堝悗绔?`start:dev` + 鍓嶇 `dev`锛?
+- [ ] 娉ㄥ唽/鐧诲綍娴佺▼绔埌绔獙璇?
+- [ ] Onboarding 鏁版嵁鎻愪氦鍒板悗绔獙璇?
 
 ---
 
-## 9. 协作偏好
+## 8. 椋庨櫓涓庨樆濉?
 
-- 用户是开发新手，解释要简洁易懂
-- 所有对用户沟通优先使用中文
-- 需要可接手性强的上下文，方便 Claude Code、Codex 或其他 AI 无缝继续
-
----
-
-## 10. 交接清单
-
-在开始非琐碎任务前：
-
-- 先阅读本文件
-- 查看 `SKILL_REGISTRY.md` 了解可用技能
-
-在完成有意义的改动后：
-
-- 更新本文件的”最近重要变更 / 当前待办 / 风险与阻塞”相关栏目
-- 如果是阶段性推进，同时更新 `PROJECT_REPORT.md`
+- 鍓嶅悗绔櫧宸插叿澶囧熀纭€缁撴瀯锛屼絾鑱旇皟楠岃瘉灏氭湭瀹屾暣闂幆
+- 鍏变韩璁板繂鏈哄埗鍒氬缓绔嬶紝鍚庣画闇€瑕佹寔缁洖鍐欙紝鎵嶈兘鐪熸褰㈡垚璺ㄤ唬鐞嗕笂涓嬫枃杩炵画鎬?
+- 鐢熶骇鏋勫缓宸查€氳繃锛屼絾鍓嶇涓诲寘浠嶇害 714.69 kB锛屽瓨鍦ㄥ悗缁媶鍖呬紭鍖栫┖闂?
 
 ---
 
-## 11. 通用记忆更新模板
+## 9. 鍗忎綔鍋忓ソ
 
-当需要追加一次新的项目记录时，优先按下面格式更新，尽量保持简短、可检索、可交接。
+- 鐢ㄦ埛鏄紑鍙戞柊鎵嬶紝瑙ｉ噴瑕佺畝娲佹槗鎳?
+- 鎵€鏈夊鐢ㄦ埛娌熼€氫紭鍏堜娇鐢ㄤ腑鏂?
+- 闇€瑕佸彲鎺ユ墜鎬у己鐨勪笂涓嬫枃锛屾柟渚?Claude Code銆丆odex 鎴栧叾浠?AI 鏃犵紳缁х画
+
+---
+
+## 10. 浜ゆ帴娓呭崟
+
+鍦ㄥ紑濮嬮潪鐞愮浠诲姟鍓嶏細
+
+- 鍏堥槄璇绘湰鏂囦欢
+- 鏌ョ湅 `SKILL_REGISTRY.md` 浜嗚В鍙敤鎶€鑳?
+
+鍦ㄥ畬鎴愭湁鎰忎箟鐨勬敼鍔ㄥ悗锛?
+
+- 鏇存柊鏈枃浠剁殑鈥濇渶杩戦噸瑕佸彉鏇?/ 褰撳墠寰呭姙 / 椋庨櫓涓庨樆濉炩€濈浉鍏虫爮鐩?
+- 濡傛灉鏄樁娈垫€ф帹杩涳紝鍚屾椂鏇存柊 `PROJECT_REPORT.md`
+
+---
+
+## 11. 閫氱敤璁板繂鏇存柊妯℃澘
+
+褰撻渶瑕佽拷鍔犱竴娆℃柊鐨勯」鐩褰曟椂锛屼紭鍏堟寜涓嬮潰鏍煎紡鏇存柊锛屽敖閲忎繚鎸佺畝鐭€佸彲妫€绱€佸彲浜ゆ帴銆?
 
 ```md
-### 更新记录（YYYY-MM-DD）
+### 鏇存柊璁板綍锛圷YYY-MM-DD锛?
 
-- 负责方：Claude / Codex / 用户 / 双方
-- 类型：功能 / 修复 / 重构 / 配置 / 协作 / 文档
-- 影响范围：涉及的模块、页面、接口或目录
-- 变更内容：这次实际改了什么
-- 决策/约束：这次确定了什么规则，后续要继续遵守什么
-- 后续动作：还剩什么要做，谁接手时先看什么
-- 风险/注意：是否有未验证项、联调风险、兼容性风险
+- 璐熻矗鏂癸細Claude / Codex / 鐢ㄦ埛 / 鍙屾柟
+- 绫诲瀷锛氬姛鑳?/ 淇 / 閲嶆瀯 / 閰嶇疆 / 鍗忎綔 / 鏂囨。
+- 褰卞搷鑼冨洿锛氭秹鍙婄殑妯″潡銆侀〉闈€佹帴鍙ｆ垨鐩綍
+- 鍙樻洿鍐呭锛氳繖娆″疄闄呮敼浜嗕粈涔?
+- 鍐崇瓥/绾︽潫锛氳繖娆＄‘瀹氫簡浠€涔堣鍒欙紝鍚庣画瑕佺户缁伒瀹堜粈涔?
+- 鍚庣画鍔ㄤ綔锛氳繕鍓╀粈涔堣鍋氾紝璋佹帴鎵嬫椂鍏堢湅浠€涔?
+- 椋庨櫓/娉ㄦ剰锛氭槸鍚︽湁鏈獙璇侀」銆佽仈璋冮闄┿€佸吋瀹规€ч闄?
 ```
 
-推荐更新方式：
+鎺ㄨ崘鏇存柊鏂瑰紡锛?
 
-- 如果是已完成改动，优先同步到“最近重要变更”
-- 如果是新增待办，优先同步到“当前待办”
-- 如果是新发现的问题，优先同步到“风险与阻塞”
-- 如果是长期规则变化，优先同步到“当前稳定决策”或“协作偏好”
+- 濡傛灉鏄凡瀹屾垚鏀瑰姩锛屼紭鍏堝悓姝ュ埌鈥滄渶杩戦噸瑕佸彉鏇粹€?
+- 濡傛灉鏄柊澧炲緟鍔烇紝浼樺厛鍚屾鍒扳€滃綋鍓嶅緟鍔炩€?
+- 濡傛灉鏄柊鍙戠幇鐨勯棶棰橈紝浼樺厛鍚屾鍒扳€滈闄╀笌闃诲鈥?
+- 濡傛灉鏄暱鏈熻鍒欏彉鍖栵紝浼樺厛鍚屾鍒扳€滃綋鍓嶇ǔ瀹氬喅绛栤€濇垨鈥滃崗浣滃亸濂解€?
 
 ## 12. Update Log (2026-03-02)
 
@@ -270,15 +270,15 @@
 
 ## 26. Community PRD Consolidation (2026-03-03)
 
-- Consolidated community product requirements into `社区prd/社区PRD_综合版.md` using `社区prd/社区.md` as the core source plus current implementation files.
+- Consolidated community product requirements into `绀惧尯prd/绀惧尯PRD_缁煎悎鐗?md` using `绀惧尯prd/绀惧尯.md` as the core source plus current implementation files.
 - The new PRD now aligns vision + current code baseline + API/schema constraints + phased delivery plan for Community, Buddy matching, and Buddy room Lite.
-- It also formalizes the integration path from training feedback cards to editable community posting, consistent with `TODO和训练记录PRD.md`.
+- It also formalizes the integration path from training feedback cards to editable community posting, consistent with `TODO鍜岃缁冭褰昉RD.md`.
 
 ## 27. Diet Camera PRD Consolidation (2026-03-04)
 
-- Added consolidated product spec `饮食拍照PRD.md` based on Socratic co-creation decisions.
+- Added consolidated product spec `楗鎷嶇収PRD.md` based on Socratic co-creation decisions.
 - Locked MVP flow as `AI draft -> editable confirm card -> formal save`, where closing the card discards draft (no write).
-- Locked performance/accuracy strategy: single-photo whole-meal recognition, `P95 <= 2s`, launch accuracy `±15%~±20%`, long-term target `±10%`.
+- Locked performance/accuracy strategy: single-photo whole-meal recognition, `P95 <= 2s`, launch accuracy `卤15%~卤20%`, long-term target `卤10%`.
 - Locked retention lifecycle: keep photo/details/training samples for natural 30-day window, then Beijing-time next-day `12:00` batch cleanup; preserve read-only daily nutrition aggregates only.
 
 ## 28. Auth 500 Startup Unblock (2026-03-04)
@@ -350,3 +350,108 @@
   - if list is empty, it pulls `aiCoachApi.getProgress()` and backfills todos from `activePlan.tasks` via `todosApi.create(...)`, then refetches list.
 - Added defensive rendering (`safeTodos`) and visible error banner in TODO tab to avoid silent-empty states.
 - Verification: root `npm run build` and `npm --prefix ./rightnow-api run build` both pass.
+
+## 34. Auth Login 500 Startup Hardening (2026-03-05)
+
+- Root cause of repeated frontend login `POST /api/auth/login 500` in local dev: backend startup path was brittle.
+  - Prisma Client could be stale relative to `backend/prisma/schema.prisma`, causing large TypeScript compile failures during `start:dev`.
+  - `scripts/start-dev.ps1` / `scripts/start-dev.sh` launched frontend immediately after dispatching backend, so users saw frontend 500 even when backend never became healthy.
+- Code-level compile fix in `backend/src/admin/admin-knowledge.module.ts`:
+  - switched upload `Blob` input from raw `Buffer` to `Uint8Array` wrapper for Node TS compatibility,
+  - normalized RAG response fields (`chunks_deleted`, `files_processed`, `chunks_added`) to numeric JSON-safe values before audit logging.
+- Startup hardening:
+  - root `package.json` `dev:backend` now runs `npm --workspace backend run prisma:generate && npm --workspace backend run start:dev`.
+  - `scripts/start-dev.ps1` now waits for backend readiness (`/api/auth/me`) before starting frontend/admin/rag; fails fast with explicit message if backend is not ready in 40s.
+  - `scripts/start-dev.sh` now does the same readiness gating with `curl`.
+- Verification performed in workspace:
+  - `npm --workspace backend run build` passes.
+  - `npm run dev:backend` compiles with `Found 0 errors` and reaches Nest boot logs/routes.
+
+
+## 35. Gemini Model Policy Lock (2026-03-05)
+
+- Locked interaction/chat model to `gemini-3-flash-preview` for all text and multimodal dialog flows.
+- Locked image generation model policy to primary+fallback:
+  - primary: `gemini-3.1-flash-lite-preview`
+  - fallback: `gemini-3.1-flash-image-preview`
+- Source of truth doc added: `docs/AI_MODEL_POLICY.md`.
+- Any future model changes must update both runtime constants and `docs/AI_MODEL_POLICY.md` together.
+
+## 36. Feedback Doc Fixes: TODO/Upload/Post Flow (2026-03-05)
+
+- Processed `问题反馈/问题反馈.docx` and implemented minimal code fixes for 4 reported issues.
+- Coach plan -> TODO sync hardening:
+  - `backend/src/ai-coach/ai-coach.module.ts`: `saveFirstPlan(...)` now best-effort calls `todosService.ensureDailyTodos(...)` after persisting active plan.
+  - `frontend/views/AIChat.tsx`: when loading existing `activePlan`, frontend now also best-effort triggers `todosApi.ensureDaily(today)`.
+- Diet photo upload 500 hardening:
+  - `backend/src/diet/diet.service.ts`: added graceful fallback nutrition payload when AI photo/text analysis fails, so draft creation does not fail with 500.
+  - `frontend/views/DietLog.tsx`: gallery now filters to real uploaded assets (`/uploads/`) to avoid showing old mock/placeholder URLs.
+- Community posting fixes:
+  - `frontend/App.tsx`: wired `DraftConfirm` publish to real `postsApi.create(...)` and return to Community after success.
+  - `frontend/views/DraftConfirm.tsx`: upgraded publish flow to async with loading/error handling.
+  - `frontend/api/posts.ts`: expanded `create(...)` payload typing to include `visibility`, `postType`, `sourceType`, `sourceRefId`, `aiDraftPayload`.
+  - `frontend/views/ManualPost.tsx`: fixed malformed JSX, switched upload call to `uploadApi.upload(...)`, and now passes selected `visibility` when creating post.
+  - `frontend/views/ActionCenter.tsx`: added TODO-tab floating post entry + post mode sheet (manual / AI draft), routed via `onNavigate` to composer flows.
+- Verification:
+  - Backend build passes: `npm --workspace backend run build`.
+  - Frontend build is currently blocked by pre-existing syntax corruption in `frontend/views/AIChat.tsx` (unterminated string literals unrelated to these fixes).
+
+### 2026-03-06 TODO/AIChat 文案与同步修复（Codex）
+- `views/ActionCenter.tsx`：修复页面中文文案乱码（行动中心、今日 TODO、记录训练、加载态、空态、分类标签、训练记录文案等）。
+- `views/AIChat.tsx`：修复顶部状态文案显示异常（`AI 教练`、`在线 · 实时陪练`、输入占位文案），并在已有 `activePlan` 时补充 `todosApi.ensureDaily(...)`。
+- 日期统一：`ActionCenter`、`AIChat`、`TodoList` 的 todo 日期改为本地日历日（不再直接使用 UTC `toISOString().slice(0,10)`）。
+- `backend/src/todos/todos.module.ts`：默认日期改为上海时区日历日，避免前后端日界线不一致导致“计划不同步/空列表”。
+- 备注：`backend` 构建仍受既有问题阻塞（`training.module.ts` 调用 `AiService.requestGemini` 私有方法），与本次修复无直接关系。
+
+## 37. Evolution Progress Route + Resilience Fix (2026-03-06)
+
+- Fixed frontend dev proxy route in `vite.config.ts` by adding `/api/evolution-stage`, preventing stage requests from bypassing backend and rendering an empty path-only screen.
+- Hardened `api/evolution-stage.ts` with runtime payload validation/normalization for both `list` and `assess` responses, avoiding silent bad-shape acceptance.
+- Hardened `views/EvolutionProgress.tsx`:
+  - only auto-scrolls to bottom when stage nodes are available,
+  - falls back to local template stages when API data is unavailable,
+  - shows a non-blocking load issue hint,
+  - applies image `onError` fallback to prevent broken-node rendering.
+- Updated `App.tsx` to include `View.EvolutionProgress` in `shouldHideBottomNav`, preventing immersive page overlap with BottomNav.
+- Verification:
+  - `esbuild` parse/bundle checks pass for `App.tsx`, `views/EvolutionProgress.tsx`, and `api/evolution-stage.ts`.
+  - Full frontend build remains blocked by a pre-existing `views/AIChat.tsx` parse error (`Expected "finally" but found ")"`, around line 318).
+
+## 38. Evolution Progress User-Photo Source Lock (2026-03-06)
+
+- `views/EvolutionProgress.tsx` no longer uses hardcoded `/progress/*` images for stage cards.
+- Stage image source is now locked to user data only:
+  - local onboarding/current image: `rightnow_user_image`
+  - local ideal image: `rightnow_ideal_body_image`
+  - backend evolution records from `/api/evolution`
+- Added stage-image hydration logic so `/api/evolution-stage` data is merged with user photo context, with current stage explicitly preferring current user photo and goal stage preferring ideal user image when available.
+- If backend stage service is unavailable, fallback still renders path structure but only with user-photo context; no stock/mock person image is injected.
+- When no user photo exists, cards show a neutral placeholder text (`等待你的照片`) instead of any mock image.
+- Added strict user-photo filtering (`data:image`, `blob:`, `/uploads/`) so legacy stock/mock URLs from old stage payloads are ignored and cannot render in EvolutionProgress cards.
+
+## 39. AI Coach Red Dot -> Card Flow Restore (2026-03-06)
+
+- Root issue: when `coachTrigger` was active, chat page only showed plain greeting text and did not mount report/intake/plan cards.
+- `views/AIChat.tsx` now restores a concrete coach flow state machine for coach mode:
+  - load progress first; if existing `activePlan` exists, render `FirstDayPlanCard` directly,
+  - otherwise fetch assessment and render `AssessmentCard` for confirmation,
+  - if intake is missing, run an inline 4-step `IntakeQuestion` sequence,
+  - then generate+save first-day plan (`generateFirstDayPlan` + `aiCoachApi.saveFirstPlan`) and render `FirstDayPlanCard`.
+- Added coach-mode input lock during loading/assessment/intake/generating to ensure first-round guided interaction runs before free chat.
+- Preserved training-mode session behavior (`trainingSessionApi`) and existing chat reply path.
+- Verification: `npm --workspace frontend run build` passed after the change.
+
+## 40. Training History Date Selection + Daily Detail View (2026-03-06)
+
+- User request: training history should support selectable date (similar to diet log) and allow clicking to view that day's records.
+- `frontend/views/TrainingHistory.tsx` updated with:
+  - date picker (`input[type=date]`) + week strip quick-select,
+  - daily summary cards (date / total minutes / record count) clickable to switch day,
+  - dedicated "当天记录" detail section showing selected-day records.
+- Added per-record time display support when `createdAt` exists.
+- Data contract extension:
+  - `frontend/api/training.ts`: `TrainingRecord` now includes optional `createdAt` / `updatedAt`.
+  - `backend/src/training/training.module.ts`: training list/create/update response mapping now returns `createdAt` / `updatedAt` ISO strings.
+- Verification:
+  - backend build passes: `npm --workspace backend run build`.
+  - full frontend build remains blocked by pre-existing syntax issue in `frontend/views/EvolutionProgress.tsx` (unrelated); the updated training history page itself compiles via `esbuild` bundle check.

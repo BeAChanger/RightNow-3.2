@@ -10,6 +10,7 @@
 | project-orchestrator | `/orchestrator` | `skills/project-orchestrator/SKILL.md` | 项目梳理、阶段规划与报告驱动协作 |
 | feature-co-creation-socratic-frontend | `/function-talk` | `skills/feature-co-creation-socratic-frontend/SKILL.md` | 苏格拉底式产品功能共创 |
 | skill-co-learn | `/skill-co-learn` | `skills/skill-co-learn/SKILL.md` | 跨 Agent 高价值经验提炼与共享 |
+| real-team-handover-docs-generator | `/handvoer`（兼容 `/handover`） | `skills/real-team-handover-docs-generator/SKILL.md` | 生成团队交接开发文档 `DEV_HANDOVER.md` 与运维文档 `OPS_RUNBOOK.md` |
 
 ## 使用方式
 

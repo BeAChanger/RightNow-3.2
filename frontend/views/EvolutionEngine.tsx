@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { View } from '../types';
-import { chatWithGemini, chatWithImage, generateIdealBody, FITNESS_COACH_PROMPT } from '../services/gemini';
+import { chatWithGemini, chatWithImage, generateIdealBody, getEvolutionAnalyzeBodyPrompt, getEvolutionFaceMergeRefinementText, getEvolutionRefinementAckPrompt } from '../services/gemini';
 import type { AuthUser } from '../api';
 
 interface Props {
@@ -78,7 +78,7 @@ const EvolutionEngine: React.FC<Props> = ({
       if (userImage) {
         const typingId = addTyping();
         const analysis = await chatWithImage(
-          `请分析这张身体照片，用户目标是「${styleLabel}」体型。给出简短的身体评估（2-3句话），然后告诉用户可以通过对话描述想要的调整，比如"手臂再粗一点"、"腰再细一些"来 PS 理想身材。`,
+          await getEvolutionAnalyzeBodyPrompt(styleLabel),
           userImage,
         );
         removeTyping(typingId);
@@ -162,7 +162,7 @@ const EvolutionEngine: React.FC<Props> = ({
       // Use Gemini to acknowledge
       const typingId = addTyping();
       const reply = await chatWithGemini(
-        `用户想调整理想身材：「${text}」。请简短确认（1-2句话），告诉用户正在根据要求重新生成。`,
+        await getEvolutionRefinementAckPrompt(text),
       );
       removeTyping(typingId);
       addMsg({ text: reply, sender: 'ai' });
@@ -379,13 +379,14 @@ const EvolutionEngine: React.FC<Props> = ({
           addMsg({ text: '已上传正脸照', sender: 'user', image: base64 });
           addMsg({ text: '收到，正在将你的面部特征与理想身材融合...', sender: 'ai' });
 
+          const faceMergeRefinement = await getEvolutionFaceMergeRefinementText();
           setIsGenerating(true);
           let img = await generateIdealBody({
             currentImageBase64: generatedImage || userImage || undefined,
             referenceImageBase64: base64,
             targetStyle: bodyStyle || 'athletic',
             gender: gender || 'male',
-            refinement: '将这张正脸照的面部特征融合到身材图上，保持身材不变，替换面部',
+            refinement: faceMergeRefinement,
           });
           if (!img) {
             addMsg({ text: '正在优化融合方式...', sender: 'ai' });
@@ -394,7 +395,7 @@ const EvolutionEngine: React.FC<Props> = ({
               referenceImageBase64: base64,
               targetStyle: bodyStyle || 'athletic',
               gender: gender || 'male',
-              refinement: '将这张正脸照的面部特征融合到身材图上，保持身材不变，替换面部',
+              refinement: faceMergeRefinement,
               conservative: true,
             });
           }

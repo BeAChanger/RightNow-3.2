@@ -1,30 +1,31 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { trainingApi } from '../api';
-import { todosApi } from '../api';
-import { uploadApi } from '../api';
-import { aiCoachApi } from '../api';
+﻿import React, { useState, useEffect } from 'react';
+import { aiCoachApi, getApiErrorMessage, todosApi, trainingApi, trainingSessionApi } from '../api';
 import type { TodoItem as ApiTodoItem } from '../api/todos';
+import { View } from '../types';
 
 interface Props {
     onClose: () => void;
     onSave?: (photo: string | null) => void;
+    onNavigate?: (view: View, data?: any) => void;
 }
 
 
-const ActionCenter: React.FC<Props> = ({ onClose, onSave }) => {
-    const [activeTab, setActiveTab] = useState<'todo' | 'log'>('todo');
+const ActionCenter: React.FC<Props> = ({ onClose, onNavigate }) => {
+    const [activeTab, setActiveTab] = useState<'todo' | 'training'>('todo');
     const [todos, setTodos] = useState<ApiTodoItem[]>([]);
     const [todosLoading, setTodosLoading] = useState(true);
-    const [logText, setLogText] = useState('');
-    const [isRecording, setIsRecording] = useState(false);
-    const [duration, setDuration] = useState(45);
-    const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
-    const [selectedFile, setSelectedFile] = useState<File | null>(null);
-    const [saving, setSaving] = useState(false);
+    const [trainingRecords, setTrainingRecords] = useState<any[]>([]);
+    const [trainingLoading, setTrainingLoading] = useState(false);
+    const [creatingSession, setCreatingSession] = useState(false);
     const [error, setError] = useState('');
-    const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const today = new Date().toISOString().split('T')[0];
+    const getLocalDateString = (): string => {
+        const now = new Date();
+        const localTime = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+        return localTime.toISOString().slice(0, 10);
+    };
+
+    const today = getLocalDateString();
 
     const mapCoachTaskCategory = (task: { category?: string; title?: string; detail?: string }): string => {
         if (task.category === 'nutrition') return 'diet';
@@ -75,7 +76,23 @@ const ActionCenter: React.FC<Props> = ({ onClose, onSave }) => {
 
     useEffect(() => {
         loadTodos();
-    }, []);
+        if (activeTab === 'training') {
+            loadTrainingRecords();
+        }
+    }, [activeTab]);
+
+    const loadTrainingRecords = async () => {
+        setTrainingLoading(true);
+        setError('');
+        try {
+            const records = await trainingApi.list(today);
+            setTrainingRecords(Array.isArray(records) ? records : []);
+        } catch (e: any) {
+            setError(getApiErrorMessage(e, '加载训练记录失败'));
+        } finally {
+            setTrainingLoading(false);
+        }
+    };
 
     const loadTodos = async () => {
         setTodosLoading(true);
@@ -106,17 +123,6 @@ const ActionCenter: React.FC<Props> = ({ onClose, onSave }) => {
         }
     };
 
-    const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            setSelectedFile(file);
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setSelectedPhoto(reader.result as string);
-            };
-            reader.readAsDataURL(file);
-        }
-    };
 
     const toggleTodo = async (id: string) => {
         try {
@@ -127,17 +133,7 @@ const ActionCenter: React.FC<Props> = ({ onClose, onSave }) => {
         }
     };
 
-    const handleMicClick = () => {
-        if (isRecording) {
-            // Stop recording
-            setIsRecording(false);
-            // Simulate transcribed text appending
-            setLogText(prev => prev + (prev ? ' ' : '') + '今天练了胸背超级组，感觉还不错。');
-        } else {
-            // Start recording
-            setIsRecording(true);
-        }
-    };
+
 
     const safeTodos = Array.isArray(todos) ? todos : [];
     const completedCount = safeTodos.filter(t => t.completed).length;
@@ -166,13 +162,49 @@ const ActionCenter: React.FC<Props> = ({ onClose, onSave }) => {
                         今日 TODO
                     </button>
                     <button
-                        onClick={() => setActiveTab('log')}
-                        className={`flex-1 py-3 rounded-xl text-[14px] font-bold transition-all duration-300 ${activeTab === 'log' ? 'bg-[#1a1a1a] shadow-md text-[#B8FF00]' : 'text-gray-500 hover:text-gray-300'}`}
+                        onClick={() => setActiveTab('training')}
+                        className={`flex-1 py-3 rounded-xl text-[14px] font-bold transition-all duration-300 ${activeTab === 'training' ? 'bg-[#1a1a1a] shadow-md text-[#B8FF00]' : 'text-gray-500 hover:text-gray-300'}`}
                     >
-                        记录训练
+                        训练
                     </button>
                 </div>
             </div>
+
+            {/* Training Buttons - Only show in training tab */}
+            {activeTab === 'training' && (
+                <div className="px-6 py-4 space-y-3">
+                    <button
+                        onClick={async () => {
+                            if (creatingSession) {
+                                return;
+                            }
+
+                            setError('');
+                            setCreatingSession(true);
+                            try {
+                                const session = await trainingSessionApi.create();
+                                onNavigate?.(View.AIChat, { mode: 'training', sessionId: session.id });
+                            } catch (e: any) {
+                                setError(getApiErrorMessage(e, '创建训练会话失败'));
+                            } finally {
+                                setCreatingSession(false);
+                            }
+                        }}
+                        disabled={creatingSession}
+                        className={creatingSession ? 'w-full text-black font-black text-base py-4 rounded-2xl shadow-[0_10px_20px_rgba(184,255,0,0.2)] transition-all flex justify-center items-center gap-2 bg-[#6e8b1f] cursor-not-allowed opacity-70' : 'w-full text-black font-black text-base py-4 rounded-2xl shadow-[0_10px_20px_rgba(184,255,0,0.2)] transition-all flex justify-center items-center gap-2 bg-[#B8FF00] hover:bg-[#a3e000] active:scale-[0.98]'}
+                    >
+                        <span className="material-icons-round">fitness_center</span>
+                        开始训练
+                    </button>
+                    <button
+                        onClick={() => onNavigate?.(View.TrainingHistory)}
+                        className="w-full bg-[#1a1a1a] hover:bg-[#222] border border-white/10 text-white font-bold text-base py-4 rounded-2xl active:scale-[0.98] transition-all flex justify-center items-center gap-2"
+                    >
+                        <span className="material-icons-round">history</span>
+                        历史记录
+                    </button>
+                </div>
+            )}
 
             <div className="flex-1 overflow-y-auto relative z-10 pb-10">
                 {activeTab === 'todo' ? (
@@ -234,148 +266,56 @@ const ActionCenter: React.FC<Props> = ({ onClose, onSave }) => {
                         </div>
                     </div>
                 ) : (
-                    <div className="px-6 space-y-8 animate-slide-up">
-                        {/* Log Input */}
-                        <div className="space-y-3 relative">
-                            <h2 className="text-sm font-bold text-gray-400 uppercase tracking-widest pl-1">训练内容</h2>
-                            <div className="relative">
-                                <textarea
-                                    value={logText}
-                                    onChange={(e) => setLogText(e.target.value)}
-                                    placeholder={isRecording ? "正在聆听..." : "今天练了什么？感受如何？..."}
-                                    className={`w-full bg-[#111] border rounded-3xl p-5 pb-16 text-white placeholder-gray-600 min-h-[140px] resize-none focus:outline-none transition-colors ${isRecording ? 'border-[#B8FF00] shadow-[0_0_15px_rgba(184,255,0,0.2)]' : 'border-white/10 focus:border-[#B8FF00]/50'}`}
-                                />
-                                {/* Voice Input Button */}
-                                <button
-                                    onClick={handleMicClick}
-                                    className={`absolute bottom-4 right-4 w-10 h-10 rounded-full flex items-center justify-center transition-all ${isRecording
-                                        ? 'bg-red-500 text-white animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.5)]'
-                                        : 'bg-white/10 text-gray-400 hover:bg-[#B8FF00] hover:text-black hover:shadow-[0_0_15px_rgba(184,255,0,0.3)]'
-                                        }`}
-                                >
-                                    <span className="material-icons-round text-xl">
-                                        {isRecording ? 'stop' : 'mic'}
-                                    </span>
-                                </button>
+                    <div className="px-6 space-y-4 animate-slide-up">
+                        {error && (
+                            <div className="bg-red-500/10 border border-red-500/30 rounded-2xl px-5 py-3 text-red-400 text-sm">
+                                {error}
                             </div>
-                        </div>
-
-                        {/* Duration Slider */}
-                        <div className="space-y-5 bg-[#111] p-6 rounded-3xl border border-white/5">
-                            <div className="flex justify-between items-center">
-                                <h2 className="text-sm font-bold text-gray-400 uppercase tracking-widest">运动时长</h2>
-                                <div className="flex items-baseline gap-1">
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        max="720"
-                                        value={duration}
-                                        onChange={(e) => {
-                                            let val = parseInt(e.target.value);
-                                            if (isNaN(val)) val = 0;
-                                            if (val > 720) val = 720;
-                                            if (val < 0) val = 0;
-                                            setDuration(val);
-                                        }}
-                                        className="w-20 text-right bg-transparent border-b border-transparent focus:border-[#B8FF00]/50 outline-none text-4xl font-serif font-thin text-[#B8FF00] transition-colors"
-                                    />
-                                    <span className="text-[10px] text-gray-500 font-bold tracking-widest">分钟</span>
+                        )}
+                        {trainingLoading && (
+                            <div className="text-center py-8 text-gray-500">加载中...</div>
+                        )}
+                        {!trainingLoading && trainingRecords.length === 0 && (
+                            <div className="text-center py-8 text-gray-500">
+                                <span className="material-icons-round text-3xl mb-2 block opacity-30">fitness_center</span>
+                                今日暂无训练记录
+                            </div>
+                        )}
+                        {trainingRecords.map(record => (
+                            <div key={record.id} className="bg-[#111] p-5 rounded-2xl border border-white/5">
+                                <div className="flex justify-between items-start mb-2">
+                                    <div className="text-white font-bold">{(typeof record?.description === 'string' ? record.description : '').substring(0, 50)}{typeof record?.description === 'string' && record.description.length > 50 ? '...' : ''}</div>
+                                    {record.duration && <div className="text-[#B8FF00] text-sm font-bold">{record.duration}分钟</div>}
                                 </div>
-                            </div>
-
-                            <div className="w-full h-10 relative flex items-center">
-                                <div className="absolute inset-x-0 h-1 bg-gray-800 rounded-full"></div>
-                                <div className="absolute left-0 h-1 bg-[#B8FF00] rounded-full" style={{ width: `${(duration / 720) * 100}%` }}></div>
-
-                                <input
-                                    type="range"
-                                    min="0"
-                                    max="720"
-                                    step="5"
-                                    value={duration}
-                                    onChange={(e) => setDuration(parseInt(e.target.value))}
-                                    className="absolute inset-0 w-full opacity-0 cursor-pointer"
-                                />
-                                <div
-                                    className="absolute w-5 h-5 bg-white border-2 border-[#B8FF00] rounded-full shadow-[0_0_10px_rgba(184,255,0,0.5)] pointer-events-none transform -translate-x-1/2"
-                                    style={{ left: `${(duration / 720) * 100}%` }}
-                                ></div>
-                            </div>
-                            <div className="flex justify-between text-[10px] text-gray-600 font-mono font-bold">
-                                <span>0</span>
-                                <span>6h</span>
-                                <span>12h</span>
-                            </div>
-                        </div>
-
-                        {/* Photo Upload */}
-                        <div className="space-y-3">
-                            <h2 className="text-sm font-bold text-gray-400 uppercase tracking-widest pl-1">视觉打卡</h2>
-                            <input
-                                type="file"
-                                ref={fileInputRef}
-                                onChange={handlePhotoSelect}
-                                accept="image/*"
-                                className="hidden"
-                            />
-                            <button
-                                onClick={() => fileInputRef.current?.click()}
-                                className="w-full h-32 border-2 border-dashed border-gray-700 hover:border-[#B8FF00]/40 rounded-3xl flex flex-col items-center justify-center gap-2 text-gray-500 hover:text-gray-300 transition-all bg-[#111]/50 active:scale-[0.99] overflow-hidden group"
-                            >
-                                {selectedPhoto ? (
-                                    <img src={selectedPhoto} className="w-full h-full object-cover" alt="Preview" />
-                                ) : (
-                                    <>
-                                        <span className="material-icons-round text-3xl group-hover:text-[#B8FF00] transition-colors">add_a_photo</span>
-                                        <span className="text-xs font-bold tracking-widest">添加训练照片</span>
-                                    </>
+                                {record.photoUrl && (
+                                    <img src={record.photoUrl} className="w-full h-32 object-cover rounded-xl mt-3" alt="Training" />
                                 )}
-                            </button>
-                        </div>
-
-                        {/* Submit */}
-                        <div className="pt-8 pb-12">
-                            {error && (
-                                <div className="bg-red-500/10 border border-red-500/30 rounded-2xl px-5 py-3 text-red-400 text-sm mb-4">
-                                    {error}
-                                </div>
-                            )}
-                            <button
-                                onClick={async () => {
-                                    setSaving(true);
-                                    setError('');
-                                    try {
-                                        let photoUrl: string | undefined;
-                                        if (selectedFile) {
-                                            const res = await uploadApi.upload(selectedFile);
-                                            photoUrl = res.url;
-                                        }
-                                        await trainingApi.create({
-                                            description: logText,
-                                            duration,
-                                            photoUrl,
-                                            date: today,
-                                        });
-                                        if (onSave) onSave(selectedPhoto);
-                                        onClose();
-                                    } catch (e: any) {
-                                        setError(e?.response?.data?.message || '保存失败');
-                                    } finally {
-                                        setSaving(false);
-                                    }
-                                }}
-                                disabled={saving}
-                                className="w-full bg-[#B8FF00] hover:bg-[#a3e000] disabled:bg-white/10 disabled:text-gray-500 text-black font-black text-lg py-5 rounded-full shadow-[0_15px_30px_rgba(184,255,0,0.25)] active:scale-[0.98] transition-all flex justify-center items-center gap-2"
-                            >
-                                <span className="material-icons-round text-xl">{saving ? 'hourglass_empty' : 'file_upload'}</span>
-                                {saving ? '保存中...' : '保存记录'}
-                            </button>
-                        </div>
+                            </div>
+                        ))}
                     </div>
                 )}
             </div>
+
+
         </div>
     );
 };
 
 export default ActionCenter;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

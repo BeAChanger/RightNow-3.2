@@ -20,6 +20,26 @@ import { AiService } from '../ai/ai.service';
 import { AiModule } from '../ai/ai.module';
 import { TodosModule, TodosService } from '../todos/todos.module';
 
+const SHANGHAI_DATE_FORMATTER = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Asia/Shanghai',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
+
+const getShanghaiDateString = (): string => {
+  const parts = SHANGHAI_DATE_FORMATTER.formatToParts(new Date());
+  const year = parts.find((part) => part.type === 'year')?.value;
+  const month = parts.find((part) => part.type === 'month')?.value;
+  const day = parts.find((part) => part.type === 'day')?.value;
+
+  if (!year || !month || !day) {
+    return new Date().toISOString().slice(0, 10);
+  }
+
+  return `${year}-${month}-${day}`;
+};
+
 @Injectable()
 class TrainingService {
   constructor(
@@ -28,11 +48,12 @@ class TrainingService {
     private readonly todosService: TodosService,
   ) {}
 
-  async list(userId: string, date?: string) {
+  async list(userId: string, date?: string, targetMuscle?: string) {
     const records = await this.prisma.trainingRecord.findMany({
       where: {
         userId,
         ...(date ? { date } : {}),
+        ...(targetMuscle ? { targetMuscle } : {}),
       },
       orderBy: [{ date: 'desc' }, { createdAt: 'desc' }],
     });
@@ -53,14 +74,14 @@ class TrainingService {
   ) {
     const description = body.description?.trim() || 'Workout completed';
     const duration = this.parseOptionalInteger(body.duration);
-    const date = body.date || new Date().toISOString().slice(0, 10);
+    const date = this.normalizeDate(body.date);
 
     let structuredData = null;
     try {
       structuredData = await this.aiService.extractTrainingData({
         description: body.description,
         photoUrl: body.photoUrl,
-        rawInput: body.rawInput
+        rawInput: body.rawInput,
       });
     } catch (error) {
       console.error('AI extraction failed:', error);
@@ -79,18 +100,20 @@ class TrainingService {
       },
     });
 
-    if (structuredData?.exercises) {
+    if (structuredData) {
+      const exercises = this.extractExercises(structuredData);
       const setDetails = [];
-      for (const exercise of structuredData.exercises) {
+      for (const exercise of exercises) {
         for (let i = 0; i < exercise.sets.length; i++) {
+          const set = exercise.sets[i];
           setDetails.push({
             trainingRecordId: record.id,
             exerciseName: exercise.name,
             setNumber: i + 1,
-            reps: exercise.sets[i].reps,
-            weight: exercise.sets[i].weight,
-            duration: exercise.sets[i].duration,
-            restTime: exercise.sets[i].restTime
+            reps: this.parseOptionalTrainingInt(set.reps),
+            weight: this.parseOptionalTrainingNumber(set.weight),
+            duration: this.parseOptionalTrainingInt(set.duration),
+            restTime: this.parseOptionalTrainingInt(set.restTime),
           });
         }
       }
@@ -110,8 +133,8 @@ class TrainingService {
             userId,
             trainingRecordId: record.id,
             cardType: 'training_feedback',
-            ...feedbackData
-          }
+            ...feedbackData,
+          },
         });
       } catch (error) {
         console.error('Feedback generation failed:', error);
@@ -120,12 +143,12 @@ class TrainingService {
 
     const fullRecord = await this.prisma.trainingRecord.findUniqueOrThrow({
       where: { id: record.id },
-      include: { setDetails: true }
+      include: { setDetails: true },
     });
 
     return {
       record: this.mapRecord(fullRecord),
-      feedbackCard
+      feedbackCard,
     };
   }
 
@@ -152,7 +175,7 @@ class TrainingService {
             : this.parseOptionalInteger(body.duration),
         photoUrl:
           body.photoUrl === undefined ? undefined : body.photoUrl?.trim() || null,
-        date: body.date || undefined,
+        date: body.date ? this.normalizeDate(body.date) : undefined,
       },
     });
 
@@ -178,7 +201,7 @@ class TrainingService {
   async generateDailyChange(userId: string, date: string) {
     const records = await this.prisma.trainingRecord.findMany({
       where: { userId, date },
-      include: { setDetails: true }
+      include: { setDetails: true },
     });
 
     if (records.length === 0) {
@@ -188,23 +211,8 @@ class TrainingService {
     const lastRecord = await this.prisma.trainingRecord.findFirst({
       where: { userId, date: { lt: date } },
       orderBy: { date: 'desc' },
-      include: { setDetails: true }
+      include: { setDetails: true },
     });
-
-    const prompt = `基于今日训练和历史数据，生成"今日变化"总结：
-
-今日训练：
-${JSON.stringify(records, null, 2)}
-
-上次训练：
-${lastRecord ? JSON.stringify(lastRecord, null, 2) : '无'}
-
-要求：
-1. 突出进步（重量提升、次数增加、新动作等）
-2. 语气积极鼓励
-3. 数据可视化建议
-
-返回 JSON 格式（同反馈卡片结构）。只返回 JSON，不要其他文字。`;
 
     try {
       const feedbackData = await this.aiService.generateFeedback({ records, lastRecord });
@@ -212,10 +220,10 @@ ${lastRecord ? JSON.stringify(lastRecord, null, 2) : '无'}
         data: {
           userId,
           cardType: 'daily_change',
-          ...feedbackData
-        }
+          ...feedbackData,
+        },
       });
-    } catch (error) {
+    } catch {
       throw new BadRequestException('Failed to generate daily change');
     }
   }
@@ -232,12 +240,77 @@ ${lastRecord ? JSON.stringify(lastRecord, null, 2) : '无'}
     return parsed;
   }
 
+  private parseOptionalTrainingInt(value: unknown): number | null {
+    if (value === null || value === undefined || value === '') {
+      return null;
+    }
+
+    const parsed = Number.parseInt(String(value), 10);
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      return null;
+    }
+
+    return parsed;
+  }
+
+  private parseOptionalTrainingNumber(value: unknown): number | null {
+    if (value === null || value === undefined || value === '') {
+      return null;
+    }
+
+    const parsed = Number.parseFloat(String(value));
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      return null;
+    }
+
+    return parsed;
+  }
+
+  private normalizeDate(date?: string): string {
+    if (!date) {
+      return getShanghaiDateString();
+    }
+
+    const trimmed = date.trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+      throw new BadRequestException('date must be in YYYY-MM-DD format');
+    }
+
+    return trimmed;
+  }
+
+  private extractExercises(structuredData: any): Array<{
+    name: string;
+    sets: Array<{
+      reps?: unknown;
+      weight?: unknown;
+      duration?: unknown;
+      restTime?: unknown;
+    }>;
+  }> {
+    const rawExercises = Array.isArray(structuredData?.exercises)
+      ? structuredData.exercises
+      : [];
+
+    return rawExercises
+      .map((exercise: any) => {
+        const name = typeof exercise?.name === 'string' ? exercise.name.trim() : '';
+        const sets = Array.isArray(exercise?.sets) ? exercise.sets : [];
+        return { name, sets };
+      })
+      .filter((exercise: { name: string; sets: Array<unknown> }) => exercise.name.length > 0 && exercise.sets.length > 0);
+  }
+
   private mapRecord(record: {
     id: string;
     description: string;
     duration: number | null;
     photoUrl: string | null;
     date: string;
+    createdAt?: Date;
+    updatedAt?: Date;
+    todayFeeling?: string | null;
+    targetMuscle?: string | null;
   }) {
     return {
       id: record.id,
@@ -245,6 +318,10 @@ ${lastRecord ? JSON.stringify(lastRecord, null, 2) : '无'}
       duration: record.duration ?? undefined,
       photoUrl: record.photoUrl ?? undefined,
       date: record.date,
+      createdAt: record.createdAt?.toISOString(),
+      updatedAt: record.updatedAt?.toISOString(),
+      todayFeeling: record.todayFeeling ?? undefined,
+      targetMuscle: record.targetMuscle ?? undefined,
     };
   }
 }
@@ -258,15 +335,22 @@ class TrainingController {
   ) {}
 
   @Get()
-  list(@CurrentUser() user: { sub: string }, @Query('date') date?: string) {
-    return this.trainingService.list(user.sub, date);
+  list(@CurrentUser() user: { sub: string }, @Query('date') date?: string, @Query('targetMuscle') targetMuscle?: string) {
+    return this.trainingService.list(user.sub, date, targetMuscle);
   }
 
   @Post()
   create(
     @CurrentUser() user: { sub: string },
     @Body()
-    body: { description?: string; duration?: number; photoUrl?: string; date?: string },
+    body: {
+      description?: string;
+      duration?: number;
+      photoUrl?: string;
+      date?: string;
+      todayFeeling?: string;
+      rawInput?: any;
+    },
   ) {
     return this.trainingService.create(user.sub, body);
   }
@@ -289,16 +373,16 @@ class TrainingController {
   @Post('daily-change')
   generateDailyChange(
     @CurrentUser() user: { sub: string },
-    @Query('date') date?: string
+    @Query('date') date?: string,
   ) {
-    const targetDate = date || new Date().toISOString().slice(0, 10);
+    const targetDate = date || getShanghaiDateString();
     return this.trainingService.generateDailyChange(user.sub, targetDate);
   }
 
   @Get('feedback')
   listFeedbackCards(
     @CurrentUser() user: { sub: string },
-    @Query('date') date?: string
+    @Query('date') date?: string,
   ) {
     return this.prisma.aiFeedbackCard.findMany({
       where: {
@@ -306,11 +390,11 @@ class TrainingController {
         ...(date && {
           createdAt: {
             gte: new Date(date),
-            lt: new Date(date + 'T23:59:59')
-          }
-        })
+            lt: new Date(date + 'T23:59:59'),
+          },
+        }),
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
     });
   }
 }
@@ -321,3 +405,5 @@ class TrainingController {
   providers: [TrainingService],
 })
 export class TrainingModule {}
+
+

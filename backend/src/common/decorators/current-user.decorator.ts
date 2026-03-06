@@ -4,11 +4,30 @@ export interface AuthenticatedUser {
   sub: string;
   email: string;
   name: string;
+  scope?: 'app' | 'admin';
 }
 
 export const CurrentUser = createParamDecorator(
-  (_data: unknown, context: ExecutionContext): AuthenticatedUser => {
-    const request = context.switchToHttp().getRequest<{ user: AuthenticatedUser }>();
-    return request.user;
+  (
+    data: keyof AuthenticatedUser | 'id' | undefined,
+    context: ExecutionContext,
+  ): AuthenticatedUser | AuthenticatedUser[keyof AuthenticatedUser] | undefined => {
+    const request = context.switchToHttp().getRequest<{ user?: AuthenticatedUser }>();
+    const user = request.user;
+
+    if (!user) {
+      return undefined;
+    }
+
+    if (!data) {
+      return user;
+    }
+
+    // Keep compatibility with places that use @CurrentUser('id')
+    if (data === 'id') {
+      return user.sub;
+    }
+
+    return user[data];
   },
 );

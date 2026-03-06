@@ -37,6 +37,101 @@ class FriendshipsService {
     return records.map((record) => this.mapRecord(record, userId));
   }
 
+  async getRecommendations(userId: string) {
+    const currentUser = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!currentUser) {
+      throw new NotFoundException('User not found');
+    }
+
+    const existingFriendships = await this.prisma.friendship.findMany({
+      where: {
+        OR: [{ requesterId: userId }, { receiverId: userId }],
+      },
+      select: {
+        requesterId: true,
+        receiverId: true,
+      },
+    });
+
+    const excludeIds = new Set([
+      userId,
+      ...existingFriendships.map((f) =>
+        f.requesterId === userId ? f.receiverId : f.requesterId,
+      ),
+    ]);
+
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const [currentUserTraining, candidates] = await Promise.all([
+      this.prisma.trainingRecord.count({
+        where: { userId, createdAt: { gte: thirtyDaysAgo } },
+      }),
+      this.prisma.user.findMany({
+        where: {
+          id: { notIn: Array.from(excludeIds) },
+          isProfileComplete: true,
+        },
+        select: {
+          id: true,
+          name: true,
+          avatar: true,
+          bodyStyle: true,
+          trainingRecords: {
+            where: { createdAt: { gte: thirtyDaysAgo } },
+            select: { id: true, createdAt: true },
+          },
+        },
+      }),
+    ]);
+
+    const recommendations = await Promise.all(
+      candidates.map(async (candidate) => {
+        const trainingCount30 = candidate.trainingRecords.length;
+        const trainingCount7 = candidate.trainingRecords.filter(
+          (r) => r.createdAt >= sevenDaysAgo,
+        ).length;
+
+        const rhythmScore =
+          currentUserTraining === 0 || trainingCount30 === 0
+            ? 0
+            : 1 - Math.abs(currentUserTraining - trainingCount30) / Math.max(currentUserTraining, trainingCount30);
+
+        const goalScore =
+          currentUser.bodyStyle && candidate.bodyStyle === currentUser.bodyStyle ? 1 : 0;
+
+        const activityScore = trainingCount7 / 7;
+
+        const matchScore = rhythmScore * 0.6 + goalScore * 0.3 + activityScore * 0.1;
+
+        const reasons = [];
+        if (rhythmScore > 0.7) reasons.push('训练节奏相近');
+        if (goalScore === 1) reasons.push('目标一致');
+        if (activityScore > 0.5) reasons.push('近期活跃');
+
+        return {
+          user: {
+            id: candidate.id,
+            name: candidate.name,
+            avatar: candidate.avatar ?? undefined,
+          },
+          matchScore: Math.round(matchScore * 100) / 100,
+          matchReason: reasons.join('，') || '可以互相激励',
+        };
+      }),
+    );
+
+    return recommendations
+      .filter((r) => r.matchScore > 0)
+      .sort((a, b) => b.matchScore - a.matchScore)
+      .slice(0, 10);
+  }
+
   async request(userId: string, receiverId: string) {
     const targetId = receiverId.trim();
     if (!targetId) {
@@ -196,6 +291,11 @@ class FriendshipsController {
   @Get()
   list(@CurrentUser() user: { sub: string }) {
     return this.friendshipsService.list(user.sub);
+  }
+
+  @Get('recommendations')
+  getRecommendations(@CurrentUser() user: { sub: string }) {
+    return this.friendshipsService.getRecommendations(user.sub);
   }
 
   @Post('request')

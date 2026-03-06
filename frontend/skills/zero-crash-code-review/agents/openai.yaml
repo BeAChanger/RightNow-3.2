@@ -1,0 +1,4 @@
+interface:
+  display_name: "Zero-Crash Code Review"
+  short_description: "Review pasted code and fix crash risks proactively"
+  default_prompt: "/review"

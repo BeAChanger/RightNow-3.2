@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { View } from './types';
 import { authApi, TOKEN_KEY, aiCoachApi } from './api';
 import type { AuthUser } from './api';
@@ -24,6 +24,8 @@ import ActionCenter from './views/ActionCenter';
 import WeightRecord from './views/WeightRecord';
 import TodoList from './views/TodoList';
 import TrainingLog from './views/TrainingLog';
+import TrainingHistory from './views/TrainingHistory';
+import TrainingConfirm from './views/TrainingConfirm';
 import CommunityShare from './views/CommunityShare';
 import BottomNav from './components/BottomNav';
 import FloatingAdvisor from './components/FloatingAdvisor';
@@ -58,6 +60,9 @@ const App: React.FC = () => {
 
   const [customPhotos, setCustomPhotos] = useState<string[]>([]);
   const [shareData, setShareData] = useState<any>(null);
+  const [chatMode, setChatMode] = useState<'coach' | 'training'>('coach');
+  const [activeTrainingSessionId, setActiveTrainingSessionId] = useState<string | undefined>(undefined);
+  const [activeTrainingSessionData, setActiveTrainingSessionData] = useState<any>(null);
 
   const syncAuthUserState = (user: AuthUser | null) => {
     setAuthUser(user);
@@ -198,9 +203,55 @@ const App: React.FC = () => {
     }
   };
 
+  const openCoachChat = (trigger: boolean) => {
+    setCoachTrigger(trigger);
+    setChatMode('coach');
+    setActiveTrainingSessionId(undefined);
+    setActiveTrainingSessionData(null);
+    setCurrentView(View.AIChat);
+  };
+
+  const handleTrainingNavigate = (view: View, data?: any) => {
+    if (view === View.AIChat) {
+      const mode = data?.mode;
+      const sessionId = data?.sessionId;
+      if (mode === 'training' && typeof sessionId === 'string' && sessionId.length > 0) {
+        setChatMode('training');
+        setActiveTrainingSessionId(sessionId);
+        setActiveTrainingSessionData(data?.sessionData ?? null);
+      } else {
+        setChatMode('coach');
+        setActiveTrainingSessionId(undefined);
+        setActiveTrainingSessionData(null);
+      }
+      setCurrentView(View.AIChat);
+      return;
+    }
+
+    if (view === View.TrainingHistory) {
+      setCurrentView(View.TrainingHistory);
+      return;
+    }
+
+    if (view === View.TrainingConfirm) {
+      const sessionId = typeof data?.sessionId === 'string' ? data.sessionId : activeTrainingSessionId;
+      if (!sessionId) {
+        setCurrentView(View.ActionCenter);
+        return;
+      }
+
+      setChatMode('training');
+      setActiveTrainingSessionId(sessionId);
+      setActiveTrainingSessionData(data?.sessionData ?? activeTrainingSessionData ?? null);
+      setCurrentView(View.TrainingConfirm);
+      return;
+    }
+
+    setCurrentView(view);
+  };
   const handleSplashComplete = () => {
     localStorage.setItem('rightnow_has_seen_splash', 'true');
-    // Already logged in → skip login, go to Onboarding
+    // Already logged in 閳?skip login, go to Onboarding
     if (authUser) {
       setCurrentView(getPostAuthView(authUser));
     } else {
@@ -306,7 +357,21 @@ const App: React.FC = () => {
       case View.Community:
         return <Community />;
       case View.AIChat:
-        return <AIChat onBack={() => { setCoachTrigger(false); setCurrentView(View.Dashboard); }} coachTrigger={coachTrigger || hasUnreadAI} />;
+        return (
+          <AIChat
+            onBack={() => {
+              setCoachTrigger(false);
+              setChatMode('coach');
+              setActiveTrainingSessionId(undefined);
+              setActiveTrainingSessionData(null);
+              setCurrentView(chatMode === 'training' ? View.ActionCenter : View.Dashboard);
+            }}
+            coachTrigger={chatMode === 'coach' ? (coachTrigger || hasUnreadAI) : false}
+            mode={chatMode}
+            sessionId={activeTrainingSessionId}
+            onNavigate={handleTrainingNavigate}
+          />
+        );
       case View.EvolutionRecord:
         return <EvolutionRecord onBack={() => setCurrentView(View.Stats)} onNavigate={setCurrentView} customPhotos={customPhotos} onUploadPhoto={handleSaveActionCenter} />;
       case View.EvolutionProgress:
@@ -314,7 +379,7 @@ const App: React.FC = () => {
       case View.EvolutionGallery: // New case
         return <EvolutionGallery onBack={() => setCurrentView(View.EvolutionRecord)} customPhotos={customPhotos} />;
       case View.ActionCenter:
-        return <ActionCenter onClose={() => setCurrentView(View.Dashboard)} onSave={handleSaveActionCenter} />;
+        return <ActionCenter onClose={() => setCurrentView(View.Dashboard)} onSave={handleSaveActionCenter} onNavigate={handleTrainingNavigate} />;
       case View.WeightRecord:
         return <WeightRecord onBack={() => setCurrentView(View.Stats)} />;
 
@@ -329,6 +394,21 @@ const App: React.FC = () => {
               setCurrentView(view);
             }}
             onBack={() => setCurrentView(View.TodoList)}
+          />
+        );
+      case View.TrainingHistory:
+        return <TrainingHistory onBack={() => setCurrentView(View.ActionCenter)} />;
+
+      case View.TrainingConfirm:
+        if (!activeTrainingSessionId) {
+          return <ActionCenter onClose={() => setCurrentView(View.Dashboard)} onSave={handleSaveActionCenter} onNavigate={handleTrainingNavigate} />;
+        }
+        return (
+          <TrainingConfirm
+            onBack={() => setCurrentView(View.AIChat)}
+            onNavigate={handleTrainingNavigate}
+            sessionId={activeTrainingSessionId}
+            sessionData={activeTrainingSessionData}
           />
         );
 
@@ -375,6 +455,8 @@ const App: React.FC = () => {
     currentView === View.ActionCenter ||
     currentView === View.TodoList ||
     currentView === View.TrainingLog ||
+    currentView === View.TrainingHistory ||
+    currentView === View.TrainingConfirm ||
     currentView === View.CommunityShare;
 
   // Views where BottomNav should be hidden
@@ -386,11 +468,14 @@ const App: React.FC = () => {
     currentView === View.Evolution ||
     currentView === View.AIChat ||
     currentView === View.EvolutionRecord || // Fixed button overlaps nav
+    currentView === View.EvolutionProgress ||
     currentView === View.EvolutionGallery ||
     currentView === View.WeightRecord ||
     currentView === View.ActionCenter ||
     currentView === View.TodoList ||
     currentView === View.TrainingLog ||
+    currentView === View.TrainingHistory ||
+    currentView === View.TrainingConfirm ||
     currentView === View.CommunityShare;
 
   // Show loading while checking auth
@@ -409,8 +494,11 @@ const App: React.FC = () => {
 
   const coachMessage = visualAssessment
     ? (() => {
-        const weeks = Math.max(8, Math.ceil((visualAssessment.currentBodyFat - visualAssessment.targetBodyFat) / 0.5));
-        return `当前约 ${visualAssessment.currentBodyFat}%，目标约 ${visualAssessment.targetBodyFat}%，大约需要 ${weeks} 周。点我开始你的教练之旅！`;
+        const weeks = Math.max(
+          8,
+          Math.ceil((visualAssessment.currentBodyFat - visualAssessment.targetBodyFat) / 0.5),
+        );
+        return `视觉评估完成：当前体脂约 ${visualAssessment.currentBodyFat}% ，目标 ${visualAssessment.targetBodyFat}% 。按每周约 0.5% 变化，预计约 ${weeks} 周可达成。`;
       })()
     : undefined;
 
@@ -423,13 +511,11 @@ const App: React.FC = () => {
         coachMessage={coachMessage}
         onCoachStart={() => {
           setHasUnreadAI(false);
-          setCoachTrigger(true);
-          setCurrentView(View.AIChat);
+          openCoachChat(true);
         }}
         onChatClick={() => {
           setHasUnreadAI(false);
-          setCoachTrigger(false);
-          setCurrentView(View.AIChat);
+          openCoachChat(false);
         }}
       />}
       {renderView()}
@@ -439,3 +525,4 @@ const App: React.FC = () => {
 };
 
 export default App;
+

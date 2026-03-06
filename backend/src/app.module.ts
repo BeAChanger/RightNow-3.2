@@ -3,19 +3,20 @@ import { ConfigModule } from '@nestjs/config';
 import { AiCoachModule } from './ai-coach/ai-coach.module';
 import { AuthModule } from './auth/auth.module';
 import { ChatModule } from './chat/chat.module';
-import { ImageGenModule } from './image-gen/image-gen.module';
-import { FitnessPlanModule } from './fitness-plan/fitness-plan.module';
 import { CheckinsModule } from './checkins/checkins.module';
-import { DietModule } from './diet/diet.module';
 import { EvolutionModule } from './evolution/evolution.module';
+import { FitnessPlanModule } from './fitness-plan/fitness-plan.module';
 import { FriendshipsModule } from './friendships/friendships.module';
+import { ImageGenModule } from './image-gen/image-gen.module';
 import { PostsModule } from './posts/posts.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { TodosModule } from './todos/todos.module';
 import { TrainingModule } from './training/training.module';
+import { TrainingSessionModule } from './training-session/training-session.module';
 import { UploadModule } from './upload/upload.module';
 import { UsersModule } from './users/users.module';
 import { WeightModule } from './weight/weight.module';
+import { EvolutionStageModule } from './evolution-stage/evolution-stage.module';
 
 @Module({
   imports: [
@@ -28,8 +29,8 @@ import { WeightModule } from './weight/weight.module';
     AuthModule,
     UsersModule,
     WeightModule,
-    DietModule,
     TrainingModule,
+    TrainingSessionModule,
     TodosModule,
     CheckinsModule,
     UploadModule,
@@ -39,6 +40,7 @@ import { WeightModule } from './weight/weight.module';
     ChatModule,
     ImageGenModule,
     FitnessPlanModule,
+    EvolutionStageModule,
   ],
 })
 export class AppModule {}

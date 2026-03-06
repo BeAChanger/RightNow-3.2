@@ -21,6 +21,8 @@ export enum View {
   WeightRecord = 'WEIGHT_RECORD',
   TodoList = 'TODO_LIST',
   TrainingLog = 'TRAINING_LOG',
+  TrainingHistory = 'TRAINING_HISTORY',
+  TrainingConfirm = 'TRAINING_CONFIRM',
   CommunityShare = 'COMMUNITY_SHARE'
 }
 

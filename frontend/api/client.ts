@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? 'http://localhost:5000/api' : '/api');
 const TOKEN_KEY = 'rightnow_token';
 
 const client = axios.create({
@@ -48,7 +48,11 @@ export function getApiErrorMessage(error: unknown, fallback: string): string {
     }
 
     if (!error.response || (error.response.status ?? 0) >= 500) {
-      return 'Service unavailable. Start the backend API and initialize the database first.';
+      return '服务不可用，请先启动后端 API 并初始化数据库。';
+    }
+
+    if ((error.response.status ?? 0) >= 400) {
+      return fallback;
     }
   }
 

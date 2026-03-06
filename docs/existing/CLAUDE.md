@@ -114,5 +114,5 @@ npm run preview   # 预览生产构建
 
 - 所有共享技能统一注册在 `SKILL_REGISTRY.md`，Agent 启动时读取即可获得全部可用技能。
 - 技能文件统一存放在 `skills/<name>/SKILL.md`（项目级）。
-- 4 个核心技能已全局安装到各 Agent 默认路径，跨项目可用。
+- 新增 `real-team-handover-docs-generator` 技能（触发：`/handvoer`，兼容 `/handover`），用于生成 `DEV_HANDOVER.md` 与 `OPS_RUNBOOK.md`。
 - `.claude/commands/*.md` 仍可作为详细参考，但技能发现以 `SKILL_REGISTRY.md` 为准。

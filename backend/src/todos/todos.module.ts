@@ -17,6 +17,11 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
 
+const SHANGHAI_DATE_FORMATTER = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Asia/Shanghai',
+});
+
+const getShanghaiDateString = (): string => SHANGHAI_DATE_FORMATTER.format(new Date());
 @Injectable()
 export class TodosService {
   private readonly defaultTodos = [
@@ -130,7 +135,7 @@ export class TodosService {
   }
 
   async list(userId: string, date?: string) {
-    const targetDate = date || new Date().toISOString().slice(0, 10);
+    const targetDate = date || getShanghaiDateString();
     await this.ensureDailyTodos(userId, targetDate);
 
     const records = await this.prisma.todo.findMany({
@@ -157,7 +162,7 @@ export class TodosService {
         userId,
         title: body.title.trim(),
         category: body.category.trim(),
-        date: body.date || new Date().toISOString().slice(0, 10),
+        date: body.date || getShanghaiDateString(),
       },
     });
 
@@ -425,7 +430,7 @@ class TodosController {
     @CurrentUser() user: { sub: string },
     @Query('date') date?: string
   ) {
-    const targetDate = date || new Date().toISOString().slice(0, 10);
+    const targetDate = date || getShanghaiDateString();
     return this.todosService.ensureDailyTodos(user.sub, targetDate);
   }
 

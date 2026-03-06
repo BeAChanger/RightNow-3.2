@@ -34,7 +34,7 @@ export class AuthService {
       },
     });
 
-    return this.buildAuthResponse(user);
+    return this.buildAuthResponse(user, 'app');
   }
 
   async login(email: string, password: string) {
@@ -52,7 +52,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password');
     }
 
-    return this.buildAuthResponse(user);
+    return this.buildAuthResponse(user, 'app');
   }
 
   async me(userId: string) {
@@ -63,12 +63,13 @@ export class AuthService {
     return this.toAuthUser(user);
   }
 
-  private buildAuthResponse(user: User) {
+  private buildAuthResponse(user: User, scope: 'app' | 'admin') {
     return {
       access_token: this.jwtService.sign({
         sub: user.id,
         email: user.email,
         name: user.name,
+        scope,
       }),
       user: this.toAuthUser(user),
     };
@@ -80,9 +81,10 @@ export class AuthService {
       email: user.email,
       name: user.name,
       avatar: user.avatar ?? undefined,
-      gender: user.gender === 'male' || user.gender === 'female'
-        ? user.gender
-        : undefined,
+      gender:
+        user.gender === 'male' || user.gender === 'female'
+          ? user.gender
+          : undefined,
       bodyStyle: user.bodyStyle ?? undefined,
       currentPhase: user.currentPhase ?? undefined,
       isProfileComplete: user.isProfileComplete,

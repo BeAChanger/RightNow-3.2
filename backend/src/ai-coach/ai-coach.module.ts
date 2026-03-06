@@ -13,13 +13,30 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { ConfigService } from '@nestjs/config';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
+import { TodosModule, TodosService } from '../todos/todos.module';
 
 type GoalDirection = 'fat_loss' | 'recomposition' | 'muscle_gain';
 type CoachStage = 'foundation' | 'build' | 'cut' | 'maintain';
 type CoachTaskCategory = 'training' | 'nutrition' | 'recovery' | 'habit';
+type CoachKnowledgeDomain = 'nutrition' | 'exercise' | 'training' | 'metrics';
+
+interface RagContextRequest {
+  query: string;
+  topK?: number;
+  domains?: CoachKnowledgeDomain[];
+}
+
+interface RagContextResponse {
+  query: string;
+  domain: string;
+  documents: string[];
+  metadatas: Prisma.JsonValue[];
+  error?: string;
+}
 
 interface CoachAssessmentResponse {
   id: string;
@@ -155,9 +172,35 @@ interface ProfileRefreshBatchResult {
   durationMs: number;
 }
 
+const SHANGHAI_DATE_FORMATTER = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Asia/Shanghai',
+});
+
+const getShanghaiDateString = (): string =>
+  SHANGHAI_DATE_FORMATTER.format(new Date());
+
 @Injectable()
 class AiCoachService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly configService: ConfigService,
+    private readonly todosService: TodosService,
+  ) {}
+
+  private resolveRagServiceUrl(): string {
+    const baseUrl = this.configService.get<string>('RAG_SERVICE_URL', 'http://127.0.0.1:8000');
+    return baseUrl.replace(/\/+$/, '');
+  }
+
+  private mapCoachDomainToRag(domain: CoachKnowledgeDomain): string {
+    if (domain === 'nutrition') {
+      return 'nutrition';
+    }
+    if (domain === 'exercise') {
+      return 'kinesiology';
+    }
+    return 'comprehensive';
+  }
 
   private calculateBmi(weightKg: number, heightCm: number): number {
     const heightM = heightCm / 100;
@@ -604,7 +647,6 @@ class AiCoachService {
         extraAnswers,
       },
     });
-
     return {
       id: intake.id,
       trainingExperience: intake.trainingExperience,
@@ -668,6 +710,16 @@ class AiCoachService {
       },
     });
 
+    // Keep TODO in sync even if the frontend skips explicit ensure-daily.
+    try {
+      await this.todosService.ensureDailyTodos(
+        userId,
+        getShanghaiDateString(),
+      );
+    } catch {
+      // Best effort: plan save should not fail because todo sync fails.
+    }
+
     return {
       saved: true,
       plan: this.parsePlanJson(progress.activePlan),
@@ -699,6 +751,58 @@ class AiCoachService {
       activePlan: this.parsePlanJson(progress.activePlan),
       weekSummaryReady: progress.weekSummaryReady,
     };
+  }
+
+  async getRagContext(_userId: string, body: RagContextRequest): Promise<RagContextResponse> {
+    const query = body.query?.trim();
+    if (!query) {
+      throw new BadRequestException('query is required');
+    }
+
+    const topK = Math.max(1, Math.min(Number(body.topK ?? 5), 10));
+    const selectedDomain = Array.isArray(body.domains) && body.domains.length > 0 ? body.domains[0] : 'training';
+    const ragDomain = this.mapCoachDomainToRag(selectedDomain);
+    const ragServiceUrl = this.resolveRagServiceUrl();
+
+    try {
+      const response = await fetch(`${ragServiceUrl}/search`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, top_k: topK, domain: ragDomain }),
+      });
+
+      if (!response.ok) {
+        return {
+          query,
+          domain: ragDomain,
+          documents: [],
+          metadatas: [],
+          error: `RAG_HTTP_${response.status}`,
+        };
+      }
+
+      const payload = (await response.json()) as {
+        results?: { documents?: string[][]; metadatas?: Prisma.JsonValue[][] };
+      };
+
+      const documents = payload.results?.documents?.[0] ?? [];
+      const metadatas = payload.results?.metadatas?.[0] ?? [];
+
+      return {
+        query,
+        domain: ragDomain,
+        documents: documents.slice(0, topK),
+        metadatas: metadatas.slice(0, topK),
+      };
+    } catch {
+      return {
+        query,
+        domain: ragDomain,
+        documents: [],
+        metadatas: [],
+        error: 'RAG_UNAVAILABLE',
+      };
+    }
   }
 
   async refreshProfile(userId: string, reason = 'manual'): Promise<CoachProfileResponse> {
@@ -930,6 +1034,14 @@ class AiCoachController {
     return this.service.getProgress(user.sub);
   }
 
+  @Post('rag-context')
+  getRagContext(
+    @CurrentUser() user: { sub: string },
+    @Body() body: RagContextRequest,
+  ) {
+    return this.service.getRagContext(user.sub, body);
+  }
+
   @Get('profile')
   getProfile(@CurrentUser() user: { sub: string }) {
     return this.service.getProfile(user.sub);
@@ -942,7 +1054,14 @@ class AiCoachController {
 }
 
 @Module({
+  imports: [TodosModule],
   controllers: [AiCoachController],
   providers: [AiCoachService, AiCoachProfileScheduler],
 })
 export class AiCoachModule {}
+
+
+
+
+
+

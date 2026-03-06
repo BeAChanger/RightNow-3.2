@@ -1,9 +1,10 @@
-import {
+﻿import {
   BadRequestException,
   Controller,
-  Injectable,
+  Get,
   Module,
   Post,
+  Query,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -11,39 +12,26 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { buildUploadUrl, imageUploadOptions } from '../common/upload.util';
-import { PrismaService } from '../prisma/prisma.service';
-
-@Injectable()
-class UploadService {
-  constructor(private readonly prisma: PrismaService) {}
-
-  async save(userId: string, filename: string, kind: 'general' | 'avatar') {
-    const url = buildUploadUrl(filename);
-
-    await this.prisma.uploadAsset.create({
-      data: {
-        userId,
-        url,
-        kind,
-      },
-    });
-
-    if (kind === 'avatar') {
-      await this.prisma.user.update({
-        where: { id: userId },
-        data: { avatar: url },
-      });
-    }
-
-    return { url };
-  }
-}
+import { imageUploadOptions } from '../common/upload.util';
+import { UploadService } from './upload.service';
 
 @Controller('upload')
 @UseGuards(JwtAuthGuard)
 class UploadController {
   constructor(private readonly uploadService: UploadService) {}
+
+  @Get()
+  list(
+    @CurrentUser() user: { sub: string },
+    @Query('kind') kind?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const parsedLimit = limit ? Number.parseInt(limit, 10) : undefined;
+    return this.uploadService.list(user.sub, {
+      kind,
+      limit: Number.isFinite(parsedLimit) ? parsedLimit : undefined,
+    });
+  }
 
   @Post()
   @UseInterceptors(FileInterceptor('file', imageUploadOptions))
@@ -75,5 +63,6 @@ class UploadController {
 @Module({
   controllers: [UploadController],
   providers: [UploadService],
+  exports: [UploadService],
 })
 export class UploadModule {}

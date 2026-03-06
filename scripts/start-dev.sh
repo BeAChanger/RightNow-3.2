@@ -3,71 +3,54 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+FRONTEND_API_BASE_URL="${VITE_API_BASE_URL:-http://localhost:5000/api}"
 
-require_cmd() {
-  if ! command -v "$1" >/dev/null 2>&1; then
-    echo "[ERROR] Missing command: $1"
-    exit 1
-  fi
-}
+cd "$ROOT_DIR"
+
+echo "[INFO] Project root: $ROOT_DIR"
+echo "[PREP] Frontend API base url (dev): $FRONTEND_API_BASE_URL"
+echo "[1/5] Running db init (prisma push + seed)..."
+npm run db:init
+
+echo "[2/5] Starting backend..."
+npm run dev:backend &
+BACKEND_PID=$!
+
+echo "[3/5] Starting frontend..."
+VITE_API_BASE_URL="$FRONTEND_API_BASE_URL" npm run dev:frontend &
+FRONTEND_PID=$!
+
+echo "[4/5] Starting admin frontend..."
+npm run dev:admin &
+ADMIN_PID=$!
+
+echo "[5/5] Starting RAG service..."
+npm run dev:rag &
+RAG_PID=$!
 
 cleanup() {
   echo ""
   echo "[INFO] Stopping services..."
-  if [[ -n "${FRONTEND_PID:-}" ]]; then
-    kill "$FRONTEND_PID" >/dev/null 2>&1 || true
-  fi
-  if [[ -n "${BACKEND_PID:-}" ]]; then
-    kill "$BACKEND_PID" >/dev/null 2>&1 || true
-  fi
-  if [[ -n "${RAG_PID:-}" ]]; then
-    kill "$RAG_PID" >/dev/null 2>&1 || true
-  fi
+  kill "$BACKEND_PID" >/dev/null 2>&1 || true
+  kill "$FRONTEND_PID" >/dev/null 2>&1 || true
+  kill "$ADMIN_PID" >/dev/null 2>&1 || true
+  kill "$RAG_PID" >/dev/null 2>&1 || true
 }
 
 trap cleanup EXIT INT TERM
 
-require_cmd npm
-require_cmd python
-
-cd "$ROOT_DIR"
-
-echo "[1/6] Starting PostgreSQL container..."
-if command -v docker >/dev/null 2>&1; then
-  docker compose -f backend/docker-compose.yml up -d
-else
-  echo "[WARN] Docker not found. Skip DB startup; ensure PostgreSQL is already running."
-fi
-
-echo "[2/6] Pushing Prisma schema..."
-npm run db:push
-
-echo "[3/6] Seeding demo data..."
-npm run db:seed
-
-echo "[4/6] Starting backend (http://localhost:5000)..."
-npm run dev:backend &
-BACKEND_PID=$!
-
-sleep 3
-
-echo "[5/6] Starting frontend (http://localhost:5173)..."
-npm run dev:frontend &
-FRONTEND_PID=$!
-
-if [[ -d "$ROOT_DIR/rag-service" ]]; then
-  echo "[6/6] Starting RAG service (http://localhost:8000)..."
-  npm run dev:rag &
-  RAG_PID=$!
-else
-  echo "[6/6] RAG service directory not found, skip."
-fi
-
 echo ""
-echo "[OK] RightNow services are starting."
-echo "Frontend: http://localhost:5173"
-echo "Backend:  http://localhost:5000"
-echo "RAG:      http://localhost:8000"
+echo "[OK] Startup commands have been dispatched in your confirmed order:"
+echo "  1) npm run db:init"
+echo "  2) npm run dev:backend"
+echo "  3) npm run dev:frontend (with VITE_API_BASE_URL=$FRONTEND_API_BASE_URL)"
+echo "  4) npm run dev:admin"
+echo "  5) npm run dev:rag"
+echo ""
+echo "Frontend:       http://localhost:5173"
+echo "Admin Frontend: http://localhost:5174"
+echo "Backend:        http://localhost:5000"
+echo "RAG:            http://localhost:8000"
 echo ""
 echo "Press Ctrl+C to stop all started services."
 

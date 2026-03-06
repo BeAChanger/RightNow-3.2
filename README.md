@@ -1,49 +1,73 @@
-# RightNow Fitness - Monorepo
+# RightNow Fitness Monorepo
 
-React + TypeScript + Vite 健身应用，包含前端、后端和 RAG 服务。
+RightNow includes three runtime services and one admin console:
 
-## 项目结构
+- `frontend/`: user-facing React app (Vite)
+- `admin/`: admin React app (Vite)
+- `backend/`: NestJS API + Prisma + PostgreSQL
+- `rag-service/`: Python FastAPI RAG service
 
-```
-RightNow-Fitness/
-├── frontend/          # React 前端应用
-├── backend/           # NestJS 后端服务
-├── rag-service/       # Python RAG 服务
-├── docs/              # 共享文档
-├── .claude/           # Claude 配置
-└── scripts/           # 共享脚本
-```
-
-## 快速开始
-
-### 安装依赖
+## Quick Start
 
 ```bash
 npm run install:all
 cd rag-service && pip install -r requirements.txt
 ```
 
-### 启动服务
+### One-command startup
 
-```bash
-# 前端 (端口 3000)
-npm run dev:frontend
+Windows PowerShell:
 
-# 后端 (端口 3100)
-npm run dev:backend
-
-# RAG 服务 (端口 8000)
-npm run dev:rag
+```powershell
+cd E:\RightNow-Fitness
+.\scripts\start-dev.ps1
 ```
 
-## 文档
+Git Bash / WSL:
 
-- [项目规范](docs/CLAUDE.md)
-- [项目记忆](docs/CLAUDE_PROJECT_MEMORY.md)
-- [Git 工作流](docs/GIT_WORKFLOW.md)
+```bash
+cd /e/RightNow-Fitness
+./scripts/start-dev.sh
+```
 
-## 技术栈
+## Ports
 
-- **前端**: React 19, TypeScript, Vite, Three.js, Tailwind CSS
-- **后端**: NestJS, Prisma, PostgreSQL
-- **RAG**: Python, FastAPI, ChromaDB
+- Frontend: `http://localhost:5173`
+- Admin: `http://localhost:5174`
+- Backend API: `http://localhost:5000`
+- RAG service: `http://localhost:8000`
+- PostgreSQL (Docker): `localhost:15433`
+
+## Dev API Routing
+
+- Frontend dev mode defaults to `http://localhost:5000/api`.
+- `scripts/start-dev.ps1` and `scripts/start-dev.sh` start frontend with `VITE_API_BASE_URL=http://localhost:5000/api`.
+- If you modify `frontend/vite.config.ts`, restart `npm run dev:frontend` to apply proxy changes.
+
+## Default Accounts
+
+- User demo: `demo@rightnow.fit` / `password123`
+- Admin: `admin@admin.com` / `123456`
+
+## Common Commands
+
+```bash
+npm run dev:frontend
+npm run dev:admin
+npm run dev:backend
+npm run dev:rag
+npm run db:up
+npm run db:init
+npm run build:frontend
+npm run build:admin
+npm run build:backend
+```
+
+## Admin MVP Modules
+
+- User management (`/api/admin/users`): list/filter + freeze/unfreeze
+- Knowledge base (`/api/admin/knowledge/*`): upload/list/delete/rescan via Nest proxy to RAG
+- Prompt center (`/api/admin/prompts/*`): CRUD + prompt test
+- Audit log (`/api/admin/audit`): key operation trace
+
+Detailed startup and troubleshooting: [docs/existing/LOCAL_STARTUP_GUIDE.md](docs/existing/LOCAL_STARTUP_GUIDE.md)

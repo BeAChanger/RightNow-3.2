@@ -56,7 +56,12 @@
       "Bash(where ffmpeg:*)",
       "Bash(yt-dlp:*)",
       "Bash(mkdir:*)",
-      "Bash(cp:*)"
+      "Bash(cp:*)",
+      "Bash(xargs grep:*)",
+      "Bash(gh project:*)",
+      "Bash(pkill:*)",
+      "Bash(handover/DEV_HANDOVER.md:*)",
+      "Bash(handover/OPS_RUNBOOK.md:*)"
     ]
   }
 }

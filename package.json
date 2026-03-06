@@ -4,12 +4,14 @@
   "private": true,
   "workspaces": [
     "frontend",
-    "backend"
+    "backend",
+    "admin"
   ],
   "scripts": {
     "dev:frontend": "npm --workspace frontend run dev",
+    "dev:admin": "npm --workspace admin run dev",
     "dev:backend": "npm --workspace backend run start:dev",
-    "dev:rag": "python rag-service/main.py",
+    "dev:rag": "python -m uvicorn main:app --app-dir rag-service --host 0.0.0.0 --port 8000",
     "db:up": "docker compose -f backend/docker-compose.yml up -d",
     "db:down": "docker compose -f backend/docker-compose.yml down",
     "db:logs": "docker compose -f backend/docker-compose.yml logs -f postgres",
@@ -17,7 +19,10 @@
     "db:seed": "npm --workspace backend run prisma:seed",
     "db:init": "npm run db:push && npm run db:seed",
     "build:frontend": "npm --workspace frontend run build",
+    "build:admin": "npm --workspace admin run build",
     "build:backend": "npm --workspace backend run build",
     "install:all": "npm install"
   }
 }
+
+

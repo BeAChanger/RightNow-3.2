@@ -16,7 +16,7 @@
 
 - 所有共享技能统一注册在 `SKILL_REGISTRY.md`，Agent 启动时读取即可获得全部可用技能。
 - 技能文件统一存放在 `skills/<name>/SKILL.md`（项目级）。
-- 4 个核心技能已全局安装到各 Agent 默认路径，跨项目可用。
+- 新增 `real-team-handover-docs-generator` 技能（触发：`/handvoer`，兼容 `/handover`），用于生成 `DEV_HANDOVER.md` 与 `OPS_RUNBOOK.md`。
 - 新增技能时必须同步更新 `SKILL_REGISTRY.md` 注册表。
 
 ## Memory Update Rules
