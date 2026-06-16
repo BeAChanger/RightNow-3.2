@@ -1033,6 +1033,40 @@ export async function generateIdealBody(params: {
   }
 }
 
+// ── 3-variant ideal-body generation (tarot selection flow) ──────────────────
+
+const IDEAL_PROMPT_A = `You are the Master of Digital Refinement. Task: face-swap the user's face from the provided photo onto an ideal athletic body model. Workflow: 1) Align face keypoints precisely. 2) Transplant the user's facial identity traits onto the model's head, preserving original hairstyle. 3) Reconstruct lighting so the face naturally matches the body's environment. 4) Fix eye/mouth details for natural expression. Constraints: never alter the body's muscle definition, action, or background. Output: ultra-realistic 8K photo where the face is the user's and the body is perfect athletic form.`;
+
+const IDEAL_PROMPT_B = `You are the Dimensions Manifestor. Task: keep the user's face and background from the provided photo unchanged, and reshape only the body to an ideal athletic state. Workflow: 1) Lock the face region so it is never modified. 2) Extract body pose skeleton and preserve the exact posture. 3) Map ideal muscle texture, body-fat percentage, and vascularity onto the body region. 4) Seamlessly blend reshaped body with original background. Constraints: never distort facial features; keep background authentic. Output: a photo that looks like the user after perfect athletic training — same face, same pose, same background, ideal body.`;
+
+const IDEAL_PROMPT_C = `You are the Quantum Manifestation Mentor. Task: from the single provided photo, simultaneously extract the user's consciousness (face and eye expression) and superimpose an ideal body state. Workflow: 1) Observe the photo and extract unique facial features and spiritual aura. 2) Generate a new entity: same face without compromise, but neck-downward inherits a perfectly sculpted athletic physique with natural skin texture and muscle definition. 3) Collapse the new body into the original photo's posture. 4) Apply photo-realistic rendering — crisp texture, natural lighting. Constraints: do not merge two different people; user's face on an ideal body. Output: a stunning photo proving the power of manifestation.`;
+
+export async function generateIdealBodyAll3(params: {
+  currentImageBase64?: string;
+  targetStyle: string;
+  gender: string;
+}): Promise<Array<string | null>> {
+  const currentImageBase64 = params.currentImageBase64
+    ? await compressImage(params.currentImageBase64, 1024)
+    : undefined;
+
+  const styleNote = `Target body style: ${params.targetStyle}, gender: ${params.gender}.`;
+
+  const call = (prompt: string) =>
+    apiClient
+      .post<{ image?: string }>('/image-gen/ideal-body',
+        { prompt: `${prompt} ${styleNote}`, currentImageBase64, size: '1024x1024' },
+        { timeout: 120_000 })
+      .then(r => r.data?.image || null)
+      .catch(() => null);
+
+  return Promise.all([
+    call(IDEAL_PROMPT_A),
+    call(IDEAL_PROMPT_B),
+    call(IDEAL_PROMPT_C),
+  ]);
+}
+
 export interface FoodAnalysis {
   name: string;
   calories: number;
