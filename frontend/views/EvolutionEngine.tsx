@@ -43,6 +43,7 @@ const EvolutionEngine: React.FC<Props> = ({
   const [faceImage, setFaceImage] = useState<string | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const faceInputRef = useRef<HTMLInputElement>(null);
+  const comparisonRef = useRef<HTMLDivElement>(null);
 
   const beforeSrc = userImage || '/ori.png';
 
@@ -68,6 +69,33 @@ const EvolutionEngine: React.FC<Props> = ({
   const handleConfirmComplete = async () => {
     onComplete(generatedImage, null);
   };
+
+  const updateSliderFromClientX = useCallback((clientX: number) => {
+    const rect = comparisonRef.current?.getBoundingClientRect();
+    if (!rect || rect.width <= 0) return;
+    const nextValue = ((clientX - rect.left) / rect.width) * 100;
+    setSliderVal(Math.min(100, Math.max(0, nextValue)));
+  }, []);
+
+  const handleSliderPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    e.preventDefault();
+    updateSliderFromClientX(e.clientX);
+
+    const handleMove = (event: PointerEvent) => {
+      updateSliderFromClientX(event.clientX);
+    };
+
+    const stopDragging = () => {
+      window.removeEventListener('pointermove', handleMove);
+      window.removeEventListener('pointerup', stopDragging);
+      window.removeEventListener('pointercancel', stopDragging);
+    };
+
+    window.addEventListener('pointermove', handleMove);
+    window.addEventListener('pointerup', stopDragging);
+    window.addEventListener('pointercancel', stopDragging);
+  }, [updateSliderFromClientX]);
 
   // Initial AI analysis on mount — focus on "PS yourself"
   useEffect(() => {
@@ -243,7 +271,12 @@ const EvolutionEngine: React.FC<Props> = ({
   );
 
   const renderComparison = () => (
-    <div className="flex-1 relative w-full overflow-hidden bg-black" style={{ minHeight: '35%' }}>
+    <div
+      ref={comparisonRef}
+      className="flex-1 relative w-full overflow-hidden bg-black touch-none select-none"
+      style={{ minHeight: '35%' }}
+      onPointerDown={handleSliderPointerDown}
+    >
       <div className="absolute inset-0">
         {/* Future layer (background) */}
         <div className="absolute inset-0 bg-gradient-to-br from-gray-900 to-black">
@@ -264,10 +297,6 @@ const EvolutionEngine: React.FC<Props> = ({
         <div
           className="absolute top-0 bottom-0 w-10 flex items-center justify-center -ml-5 z-20 cursor-ew-resize touch-none"
           style={{ left: `${sliderVal}%` }}
-          onTouchMove={(e) => {
-            const val = Math.min(100, Math.max(0, (e.touches[0].clientX / window.innerWidth) * 100));
-            setSliderVal(val);
-          }}
         >
           <div className="w-8 h-8 rounded-full bg-black/50 backdrop-blur-md border border-white/50 flex items-center justify-center shadow-[0_0_15px_rgba(255,255,255,0.2)]">
             <span className="material-icons-round text-white text-sm">code</span>

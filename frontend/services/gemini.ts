@@ -17,11 +17,6 @@ const INTERACTIVE_MODEL = 'gemini-3-flash-preview';
 const CHAT_MODEL_CANDIDATES = [INTERACTIVE_MODEL];
 const ALLOWED_CHAT_MODELS = new Set(CHAT_MODEL_CANDIDATES);
 
-// Codex (OpenAI-compatible) image generation
-const CODEX_BASE = 'https://code.newcli.com/codex/v1';
-const CODEX_IMAGE_MODEL = 'gpt-image-2';
-const CODEX_API_KEY = () => import.meta.env.VITE_CODEX_API_KEY || '';
-
 // DeepSeek AI chat
 const DEEPSEEK_BASE = 'https://api.deepseek.com/v1';
 const DEEPSEEK_CHAT_MODEL = 'deepseek-v4-flash';
@@ -945,11 +940,6 @@ export async function generateIdealBody(params: {
   refinement?: string;
   conservative?: boolean;
 }): Promise<string | null> {
-  const key = CODEX_API_KEY();
-  if (!key) {
-    return null;
-  }
-
   const styleDesc = params.gender === 'male'
     ? { slim: 'lean', athletic: 'athletic', muscular: 'muscular' }
     : { comic: 'slim', athletic: 'athletic', muscular: 'toned-muscular' };
@@ -1020,84 +1010,26 @@ export async function generateIdealBody(params: {
     );
   }
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 120_000);
-
   try {
-    const hasImage = !!params.currentImageBase64;
+    const currentImageBase64 = params.currentImageBase64
+      ? await compressImage(params.currentImageBase64, 1024)
+      : undefined;
+    const referenceImageBase64 = params.referenceImageBase64
+      ? await compressImage(params.referenceImageBase64, 1024)
+      : undefined;
 
-    if (hasImage) {
-      // Use /images/edits for image-to-image transformation
-      const compressed = await compressImage(params.currentImageBase64!, 1024);
-      const base64Data = compressed.includes(',') ? compressed.split(',')[1] : compressed;
-      const mimeType = compressed.includes(';') ? compressed.split(';')[0].split(':')[1] : 'image/jpeg';
-      const byteChars = atob(base64Data);
-      const byteNums = new Array(byteChars.length);
-      for (let i = 0; i < byteChars.length; i += 1) {
-        byteNums[i] = byteChars.charCodeAt(i);
-      }
-      const byteArr = new Uint8Array(byteNums);
-      const blob = new Blob([byteArr], { type: mimeType });
-
-      const formData = new FormData();
-      formData.append('image', blob, 'body.png');
-      formData.append('prompt', prompt);
-      formData.append('model', CODEX_IMAGE_MODEL);
-      formData.append('n', '1');
-      formData.append('size', '1024x1024');
-      formData.append('response_format', 'b64_json');
-
-      const res = await fetch(`${CODEX_BASE}/images/edits`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${key}` },
-        body: formData,
-        signal: controller.signal,
-      });
-
-      if (!res.ok) {
-        return null;
-      }
-
-      const data = await res.json();
-      const b64 = data?.data?.[0]?.b64_json;
-      if (b64) {
-        return `data:image/png;base64,${b64}`;
-      }
-      return null;
-    }
-
-    // Use /images/generations for text-to-image
-    const res = await fetch(`${CODEX_BASE}/images/generations`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${key}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: CODEX_IMAGE_MODEL,
-        prompt,
-        n: 1,
-        size: '1024x1024',
-        response_format: 'b64_json',
-      }),
-      signal: controller.signal,
+    const { data } = await apiClient.post<{ image?: string }>('/image-gen/ideal-body', {
+      prompt,
+      currentImageBase64,
+      referenceImageBase64,
+      size: '1024x1024',
+    }, {
+      timeout: 120_000,
     });
 
-    if (!res.ok) {
-      return null;
-    }
-
-    const data = await res.json();
-    const b64 = data?.data?.[0]?.b64_json;
-    if (b64) {
-      return `data:image/png;base64,${b64}`;
-    }
-
-    return null;
+    return data?.image || null;
   } catch {
     return null;
-  } finally {
-    clearTimeout(timeout);
   }
 }
 
