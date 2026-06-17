@@ -4,62 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RightNow Fitness</title>
-    <script src="https://cdn.tailwindcss.com"></script>
     <!-- Fonts and icons are self-hosted via npm (material-icons + @fontsource/inter), not loaded from Google CDN -->
-    <script>
-      tailwind.config = {
-        darkMode: 'class',
-        theme: {
-          extend: {
-            colors: {
-              primary: "#B8FF00",
-              "primary-dark": "#9ACD00",
-              "bg-dark": "#030303",
-              "surface": "rgba(255, 255, 255, 0.05)",
-              "surface-glass": "rgba(255, 255, 255, 0.03)",
-            },
-            fontFamily: {
-              serif: ['"Noto Serif SC"', '"Source Han Serif SC"', '"SimSun"', '"STSong"', "serif"],
-              sans: ['"Inter"', '"PingFang SC"', '"Microsoft YaHei"', "sans-serif"],
-            },
-            animation: {
-              'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-              'float': 'float 6s ease-in-out infinite',
-            },
-            keyframes: {
-              float: {
-                '0%, 100%': { transform: 'translateY(0)' },
-                '50%': { transform: 'translateY(-10px)' },
-              }
-            }
-          },
-        },
-      }
-    </script>
-    <style>
-      body {
-        background-color: #030303;
-        color: white;
-        font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-        -webkit-tap-highlight-color: transparent;
-      }
-      .glass {
-        background: rgba(255, 255, 255, 0.03);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-      }
-      .no-scrollbar::-webkit-scrollbar {
-        display: none;
-      }
-      .no-scrollbar {
-        -ms-overflow-style: none;
-        scrollbar-width: none;
-      }
-      .serif-title {
-        font-family: 'Noto Serif SC', 'Source Han Serif SC', 'SimSun', 'STSong', serif;
-      }
-    </style>
   </head>
   <body>
     <div id="root"></div>

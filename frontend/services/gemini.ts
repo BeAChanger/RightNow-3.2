@@ -530,7 +530,6 @@ async function requestStepFunChat(
         body: JSON.stringify({
           model: STEPFUN_CHAT_MODEL,
           messages,
-          max_tokens: 4096,
         }),
       });
     } catch (error) {
