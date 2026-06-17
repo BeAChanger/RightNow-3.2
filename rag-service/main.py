@@ -7,9 +7,9 @@ from pathlib import Path
 
 import config
 from services.retriever import (
-    build_embeddings, build_vectorstore, build_blogger_vectorstore, RetrieverService,
+    build_embeddings, build_vectorstore, build_practical_vectorstore, RetrieverService,
 )
-from services.ingest import IngestService, BloggerIngestService
+from services.ingest import IngestService, PracticalIngestService
 from services.multi_layer import MultiLayerRetriever
 from services.web_search import WebSearchClient
 
@@ -34,18 +34,18 @@ _retriever_l2 = RetrieverService(_vectorstore_l2)
 _ingestor_l2 = IngestService(_vectorstore_l2)
 print(f"[Startup] Layer 2 ready: {_retriever_l2.count()} chunks")
 
-# Layer 1: 博主知识库
+# Layer 1: 专业知识库
 _vectorstore_l1 = None
 _retriever_l1 = None
 _ingestor_l1 = None
-blogger_count = 0
-if config.USE_BLOGGER and config.BLOGGER_DATA_PATH:
+l1_count = 0
+if config.USE_PRACTICAL and config.PRACTICAL_DATA_PATH:
     try:
-        _vectorstore_l1 = build_blogger_vectorstore(_embeddings)
+        _vectorstore_l1 = build_practical_vectorstore(_embeddings)
         _retriever_l1 = RetrieverService(_vectorstore_l1)
-        _ingestor_l1 = BloggerIngestService(_vectorstore_l1)
-        blogger_count = _retriever_l1.count()
-        print(f"[Startup] Layer 1 ready: {blogger_count} chunks")
+        _ingestor_l1 = PracticalIngestService(_vectorstore_l1)
+        l1_count = _retriever_l1.count()
+        print(f"[Startup] Layer 1 ready: {l1_count} chunks")
     except Exception as exc:
         print(f"[Startup] Layer 1 init failed: {exc}")
         _vectorstore_l1 = None
@@ -123,12 +123,12 @@ async def list_sources():
 
 @app.post("/import/rescan-layer1")
 async def rescan_blogger(force: bool = False):
-    """重新入库 Layer 1（博主知识库）。"""
+    """重新入库 Layer 1（专业知识库）。"""
     if _vectorstore_l1 is None:
         return {"status": "error", "message": "Layer 1 not configured"}
     if force:
         _vectorstore_l1._collection.delete(where={})
-    result = _ingestor_l1.ingest_directory(config.BLOGGER_DATA_PATH)
+    result = _ingestor_l1.ingest_directory(config.PRACTICAL_DATA_PATH)
     return {"status": "success", "chunks_added": result["chunks"], "layer": 1}
 
 
@@ -146,10 +146,10 @@ async def rescan_all_layers(force: bool = False):
     """重新入库全部层。"""
     l1, l2 = 0, 0
 
-    if _vectorstore_l1 and config.BLOGGER_DATA_PATH:
+    if _vectorstore_l1 and config.PRACTICAL_DATA_PATH:
         if force:
             _vectorstore_l1._collection.delete(where={})
-        l1 = _ingestor_l1.ingest_directory(config.BLOGGER_DATA_PATH)["chunks"]
+        l1 = _ingestor_l1.ingest_directory(config.PRACTICAL_DATA_PATH)["chunks"]
 
     if force:
         _vectorstore_l2._collection.delete(where={})
@@ -165,10 +165,10 @@ async def health_check():
         "embedding_model": config.EMBEDDING_MODEL,
         "architecture": "three-layer",
         "layer1": {
-            "enabled": config.USE_BLOGGER,
-            "collection": "blogger_knowledge",
+            "enabled": config.USE_PRACTICAL,
+            "collection": "practical_knowledge",
             "vector_count": multi_retriever.count_layer1(),
-            "data_path": config.BLOGGER_DATA_PATH,
+            "data_path": config.PRACTICAL_DATA_PATH,
         },
         "layer2": {
             "collection": "fitness_knowledge",

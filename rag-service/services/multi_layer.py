@@ -1,7 +1,7 @@
 """
 多层检索编排器
 
-Layer 1 (博主知识库) → Layer 2 (专业书库) → Layer 3 (Web 搜索)
+Layer 1 (专业知识库) → Layer 2 (专业书库) → Layer 3 (Web 搜索)
 每层带相似度阈值和结果数评估，自动 fallback。
 """
 from langchain_core.documents import Document
@@ -11,8 +11,8 @@ import config
 class MultiLayerRetriever:
     def __init__(
         self,
-        layer1_vs,          # Chroma vectorstore — 博主知识库
-        layer1_retriever,   # RetrieverService — 博主检索
+        layer1_vs,          # Chroma vectorstore — 专业知识库
+        layer1_retriever,   # RetrieverService — 专业知识检索
         layer2_retriever,   # RetrieverService — 专业书检索
         web_client=None,    # WebSearchClient | None
     ):
@@ -26,7 +26,7 @@ class MultiLayerRetriever:
         combined = []
         l1_used = False  # 跟踪 Layer 1 是否有结果被采用
 
-        # ──── Layer 1: 博主知识库 ────
+        # ──── Layer 1: 专业知识库 ────
         if self.layer1 and self.layer1_vs is not None:
             try:
                 # L1 检索更多候选，确保低分区域也有足够结果过阈值

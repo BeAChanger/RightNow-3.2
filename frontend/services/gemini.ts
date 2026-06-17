@@ -17,10 +17,10 @@ const INTERACTIVE_MODEL = 'gemini-3-flash-preview';
 const CHAT_MODEL_CANDIDATES = [INTERACTIVE_MODEL];
 const ALLOWED_CHAT_MODELS = new Set(CHAT_MODEL_CANDIDATES);
 
-// DeepSeek AI chat
-const DEEPSEEK_BASE = 'https://api.deepseek.com/v1';
-const DEEPSEEK_CHAT_MODEL = 'deepseek-v4-flash';
-const DEEPSEEK_API_KEY = () => import.meta.env.VITE_DEEPSEEK_API_KEY || '';
+// StepFun (阶跃星辰) AI chat — primary chat model
+const STEPFUN_BASE = 'https://api.stepfun.com/v1';
+const STEPFUN_CHAT_MODEL = 'step-3.7-flash';
+const STEPFUN_API_KEY = () => import.meta.env.VITE_STEPFUN_API_KEY || '';
 
 type GeminiInputModality = 'text' | 'image' | 'video' | 'audio' | 'pdf';
 const ALLOWED_INPUT_MODALITIES = new Set<GeminiInputModality>(['text', 'image', 'video', 'audio']);
@@ -451,7 +451,7 @@ function extractFirstTextCandidate(data: any): string | null {
   return data?.candidates?.[0]?.content?.parts?.find((part: any) => typeof part?.text === 'string')?.text || null;
 }
 
-function convertGeminiPayloadToDeepSeek(payload: Record<string, unknown>): {
+function convertGeminiPayloadToOpenAI(payload: Record<string, unknown>): {
   messages: Array<{ role: string; content: any }>;
 } {
   const messages: Array<{ role: string; content: any }> = [];
@@ -507,28 +507,28 @@ function convertGeminiPayloadToDeepSeek(payload: Record<string, unknown>): {
   return { messages };
 }
 
-async function requestDeepSeekChat(
+async function requestStepFunChat(
   payload: Record<string, unknown>,
 ): Promise<any> {
-  const key = DEEPSEEK_API_KEY();
+  const key = STEPFUN_API_KEY();
   if (!key) {
-    throw new Error('DEEPSEEK_API_KEY is not configured');
+    throw new Error('STEPFUN_API_KEY is not configured');
   }
 
-  const { messages } = convertGeminiPayloadToDeepSeek(payload);
-  let lastErrorMessage = 'DeepSeek request failed';
+  const { messages } = convertGeminiPayloadToOpenAI(payload);
+  let lastErrorMessage = 'StepFun request failed';
 
   for (let attempt = 1; attempt <= MAX_RETRIES_PER_MODEL; attempt += 1) {
     let res: Response;
     try {
-      res = await fetch(`${DEEPSEEK_BASE}/chat/completions`, {
+      res = await fetch(`${STEPFUN_BASE}/chat/completions`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${key}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: DEEPSEEK_CHAT_MODEL,
+          model: STEPFUN_CHAT_MODEL,
           messages,
           max_tokens: 4096,
         }),
@@ -550,7 +550,6 @@ async function requestDeepSeekChat(
     }
 
     if (res.ok) {
-      // Convert DeepSeek response to Gemini-compatible format
       const msg = data?.choices?.[0]?.message;
       const content = msg?.content;
       const reasoning = msg?.reasoning_content;
@@ -590,9 +589,9 @@ async function requestGeminiContentWithFallback(
   payload: Record<string, unknown>,
   options: RequestGeminiOptions = {},
 ) {
-  // Route to DeepSeek if configured
-  if (DEEPSEEK_API_KEY()) {
-    return requestDeepSeekChat(payload);
+  // Route to StepFun (阶跃星辰) if configured — primary AI engine
+  if (STEPFUN_API_KEY()) {
+    return requestStepFunChat(payload);
   }
 
   const modelCandidates = options.modelCandidates || CHAT_MODEL_CANDIDATES;
@@ -656,7 +655,7 @@ async function requestGeminiContentWithFallback(
 }
 
 export const FITNESS_COACH_PROMPT = [
-  '你是 RightNow Fitness 的 AI 健身私教。你的说话风格参照 B 站 UP 主"好人松松"——一位倡导"生活化减脂"的实战派健身博主。',
+  '你是 RightNow Fitness 的 AI 健身私教。你倡导"生活化减脂"——一种不极端、可持续的健身理念。',
   '',
   '核心原则：',
   '- 用生活化的语言，不说学术黑话，像朋友聊天一样自然',
@@ -666,9 +665,9 @@ export const FITNESS_COACH_PROMPT = [
   '- 提倡"生活化减脂"理念：热量缺口 + 可持续 + 不苛求完美',
   '',
   '回答时：',
-  '- 优先使用提供的参考资料（来自博主知识库、专业书籍或网络搜索）',
-  '- 如果参考资料与生活化减脂理念冲突，以博主观点为准',
-  '- 始终用博主的口吻改写，而不是直接引用原文',
+  '- 优先使用提供的参考资料（来自专业知识库、专业书籍或网络搜索）',
+  '- 如果参考资料与生活化减脂理念冲突，以实战派观点为准',
+  '- 用通俗的口吻改写，而不是直接引用原文',
   '- 使用简体中文，语气专业但有温度、有鼓励',
 ].join('\n');
 
@@ -731,13 +730,13 @@ const DATA_INSIGHTS_PROMPT_FALLBACK = [
 
 const COACH_KNOWLEDGE_INTRO_FALLBACK = [
   '以下参考资料来自 RightNow 三层知识库（按优先级排列）：',
-  '1. 博主"好人松松"的生活化减脂实战知识（最高优先级）',
+  '1. 生活化减脂专业知识库（最高优先级）',
   '2. 专业营养学/肌理学教科书',
   '3. 网络搜索补充',
   '',
-  '请优先使用博主知识作为回答基调，专业书作为数据支撑。',
+  '请优先使用专业知识库作为回答基调，教科书作为数据支撑。',
   '如果网络搜索结果与前两层冲突，以前两层为准。',
-  '用博主的口吻改写所有引用内容，不要直接照搬原文。',
+  '用通俗的口吻改写所有引用内容，不要直接照搬原文。',
   '如用户提供实测数据，以实测数据为准。',
 ].join('\n');
 

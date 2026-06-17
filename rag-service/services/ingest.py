@@ -56,8 +56,8 @@ class IngestService:
         return {"chunks": total}
 
 
-class BloggerIngestService:
-    """博主知识库入库服务。
+class PracticalIngestService:
+    """专业知识库入库服务。
 
     使用 MarkdownHeaderTextSplitter 按 ##/### 标题切分，
     保持问答对或小节的语义完整性，避免 Q&A 被切断。
@@ -110,10 +110,10 @@ class BloggerIngestService:
                         page_content=chunk_text,
                         metadata={
                             "source": md_file.name,
-                            "domain": "blogger",          # 博主层统一标识
+                            "domain": "blogger",          # Layer 1 专业知识层统一标识
                             "category": "practical",
                             "type": "blogger",
-                            "author": "好人松松",
+                            "author": "生活化减脂",
                             "priority": "high",           # Layer 1 高优先级
                         }
                     ))

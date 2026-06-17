@@ -15,10 +15,10 @@ CORS_ORIGINS            = os.getenv("RAG_CORS_ORIGINS", "*")
 
 # ── 三层检索架构 ──
 
-# Layer 1: 博主知识库（好人松松精华）
-BLOGGER_DATA_PATH       = os.getenv("RAG_BLOGGER_DATA_PATH", "")
-BLOGGER_CHROMA_DIR      = os.getenv("RAG_BLOGGER_CHROMA_DIR", str(BASE_DIR / "chroma_blogger"))
-USE_BLOGGER             = os.getenv("RAG_USE_BLOGGER", "true").lower() == "true"
+# Layer 1: 专业知识库（生活化减脂实战经验）
+PRACTICAL_DATA_PATH     = os.getenv("RAG_BLOGGER_DATA_PATH", "")
+PRACTICAL_CHROMA_DIR    = os.getenv("RAG_BLOGGER_CHROMA_DIR", str(BASE_DIR / "chroma_blogger"))
+USE_PRACTICAL           = os.getenv("RAG_USE_BLOGGER", "true").lower() == "true"
 
 # Layer 2: 专业书库（现有，沿用 CLEANED_DATA_PATH / CHROMA_PERSIST_DIR）
 

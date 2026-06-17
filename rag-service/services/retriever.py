@@ -39,14 +39,14 @@ def build_vectorstore(
     )
 
 
-def build_blogger_vectorstore(embeddings: HuggingFaceEmbeddings) -> Chroma | None:
-    """创建博主知识库 vectorstore（独立 collection）。"""
-    if not config.USE_BLOGGER or not config.BLOGGER_DATA_PATH:
+def build_practical_vectorstore(embeddings: HuggingFaceEmbeddings) -> Chroma | None:
+    """创建专业知识库 vectorstore（独立 collection）。"""
+    if not config.USE_PRACTICAL or not config.PRACTICAL_DATA_PATH:
         return None
     return build_vectorstore(
         embeddings,
         collection_name="blogger_knowledge",
-        persist_dir=config.BLOGGER_CHROMA_DIR,
+        persist_dir=config.PRACTICAL_CHROMA_DIR,
     )
 
 
