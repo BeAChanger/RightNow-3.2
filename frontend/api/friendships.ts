@@ -84,6 +84,34 @@ function normalizeFriendshipList(payload: unknown): Friendship[] {
   return single ? [single] : [];
 }
 
+export interface BuddyRecommendation {
+  userId: string;
+  name: string;
+  avatar?: string;
+  matchScore: number;
+  reason: string;
+}
+
+function normalizeRecommendation(payload: unknown): BuddyRecommendation | null {
+  const obj = asObject(payload);
+  if (!obj) return null;
+
+  const userId = typeof obj.userId === 'string' ? obj.userId : null;
+  const name = typeof obj.name === 'string' ? obj.name : null;
+  const matchScore = typeof obj.matchScore === 'number' ? obj.matchScore : 0;
+  const reason = typeof obj.reason === 'string' ? obj.reason : '';
+
+  if (!userId || !name) return null;
+
+  return {
+    userId,
+    name,
+    avatar: typeof obj.avatar === 'string' ? obj.avatar : undefined,
+    matchScore,
+    reason,
+  };
+}
+
 export const friendshipsApi = {
   async list(): Promise<Friendship[]> {
     const { data } = await client.get<unknown>('/friendships');
@@ -110,5 +138,11 @@ export const friendshipsApi = {
 
   async remove(id: string): Promise<void> {
     await client.delete(`/friendships/${id}`);
+  },
+
+  async getRecommendations(): Promise<BuddyRecommendation[]> {
+    const { data } = await client.get<unknown>('/friendships/recommendations');
+    if (!Array.isArray(data)) return [];
+    return data.map(normalizeRecommendation).filter((r): r is BuddyRecommendation => r !== null);
   },
 };
