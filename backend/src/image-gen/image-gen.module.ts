@@ -5,6 +5,7 @@ import {
   Get,
   Injectable,
   InternalServerErrorException,
+  Logger,
   Module,
   Param,
   Patch,
@@ -28,10 +29,14 @@ interface ImageProviderConfig {
   baseUrl: string;
   model: string;
   size: string;
+  proxyUrl?: string;
+  label: string; // 'L0:image2' | 'L1:nano-banana-2' —— 日志/落库
 }
 
 @Injectable()
 export class ImageGenService {
+  private readonly logger = new Logger(ImageGenService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
@@ -78,60 +83,106 @@ export class ImageGenService {
       throw new BadRequestException('Image prompt is required');
     }
 
-    const config = this.getImageProviderConfig(data.size);
-    const task = await this.createTaskSafely(userId, prompt);
-
-    try {
-      const image = data.currentImageBase64?.trim()
-        ? await this.requestImageEdit(config, prompt, data.currentImageBase64, data.referenceImageBase64)
-        : await this.requestImageGeneration(config, prompt);
-
-      await this.updateTaskSafely(task?.id, {
-        status: 'completed',
-      });
-
-      return {
-        image,
-        taskId: task?.id ?? null,
-      };
-    } catch (error) {
-      await this.updateTaskSafely(task?.id, {
-        status: 'failed',
-        errorMessage: this.toSafeErrorMessage(error),
-      });
-      throw new InternalServerErrorException('Image generation failed. Please try again later.');
+    // §4 降级链：按顺序遍历 L0(image2) → L1(nano banana 2)，首个成功即用。
+    const configs = this.getImageProviderConfigs(data.size);
+    if (configs.length === 0) {
+      throw new InternalServerErrorException('IMAGE_GEN_API_KEY is not configured');
     }
+
+    const task = await this.createTaskSafely(userId, prompt);
+    const errors: string[] = [];
+
+    for (const config of configs) {
+      try {
+        const image = data.currentImageBase64?.trim()
+          ? await this.requestImageEdit(config, prompt, data.currentImageBase64, data.referenceImageBase64)
+          : await this.requestImageGeneration(config, prompt);
+
+        // ⚠️ 修复：成功后回写 resultImageUrl 与 provider 标签，便于后续 stage0 取图。
+        await this.updateTaskSafely(task?.id, {
+          status: 'completed',
+          resultImageUrl: image,
+          errorMessage: undefined,
+        });
+
+        if (configs.indexOf(config) > 0) {
+          this.logger.warn(`Image generation succeeded via fallback ${config.label}`);
+        }
+
+        return {
+          image,
+          taskId: task?.id ?? null,
+          provider: config.label,
+        };
+      } catch (error) {
+        const message = this.toSafeErrorMessage(error);
+        errors.push(`[${config.label}] ${message}`);
+        this.logger.warn(`Image provider ${config.label} failed: ${message}`);
+        // 继续尝试下一个 provider
+      }
+    }
+
+    // 所有 provider 都失败
+    await this.updateTaskSafely(task?.id, {
+      status: 'failed',
+      errorMessage: errors.join(' | ').slice(0, 500),
+    });
+    throw new InternalServerErrorException('Image generation failed. Please try again later.');
   }
 
-  private getImageProviderConfig(size?: string): ImageProviderConfig {
-    const apiKey = (
+  // §4.2 降级链：返回 [L0, L1?]；首个成功即用。
+  //   L0 = image2（主，OpenAI 兼容）
+  //   L1 = nano banana 2（保底，OpenAI 兼容）
+  private getImageProviderConfigs(size?: string): ImageProviderConfig[] {
+    const normalizedSize = this.normalizeSize(size);
+    const configs: ImageProviderConfig[] = [];
+
+    // ── L0 主链路 ──
+    const primaryKey = (
       this.configService.get<string>('IMAGE_GEN_API_KEY')
       || this.configService.get<string>('CODEX_API_KEY')
       || ''
     ).trim();
 
-    if (!apiKey) {
-      throw new InternalServerErrorException('IMAGE_GEN_API_KEY is not configured');
+    if (primaryKey) {
+      configs.push({
+        apiKey: primaryKey,
+        baseUrl: (
+          this.configService.get<string>('IMAGE_GEN_BASE_URL')
+          || this.configService.get<string>('CODEX_BASE_URL')
+          || 'https://api.openai.com/v1'
+        ).trim().replace(/\/+$/, ''),
+        model: (
+          this.configService.get<string>('IMAGE_GEN_MODEL')
+          || this.configService.get<string>('CODEX_IMAGE_MODEL')
+          || 'gpt-image-2'
+        ).trim(),
+        size: normalizedSize,
+        proxyUrl: this.configService.get<string>('IMAGE_GEN_PROXY_URL')?.trim() || undefined,
+        label: 'L0:image2',
+      });
     }
 
-    const baseUrl = (
-      this.configService.get<string>('IMAGE_GEN_BASE_URL')
-      || this.configService.get<string>('CODEX_BASE_URL')
-      || 'https://api.openai.com/v1'
-    ).trim().replace(/\/+$/, '');
+    // ── L1 保底 nano banana 2 ──
+    const fallbackKey = this.configService.get<string>('IMAGE_GEN_FALLBACK_API_KEY')?.trim() || '';
+    if (fallbackKey) {
+      configs.push({
+        apiKey: fallbackKey,
+        baseUrl: (
+          this.configService.get<string>('IMAGE_GEN_FALLBACK_BASE_URL')
+          || 'https://api.openai.com/v1'
+        ).trim().replace(/\/+$/, ''),
+        model: (
+          this.configService.get<string>('IMAGE_GEN_FALLBACK_MODEL')
+          || 'nano-banana-2'
+        ).trim(),
+        size: normalizedSize,
+        proxyUrl: this.configService.get<string>('IMAGE_GEN_FALLBACK_PROXY_URL')?.trim() || undefined,
+        label: 'L1:nano-banana-2',
+      });
+    }
 
-    const model = (
-      this.configService.get<string>('IMAGE_GEN_MODEL')
-      || this.configService.get<string>('CODEX_IMAGE_MODEL')
-      || 'gpt-image-2'
-    ).trim();
-
-    return {
-      apiKey,
-      baseUrl,
-      model,
-      size: this.normalizeSize(size),
-    };
+    return configs;
   }
 
   private normalizeSize(size?: string): string {
@@ -154,7 +205,7 @@ export class ImageGenService {
         size: config.size,
         response_format: 'b64_json',
       }),
-    });
+    }, config.proxyUrl);
 
     return this.extractProviderImage(response);
   }
@@ -204,7 +255,7 @@ export class ImageGenService {
         'Authorization': `Bearer ${config.apiKey}`,
       },
       body: formData,
-    });
+    }, config.proxyUrl);
 
     return this.extractProviderImage(response);
   }
@@ -278,7 +329,7 @@ export class ImageGenService {
 
   private async updateTaskSafely(
     id: string | undefined,
-    data: { status: string; errorMessage?: string },
+    data: { status: string; resultImageUrl?: string; errorMessage?: string },
   ) {
     if (!id) return;
     try {
@@ -298,8 +349,14 @@ export class ImageGenService {
     return 'Unknown image generation error';
   }
 
-  private async proxyFetch(url: string, options: RequestInit): Promise<Response> {
-    const proxyUrl = this.configService.get<string>('IMAGE_GEN_PROXY_URL')?.trim();
+  private async proxyFetch(
+    url: string,
+    options: RequestInit,
+    explicitProxyUrl?: string,
+  ): Promise<Response> {
+    // 优先 per-provider 的 proxyUrl；其次全局 IMAGE_GEN_PROXY_URL（向后兼容）
+    const proxyUrl = (explicitProxyUrl
+      ?? this.configService.get<string>('IMAGE_GEN_PROXY_URL'))?.trim();
     if (proxyUrl) {
       // undici is bundled with Node.js 18+; require bypasses TS module resolution
       // eslint-disable-next-line @typescript-eslint/no-var-requires

@@ -207,6 +207,9 @@ model EvolutionAssessment {
   bodyFatEstimate    Float
   geminiBodyFat      Float?
   isGeminiCalibrated Boolean         @default(false)
+  multiModelDetail   Json?
+  modelCount         Int?
+  modelSpread        Float?
   assessmentCount    Int
   createdAt          DateTime        @default(now())
   user               User            @relation(fields: [userId], references: [id], onDelete: Cascade)
