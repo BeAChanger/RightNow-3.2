@@ -37,15 +37,19 @@ const STAGE_COUNT = 7;
 const QUALIFIED_REQUIRED = 2;
 const QUALIFIED_INTERVAL_HOURS = 24;
 
+// §2.1 七阶段（减速曲线）—— 心理意义对齐策略文档
 const STAGE_TITLES = [
-  '当前状态',
-  '初始进展',
-  '持续进步',
-  '变化可见',
-  '接近目标',
-  '冲刺阶段',
-  '目标身材',
+  '当前的我',     // 0% 诚实面对
+  '初见成效',     // 35% "真的在变"
+  '轮廓清晰',     // 55% 朋友注意到
+  '蜕变可见',     // 70% 穿衣变好看
+  '接近理想',     // 82% 自信建立
+  '最后冲刺',     // 92% 突破平台
+  '理想中的我',   // 100% 达成目标
 ] as const;
+
+// §2.1 累计进度曲线（前快后慢，真实减脂规律）
+const STAGE_PROGRESS = [0, 0.35, 0.55, 0.70, 0.82, 0.92, 1.0] as const;
 
 @Injectable()
 export class EvolutionStageService {
@@ -154,13 +158,24 @@ export class EvolutionStageService {
     let bodyFat = this.calculateBodyFatFromUser(user);
     let aiBodyFat: number | null = null;
     let isGeminiCalibrated = false;
+    let multiModelDetail: unknown = null;
+    let modelCount: number | null = null;
+    let modelSpread: number | null = null;
 
     try {
-      const estimated = await this.aiService.estimateBodyFatFromImage(record.imageUrl);
-      if (Number.isFinite(estimated)) {
-        aiBodyFat = this.normalizeBodyFat(estimated);
+      const estimate = await this.aiService.estimateBodyFatFromImage(record.imageUrl, {
+        gender: user.gender,
+        age: user.age,
+        height: user.height,
+        weight: user.weight,
+      });
+      if (Number.isFinite(estimate.value)) {
+        aiBodyFat = this.normalizeBodyFat(estimate.value);
         bodyFat = aiBodyFat;
         isGeminiCalibrated = true;
+        multiModelDetail = estimate.aggregate.breakdown;
+        modelCount = estimate.aggregate.keptCount;
+        modelSpread = estimate.aggregate.spread;
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'unknown error';
@@ -177,6 +192,9 @@ export class EvolutionStageService {
           bodyFatEstimate: normalizedBodyFat,
           geminiBodyFat: aiBodyFat,
           isGeminiCalibrated,
+          multiModelDetail: multiModelDetail as Prisma.InputJsonValue | undefined,
+          modelCount,
+          modelSpread,
           assessmentCount,
         },
         select: {
@@ -303,6 +321,199 @@ export class EvolutionStageService {
     };
   }
 
+  /**
+   * Onboarding 北极星生成（仅注册时调一次）
+   *
+   * 完整流程：
+   *  1) 视觉模型估起点体脂率（结合身高体重，§3.3 模板A）
+   *  2) 把起点照写为 EvolutionRecord（status='onboarding'）+ EvolutionAssessment
+   *     —— 这样起点照也在身材轨迹里，resolveStageEndpoints 会读它作为 start
+   *  3) initializeStages 自动按 startBodyFat → targetBodyFat 建好 7 阶段曲线
+   *  4) Stage 0 的 actualImageUrl 设为起点照本身（懒生成时不会再调 AI 改它）
+   *  5) 基于起点照直接生成 Stage 6 终极图（北极星，模板B + targetBodyFat = stage6 目标）
+   *
+   * 调用方（users/onboarding）应 fire-and-forget 调本方法，让 HTTP 请求秒回。
+   */
+  async generateNorthStar(userId: string, startImageUrl: string): Promise<void> {
+    const trimmed = startImageUrl?.trim();
+    if (!trimmed) {
+      this.logger.warn(`generateNorthStar: empty startImageUrl for user ${userId}`);
+      return;
+    }
+
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { gender: true, age: true, height: true, weight: true },
+      });
+      if (!user) {
+        this.logger.warn(`generateNorthStar: user ${userId} not found`);
+        return;
+      }
+
+      // ── ① 起点体脂率：视觉为主，BMI 兜底 ──
+      let startBodyFat = this.calculateBodyFatFromUser(user);
+      let isVisuallyCalibrated = false;
+      let northStarDetail: unknown = null;
+      let northStarModelCount: number | null = null;
+      let northStarSpread: number | null = null;
+      try {
+        const estimate = await this.aiService.estimateBodyFatFromImage(trimmed, {
+          gender: user.gender,
+          age: user.age,
+          height: user.height,
+          weight: user.weight,
+        });
+        if (Number.isFinite(estimate.value)) {
+          startBodyFat = this.normalizeBodyFat(estimate.value);
+          isVisuallyCalibrated = true;
+          northStarDetail = estimate.aggregate.breakdown;
+          northStarModelCount = estimate.aggregate.keptCount;
+          northStarSpread = estimate.aggregate.spread;
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'unknown';
+        this.logger.warn(`North-star body-fat estimation failed, fall back to BMI: ${message}`);
+      }
+      startBodyFat = this.normalizeBodyFat(startBodyFat);
+
+      // ── ② 起点照写为 EvolutionRecord + EvolutionAssessment ──
+      // EvolutionAssessment.recordId 是 @unique 必填，所以先建一个 record 指向起点照。
+      const existingFirstAssessment = await this.prisma.evolutionAssessment.findFirst({
+        where: { userId },
+        orderBy: { createdAt: 'asc' },
+        select: { id: true },
+      });
+
+      if (!existingFirstAssessment) {
+        const onboardingRecord = await this.prisma.evolutionRecord.create({
+          data: {
+            userId,
+            imageUrl: trimmed,
+            status: 'onboarding',
+            note: '起点照（onboarding）',
+          },
+          select: { id: true },
+        });
+
+        await this.prisma.evolutionAssessment.create({
+          data: {
+            userId,
+            recordId: onboardingRecord.id,
+            bodyFatEstimate: startBodyFat,
+            geminiBodyFat: isVisuallyCalibrated ? startBodyFat : null,
+            isGeminiCalibrated: isVisuallyCalibrated,
+            multiModelDetail: northStarDetail as Prisma.InputJsonValue | undefined,
+            modelCount: northStarModelCount,
+            modelSpread: northStarSpread,
+            assessmentCount: 1,
+          },
+        });
+      }
+
+      // ── ③ 初始化 7 阶段（读首次评估 → 起点 → 减速曲线）──
+      await this.initializeStages(userId, user.gender);
+
+      // ── ④ Stage 0 = 起点照本身 ──
+      await this.prisma.evolutionStage.updateMany({
+        where: { userId, stageIndex: 0 },
+        data: {
+          previewImageUrl: trimmed,
+          actualImageUrl: trimmed,
+        },
+      });
+
+      // ── ⑤ Stage 6 = 北极星终极图（基于起点照 → 目标体脂率） ──
+      const stage6 = await this.prisma.evolutionStage.findUnique({
+        where: { userId_stageIndex: { userId, stageIndex: 6 } },
+        select: { id: true, previewImageUrl: true, targetBodyFat: true },
+      });
+
+      if (!stage6) {
+        this.logger.warn(`generateNorthStar: stage 6 missing after init for user ${userId}`);
+        return;
+      }
+
+      // 已有北极星则跳过（幂等：重复触发不会重新烧钱）
+      if (stage6.previewImageUrl && this.isGenStageUrl(stage6.previewImageUrl)) {
+        this.logger.log(`North-star already generated for user ${userId}, skipping`);
+        return;
+      }
+
+      if (!this.imageGenService) {
+        this.logger.warn('ImageGenService not available, skip north-star');
+        return;
+      }
+
+      const gender = user.gender === 'female' ? 'female' : 'male';
+      const genderWord = gender === 'female' ? 'woman' : 'man';
+      const age = user.age && user.age > 0 ? user.age : 30;
+      const targetBodyFat = Number(stage6.targetBodyFat.toFixed(1));
+      const bodyDescriptionByTarget = this.lookupBodyDescription(gender, targetBodyFat);
+
+      // 身份锚点占位（§3.2，未接入 UserIdentityProfile 表时引用 reference 照锁脸）
+      const identityAnchors =
+        'the same face, hair style, skin tone, eyewear, and ethnicity as the reference photo';
+      const originalOutfit = 'same clothing as in the base photo';
+
+      // §3.4b 模板 D —— onboarding 终极目标身材图（跨度最大，需特别约束可信度）
+      const prompt = [
+        'Photorealistic body transformation of the EXACT same person shown in the reference photo.',
+        "This is the person's ULTIMATE FITNESS GOAL — show what they will look like after a complete,",
+        'successful transformation. This is the destination that will motivate them to start.',
+        '',
+        'Keep these identity features ABSOLUTELY IDENTICAL — do NOT alter them in any way:',
+        `${identityAnchors}, same facial features and bone structure, same height and body frame.`,
+        'The face MUST be recognizably the same person, just leaner.',
+        '',
+        `This is a ${age}-year-old ${genderWord} currently at approximately ${startBodyFat}% body fat.`,
+        `Transform the body to the FINAL GOAL of ${targetBodyFat}% body fat — their ideal physique.`,
+        bodyDescriptionByTarget,
+        '',
+        'IMPORTANT — believability constraints for this large transformation:',
+        '- This must look like a REALISTIC long-term fitness result (8-12 months of dedicated work),',
+        '  NOT an impossible or digitally-faked extreme. Athletic and healthy, not bodybuilder-stage lean.',
+        '- The face becomes leaner and more defined (sharper jawline, less fullness) but stays',
+        '  recognizably the SAME person — do not swap or idealize the face.',
+        '',
+        'Strict constraints:',
+        '- ONLY change body composition (reduce fat, reveal natural muscle). Identity, skin color,',
+        `  hair, glasses, clothing (${originalOutfit}), posture, and background MUST stay identical`,
+        '  to the base photo.',
+        `- Do NOT swap faces. Do NOT change ethnicity. Do NOT go below ${targetBodyFat}% body fat.`,
+        '- Natural skin texture, realistic soft shadows, no plastic/smoothed/waxed/oiled look.',
+        '- Full body visible, standing relaxed, same camera angle as base photo.',
+        '',
+        'Style: ultra-realistic photography, soft natural daylight, sharp focus, 8K detail.',
+        'Output a single realistic photo.',
+      ].join('\n');
+
+      const baseDataUrl = await this.imageUrlToDataUrl(trimmed);
+      const result = await this.imageGenService.generateIdealBody(userId, {
+        prompt,
+        currentImageBase64: baseDataUrl,
+      });
+
+      if (!result.image) {
+        this.logger.warn(`North-star image generation returned empty for user ${userId}`);
+        return;
+      }
+
+      const savedUrl = this.saveBase64Image(result.image);
+      await this.prisma.evolutionStage.update({
+        where: { id: stage6.id },
+        data: { previewImageUrl: savedUrl },
+      });
+
+      this.logger.log(
+        `North-star generated for user ${userId}: ${startBodyFat}% → ${targetBodyFat}% (stage 6)`,
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'unknown';
+      this.logger.warn(`North-star generation failed for user ${userId}: ${message}`);
+    }
+  }
+
   private async generateNextStagePreview(userId: string, recordImageUrl: string) {
     if (!this.imageGenService) {
       return;
@@ -318,26 +529,95 @@ export class EvolutionStageService {
         return;
       }
 
+      // Stage 6 = 北极星，由 generateNorthStar 在 onboarding 时专管。
+      // 这里跳过，避免日常解锁时覆盖掉用户的"未来目标"图。
+      if (nextStage.stageIndex === 6) {
+        return;
+      }
+
+      // Stage 0 在 generateNorthStar 已设为起点照本身，不应走 AI 生成路径。
+      if (nextStage.stageIndex === 0) {
+        return;
+      }
+
       // Don't regenerate if a user photo preview already exists for this stage.
       if (nextStage.previewImageUrl && this.isGenStageUrl(nextStage.previewImageUrl)) {
         return;
       }
 
-      const dataUrl = await this.imageUrlToDataUrl(recordImageUrl);
+      // ── 收集变量（§3.1 变量字典）──
+      const [user, latestAssessment, startRecord] = await Promise.all([
+        this.prisma.user.findUnique({
+          where: { id: userId },
+          select: { gender: true, age: true },
+        }),
+        this.prisma.evolutionAssessment.findFirst({
+          where: { userId },
+          orderBy: { createdAt: 'desc' },
+          select: { bodyFatEstimate: true },
+        }),
+        // 起点照（最早的 record），作为多图融合的 reference
+        this.prisma.evolutionRecord.findFirst({
+          where: { userId },
+          orderBy: { createdAt: 'asc' },
+          select: { imageUrl: true },
+        }),
+      ]);
 
+      const gender = user?.gender === 'female' ? 'female' : 'male';
+      const genderWord = gender === 'female' ? 'woman' : 'man';
+      const age = user?.age && user.age > 0 ? user.age : 30;
+      const currentBodyFat = Number(
+        (latestAssessment?.bodyFatEstimate ?? nextStage.targetBodyFat + 5).toFixed(1),
+      );
+      const targetBodyFat = Number(nextStage.targetBodyFat.toFixed(1));
+      const bodyDescriptionByTarget = this.lookupBodyDescription(gender, targetBodyFat);
+
+      // 身份锚点占位（§3.2）：未接入 UserIdentityProfile 表时，引用 reference 照片自动锁脸。
+      // 接入身份锚点提取后，此字符串应替换为 UserIdentityProfile.identityAnchors。
+      const identityAnchors =
+        'the same face, hair style, skin tone, eyewear, and ethnicity as the reference photo';
+      // 原图穿着占位（§3.1 {{originalOutfit}}）——同理，接入视觉提取后替换。
+      const originalOutfit = 'same clothing as in the base photo';
+
+      // ── §3.4 模板 B（固定文案，仅插值变量；禁止 LLM 改写）──
       const prompt = [
-        'Transform this fitness progress photo to show the same person at exactly',
-        `${nextStage.targetBodyFat}% body fat.`,
-        'Keep everything else identical: face, skin tone, hair, clothing, posture,',
-        'background, and lighting.',
-        'The only change is body composition — reduce body fat to',
-        `${nextStage.targetBodyFat}%.`,
-        'Photorealistic. No face distortion. No background changes.',
-      ].join(' ');
+        'Photorealistic body transformation of the EXACT same person shown in the reference photo.',
+        'Keep these identity features ABSOLUTELY IDENTICAL — do NOT alter them in any way:',
+        `${identityAnchors}, same facial features and bone structure, same height and body frame.`,
+        '',
+        `This is a ${age}-year-old ${genderWord} currently at approximately ${currentBodyFat}% body fat.`,
+        `Transform the body to ${targetBodyFat}% body fat.`,
+        bodyDescriptionByTarget,
+        'The change should be natural and believable as realistic fitness progress.',
+        '',
+        'Strict constraints:',
+        '- ONLY change body composition (reduce fat). Identity, skin color, hair, glasses,',
+        `  clothing (${originalOutfit}), posture, and background MUST stay identical to the base photo.`,
+        `- Do NOT swap faces. Do NOT change ethnicity. Do NOT go below ${targetBodyFat}% body fat.`,
+        '- Natural skin texture, realistic soft shadows, no plastic/smoothed/waxed look.',
+        '- Full body visible, standing relaxed, same camera angle as base photo.',
+        '',
+        'Style: ultra-realistic photography, soft natural daylight, sharp focus, 8K detail.',
+        'Output a single realistic photo.',
+      ].join('\n');
+
+      // base = 最新照；reference = 起点照（多图融合保留身份轨迹）
+      const baseDataUrl = await this.imageUrlToDataUrl(recordImageUrl);
+      let referenceDataUrl: string | undefined;
+      if (startRecord?.imageUrl && startRecord.imageUrl !== recordImageUrl) {
+        try {
+          referenceDataUrl = await this.imageUrlToDataUrl(startRecord.imageUrl);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'unknown';
+          this.logger.warn(`Failed to load start reference image: ${message}`);
+        }
+      }
 
       const result = await this.imageGenService.generateIdealBody(userId, {
         prompt,
-        currentImageBase64: dataUrl,
+        currentImageBase64: baseDataUrl,
+        referenceImageBase64: referenceDataUrl,
       });
 
       if (!result.image) {
@@ -352,12 +632,49 @@ export class EvolutionStageService {
       });
 
       this.logger.log(
-        `Generated stage preview for stage ${nextStage.stageIndex} (user ${userId})`,
+        `Generated stage preview for stage ${nextStage.stageIndex} (user ${userId}, ` +
+          `${currentBodyFat}% → ${targetBodyFat}%)`,
       );
     } catch (error) {
       const message = error instanceof Error ? error.message : 'unknown';
       this.logger.warn(`Stage preview generation failed: ${message}`);
     }
+  }
+
+  // §3.5 bodyDescriptionByTarget 查表（性别 × 目标体脂区间）
+  private lookupBodyDescription(gender: 'male' | 'female', targetBodyFat: number): string {
+    if (gender === 'female') {
+      if (targetBodyFat >= 32) {
+        return 'Soft curves, fuller waist and thighs, no muscle lines.';
+      }
+      if (targetBodyFat >= 27) {
+        return 'Slightly more defined waist, smoother silhouette, natural tone.';
+      }
+      if (targetBodyFat >= 23) {
+        return 'Slimmer waist, light arm tone, firmer legs, healthy athletic shape.';
+      }
+      if (targetBodyFat >= 20) {
+        return 'Toned arms and legs, flat toned stomach, healthy definition.';
+      }
+      // 18–19（女性下限 18%，§2.1）
+      return 'Athletic and lean, defined muscle tone.';
+    }
+
+    // male
+    if (targetBodyFat >= 25) {
+      return 'Still soft midsection, rounded belly, minimal muscle definition, noticeable fat on arms and legs.';
+    }
+    if (targetBodyFat >= 20) {
+      return 'Flatter stomach beginning to show shape, faint waist outline, no visible abs, smoother arms.';
+    }
+    if (targetBodyFat >= 16) {
+      return 'Clearly flatter firmer stomach, slight arm definition, sharper jawline, leaner face.';
+    }
+    if (targetBodyFat >= 13) {
+      return 'Visible abdominal outline, defined arms and shoulders, athletic look.';
+    }
+    // 10–12（男性目标 12%）
+    return 'Clear abdominal definition (4-pack), vascular arms, sharp jawline, athletic V-taper.';
   }
 
   private async imageUrlToDataUrl(imageUrl: string): Promise<string> {
@@ -481,14 +798,16 @@ export class EvolutionStageService {
     userId: string,
     gender: string | null,
   ): Promise<{ start: number; target: number }> {
-    const latestAssessment = await this.prisma.evolutionAssessment.findFirst({
+    // 起点体脂率 = 用户**首次**评估值（onboarding 时写入），不是最新值。
+    // 这样七阶段目标曲线一旦订下来就不再随用户进度漂移，保证激励一致性。
+    const firstAssessment = await this.prisma.evolutionAssessment.findFirst({
       where: { userId },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: 'asc' },
       select: { bodyFatEstimate: true },
     });
 
-    const start = latestAssessment?.bodyFatEstimate
-      ? this.normalizeBodyFat(latestAssessment.bodyFatEstimate)
+    const start = firstAssessment?.bodyFatEstimate
+      ? this.normalizeBodyFat(firstAssessment.bodyFatEstimate)
       : gender === 'female'
         ? 35
         : 25;
@@ -595,17 +914,13 @@ export class EvolutionStageService {
     const safeStart = start ?? (gender === 'female' ? 35 : 25);
     const safeTarget = target ?? this.calculateTargetBodyFat(gender);
 
+    // §2.1 减速曲线：真实减脂"前快后慢"，按累计进度 p 插值
+    // 目标体脂[i] = 起始体脂 − (起始体脂 − 目标体脂) × p[i]
+    const span = safeStart - safeTarget;
     return Array.from({ length: STAGE_COUNT }, (_, index) => {
-      if (index === 0) {
-        return Number(safeStart.toFixed(1));
-      }
-
-      if (index === STAGE_COUNT - 1) {
-        return Number(safeTarget.toFixed(1));
-      }
-
-      const interval = (safeStart - safeTarget) / (STAGE_COUNT - 1);
-      return Number((safeStart - interval * index).toFixed(1));
+      const p = STAGE_PROGRESS[index] ?? index / (STAGE_COUNT - 1);
+      const value = safeStart - span * p;
+      return Number(value.toFixed(1));
     });
   }
 
