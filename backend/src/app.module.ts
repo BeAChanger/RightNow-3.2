@@ -1,3 +1,5 @@
+import { OpenClawModule } from "./openclaw/openclaw.module";
+import { AgentModule } from "./agent/agent.module";
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AiCoachModule } from './ai-coach/ai-coach.module';
@@ -18,6 +20,8 @@ import { UploadModule } from './upload/upload.module';
 import { UsersModule } from './users/users.module';
 import { WeightModule } from './weight/weight.module';
 import { EvolutionStageModule } from './evolution-stage/evolution-stage.module';
+import { WechatModule } from './wechat/wechat.module';
+import { PromptsModule } from './prompts/prompts.module';
 
 @Module({
   imports: [
@@ -39,10 +43,14 @@ import { EvolutionStageModule } from './evolution-stage/evolution-stage.module';
     PostsModule,
     FriendshipsModule,
     ChatModule,
+  AgentModule,
+  OpenClawModule,
     ImageGenModule,
     DietModule,
     FitnessPlanModule,
     EvolutionStageModule,
+    WechatModule,
+    PromptsModule,
   ],
 })
 export class AppModule {}

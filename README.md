@@ -1,162 +1,253 @@
-# RightNow
+# RightNow 3.2
 
-> AI 健身教练、理想体型引擎和个人进化仪表盘，一套为“现在就开始改变”设计的全栈应用。
+RightNow 是一个 AI 驱动的私人健身教练系统。它不是单纯的健身记录工具，而是把用户身体数据、训练计划、饮食记录、饮水计划、AI 对话、知识库和微信 Bot 串成一套可执行的“AI 私教闭环”。
 
-[English](./README.en.md) · 中文
+当前版本已经进入 RightNow x OpenClaw 架构：RightNow 负责结构化业务数据与产品体验，OpenClaw 负责多通道智能体、工具调用、记忆和会话运行时。
 
-![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=111)
-![NestJS](https://img.shields.io/badge/NestJS-10-E0234E?logo=nestjs)
-![Prisma](https://img.shields.io/badge/Prisma-6-2D3748?logo=prisma)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=fff)
-![RAG](https://img.shields.io/badge/RAG-LangChain%20%2B%20Chroma-0f172a)
+## 核心创新
 
-RightNow 不是普通的训练打卡工具。它把 AI 教练、RAG 知识库、饮食识别、任务系统、进化阶段和理想体型图像整合到一个产品里，让用户每天都能看到下一步该做什么、为什么做、以及自己正在变成什么样。
+### 1. 结构化事实层 + AI 记忆层
 
-## 为什么值得关注
+RightNow 使用 PostgreSQL 保存真实业务数据：
 
-- **AI Coach**：根据用户画像、目标、训练频率和历史状态生成首日计划、跟进建议和阶段反馈。
-- **理想体型引擎**：支持用户照片、脸部照片、理想体型图等关键视觉资产持久化，跨域名和设备恢复。
-- **RAG 健身知识库**：独立 FastAPI 服务，使用 LangChain、Chroma 和中文 embedding 模型召回训练与饮食知识。
-- **饮食与训练闭环**：训练计划、TODO、饮食记录、数据洞察和进化阶段在同一体验内联动。
-- **全栈可部署**：React/Vite 前端、NestJS/Prisma 后端、PostgreSQL、RAG 服务和 Docker Compose 生产拓扑。
-- **公开仓库安全化**：生产地址、API Key、密码、证书、日志、备份和用户上传文件均不应进入 Git。
+- 用户档案、身体数据、目标体型
+- 体重、饮食、训练、TODO
+- AI 私教评估、深度问卷、首版计划、执行进度
+- 微信绑定、Agent 工具调用审计
 
-## 技术栈
+OpenClaw 保存智能体会话、长期记忆、每日记忆和工具调用上下文。两者分工明确：
 
-| 层级 | 技术 |
-| --- | --- |
-| 前端 | React 19, Vite, TypeScript, Tailwind CSS, Three.js, Recharts |
-| 后端 | NestJS 10, Prisma, PostgreSQL, JWT, Multer |
-| AI | StepFun / Gemini 兼容文本链路，OpenAI-compatible 图像生成代理 |
-| RAG | Python, FastAPI, LangChain, Chroma, BAAI/bge-small-zh-v1.5 |
-| 部署 | Docker, Docker Compose, Nginx |
+- RightNow 数据库是事实来源。
+- OpenClaw memory/session 是 AI 教练的语义记忆。
+- RAG 知识库提供专业健身和营养知识。
 
-## 架构
+### 2. 可执行的 AI 私教计划
 
-```mermaid
-flowchart LR
-  U[User] --> F[React + Vite Frontend]
-  F --> B[NestJS API]
-  B --> DB[(PostgreSQL)]
-  B --> RAG[FastAPI RAG Service]
-  RAG --> V[(Chroma Vector Stores)]
-  B --> AI[AI Providers]
-  B --> IMG[Image Generation Proxy]
-```
+AI 不只输出一段建议，而是生成可以落地执行的数据：
 
-## 目录结构
+- 训练计划：几分化、今天练什么、具体动作、重量、组数、次数
+- 饮食计划：每日热量、碳水、蛋白质、脂肪目标
+- 饮水计划：每日饮水量、时间点、每次饮水量
+- TODO 展开：每个训练动作都会进入今日 TODO
+- 数据看板：饮食和宏量目标与实际记录同步
+
+### 3. Web 与微信 Bot 同脑
+
+用户可以在 Web 端完成注册、建档、理想图生成和私教评估；后续微信 Bot 可以继续同一个用户的对话和数据：
+
+- 微信绑定后识别用户身份
+- 微信消息进入同一套 Chat/Agent 链路
+- 食物拍照和饮食记录可同步回 Web 看板
+- 训练、饮食、TODO、计划数据都来自同一套后端事实层
+
+### 4. OpenClaw 工具化智能体
+
+RightNow 通过 OpenClaw 插件把业务能力暴露为工具：
+
+- 读取用户完整上下文
+- 查询今日饮食/训练/TODO
+- 分析食物文字和图片
+- 写入饮食记录
+- 创建或完成 TODO
+- 开始、更新和完成训练会话
+- 检索 FAQ、核心理论和书籍知识库
+
+这让 AI 教练可以真正读写产品数据，而不是只做聊天回复。
+
+### 5. 分层 RAG 健身知识库
+
+知识库分成多层：
+
+- L1 FAQ：高频问题快速回答
+- L2 Core Theory：训练、营养、动作选择等核心理论
+- L3 Books：更深层的营养学、书籍和资料
+
+AI 教练可以先给出明确建议，再按需检索更深入的理论依据。
+
+## 主要功能
+
+### 新用户链路
+
+1. 注册/登录
+2. 填写身体数据：性别、身高、体重、年龄
+3. 选择理想体型
+4. 上传当前照片
+5. 生成理想身材图
+6. 进入私教模块
+7. 确认诊断卡
+8. 完成深度沟通问题
+9. 生成首版私教方案
+10. 确认执行并存档
+
+### AI 私教模块
+
+- 诊断卡：BMI、BMR、TDEE、体脂估算、目标周期
+- 深度问卷：训练频率、单次时长、饮食环境、伤病限制
+- 训练计划：按每周可训练天数生成一分化/三分化/四分化
+- 动作编辑：支持修改动作、重量、组数、次数
+- 饮水计划：支持修改时间点和每次饮水量
+- 方案存档：再次进入私教模块时不重复评估
+
+### 饮食模块
+
+- 手动记录饮食
+- 食物文字识别
+- 食物图片识别
+- 餐前拍照预估
+- 今日热量汇总
+- 碳水、蛋白质、脂肪统计
+
+### 训练模块
+
+- 今日训练动作
+- 训练会话
+- 动作、重量、次数记录
+- 同肌群历史查询
+- 训练反馈卡
+
+### TODO 与看板
+
+- 今日训练动作展开到 TODO
+- 饮食目标与宏量目标进入数据看板
+- 训练、饮食、饮水计划可形成每日执行闭环
+
+### 微信 Bot
+
+- Web 端生成绑定码
+- 微信端发送绑定码完成绑定
+- 微信消息转发到 RightNow 后端
+- 后端进入 OpenClaw/Chat 链路
+- 回复再通过微信桥发回用户
+
+## 技术架构
 
 ```text
-.
-├── frontend/              # 用户端 Web App
-├── backend/               # NestJS API + Prisma schema
-├── rag-service/           # FastAPI RAG service
-├── docker-compose.prod.yml
-├── Dockerfile.backend
-├── Dockerfile.frontend
-├── Dockerfile.rag
-└── nginx.conf
+React Web App
+  -> Nginx
+  -> NestJS Backend
+  -> PostgreSQL
+  -> OpenClaw Gateway
+  -> RightNow OpenClaw Plugin
+  -> RAG Service
+  -> WeChat Bridge
 ```
 
-## 快速开始
+### 前端
+
+- React
+- Vite
+- TypeScript
+- Tailwind-style utility classes
+- Axios API client
+- Three.js / React Three Fiber
+
+### 后端
+
+- NestJS
+- Prisma
+- PostgreSQL
+- JWT auth
+- Multer/static uploads
+- StepFun/OpenAI-compatible model calls
+- OpenClaw Gateway client
+
+### AI/Agent
+
+- OpenClaw Gateway
+- OpenAI-compatible `/v1/chat/completions`
+- Per-user agent routing
+- Tool calling
+- Memory/session persistence
+- Plugin hooks
+
+### RAG
+
+- FastAPI-style Python service
+- Chroma/vector persistence
+- FAQ/core/books multi-layer retrieval
+
+### 微信桥
+
+- Node.js
+- Tencent iLink Bot API
+- Internal token protected backend calls
+
+## Repository Layout
+
+```text
+backend/                 NestJS API and Prisma schema
+frontend/                React/Vite web app
+rag-service/             RAG service and ingestion scripts
+wechat-bridge/           WeChat iLink bridge
+openclaw/extensions/     RightNow OpenClaw plugin
+docs/                    Architecture and implementation notes
+docker-compose.prod.yml  Production compose template
+nginx.conf               Nginx SPA/API proxy template
+```
+
+## Environment
+
+Copy `.env.example` to `.env` and fill in private values locally or on your server.
+
+Do not commit:
+
+- `.env`
+- `.env.*`
+- API keys
+- database passwords
+- gateway tokens
+- certificates
+- upload data
+- WeChat login tokens
+
+## Local Development
+
+Install dependencies:
 
 ```bash
-git clone https://github.com/BeAChanger/RightNow-3.2.git
-cd RightNow-3.2
 npm install
+cd frontend && npm install
+cd ../backend && npm install
 ```
 
-准备后端环境变量：
+Start services according to your local Docker/PostgreSQL/OpenClaw setup. The production compose file is a template and expects private secrets from `.env`.
 
-```bash
-cp backend/.env.example backend/.env
+## External Runtime Dependencies
+
+This repository keeps the RightNow application code, the RightNow OpenClaw extension, and safe deployment templates.
+
+The following runtime assets are intentionally not committed:
+
+- real `.env` files and production secrets
+- TLS certificates and server-specific Nginx assets
+- OpenClaw upstream runtime/source checkout used by production images
+- RAG raw knowledge folders such as `cleaned-data/`, `blogger-data/`, `l1-faq/`, `l2-core/`, and `l3-books/`
+- upload files, WeChat login state, vector database volumes, and database dumps
+
+For production deployment, provide those private/runtime assets on the server through `.env`, Docker volumes, or a separate private provisioning process.
+
+## Security Notes
+
+- Browser clients should only talk to RightNow backend APIs.
+- OpenClaw Gateway tokens must stay server-side.
+- Agent tool calls go through `/api/agent/rpc` with `AGENT_SERVICE_TOKEN`.
+- User-facing Web auth uses JWT.
+- WeChat bridge internal calls use `INTERNAL_API_TOKEN`.
+- Production server IPs, domains, certificates and real API keys are intentionally not stored in this repository.
+
+## Current Product Direction
+
+RightNow is moving toward a full AI private coach loop:
+
+```text
+User data
+  -> AI assessment
+  -> structured training/diet/water plan
+  -> TODO execution
+  -> food/training logging
+  -> dashboard feedback
+  -> AI adjustment
+  -> Web + WeChat continuous coaching
 ```
 
-把 `backend/.env` 里的占位符替换为本地私有值，然后启动本地数据库并同步 Prisma schema：
-
-```bash
-npm run db:up
-npm run db:push
-```
-
-分别启动后端和前端：
-
-```bash
-npm run dev:backend
-npm run dev:frontend
-```
-
-默认前端开发地址通常是 `http://localhost:5173`，后端 API 运行在 `http://localhost:5000`。
-
-## RAG 服务
-
-```bash
-cd rag-service
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-python -m uvicorn main:app --host 0.0.0.0 --port 8000
-```
-
-Windows PowerShell 可使用：
-
-```powershell
-cd rag-service
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-python -m uvicorn main:app --host 0.0.0.0 --port 8000
-```
-
-## Docker 部署模板
-
-复制根目录环境变量模板：
-
-```bash
-cp .env.example .env
-```
-
-填入私有值后启动：
-
-```bash
-docker compose -f docker-compose.prod.yml up -d --build
-```
-
-必须由私有 `.env` 提供的关键变量包括：
-
-- `DATABASE_URL`
-- `POSTGRES_PASSWORD`
-- `JWT_SECRET`
-- `ADMIN_SEED_PASSWORD`
-- `STEPFUN_API_KEY`
-- `IMAGE_GEN_API_KEY`
-- `CORS_ORIGIN`
-
-## 安全说明
-
-- 不要提交 `.env`、证书、数据库、向量库、备份、日志、上传文件或运维交接文件。
-- 不要把 AI Provider Key 注入前端静态包；生产环境应优先通过后端代理访问付费模型。
-- 如果任何密钥曾经进入 Git 历史，请立即轮换密钥，并按需清理历史记录。
-- `docker-compose.prod.yml` 是公开模板，不包含生产地址或真实凭据。
-
-## 路线图
-
-- [ ] RightNow Agent API：允许外部 agent 安全读取计划、TODO、训练状态和教练建议。
-- [ ] 主动触达：基于训练断档、饮食缺口和进化目标触发温和提醒。
-- [ ] RAG 质量面板：展示召回来源、命中率和知识库健康状态。
-- [ ] 多端体验：把 Dashboard 能力延伸到 IM、CLI 和移动端。
-
-## 贡献
-
-欢迎提交 issue、讨论产品方向或改进代码。提交前请至少完成：
-
-```bash
-npm run build:backend
-npm run build:frontend
-```
-
-并运行敏感信息扫描，确认没有真实 API Key、服务器信息、密码或个人隐私数据进入变更。
-
-## License
-
-暂未声明开源许可证。使用、分发或商用前请先与项目维护者确认授权。
+The goal is not only to answer fitness questions, but to help users execute the plan every day with persistent context and measurable feedback.

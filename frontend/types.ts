@@ -23,7 +23,8 @@ export enum View {
   TrainingLog = 'TRAINING_LOG',
   TrainingHistory = 'TRAINING_HISTORY',
   TrainingConfirm = 'TRAINING_CONFIRM',
-  CommunityShare = 'COMMUNITY_SHARE'
+  CommunityShare = 'COMMUNITY_SHARE',
+  WechatSettings = 'WECHAT_SETTINGS'
 }
 
 export interface UserState {

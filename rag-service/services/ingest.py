@@ -26,6 +26,28 @@ class IngestService:
         self.vectorstore.add_documents(docs)
         return len(docs)
 
+    def ingest_flat(self, data_dir: str, domain: str = "comprehensive") -> dict:
+        """灌入平铺的 .md 文件（无子目录结构，如 L3 书籍）。"""
+        data_path = Path(data_dir)
+        total = 0
+        files = list(data_path.rglob("*.md"))
+        for md_file in files:
+            try:
+                loader = TextLoader(str(md_file), encoding="utf-8", autodetect_encoding=True)
+                docs = self.splitter.split_documents(loader.load())
+                for doc in docs:
+                    doc.metadata.update({
+                        "source": md_file.name,
+                        "domain": domain,
+                        "category": data_path.name,
+                        "type": "markdown",
+                    })
+                self.vectorstore.add_documents(docs)
+                total += len(docs)
+            except Exception as exc:
+                print(f"Failed to ingest {md_file.name}: {exc}")
+        return {"chunks": total}
+
     def ingest_directory(self, data_dir: str) -> dict:
         data_path = Path(data_dir)
         total = 0

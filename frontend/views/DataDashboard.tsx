@@ -41,6 +41,8 @@ const DataDashboard: React.FC<Props> = ({ onNavigate }) => {
     const [aiLoading, setAiLoading] = useState(false);
     const [weeklyCompletedHours, setWeeklyCompletedHours] = useState(0);
     const [weeklyTargetHours, setWeeklyTargetHours] = useState<number | null>(null);
+  const [coachProfile, setCoachProfile] = useState<any>(null);
+  const [dietTodaySummary, setDietTodaySummary] = useState<any>(null);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -105,7 +107,16 @@ const DataDashboard: React.FC<Props> = ({ onNavigate }) => {
                 setWeeklyTargetHours(
                     targetMinutes != null && targetMinutes > 0 ? targetMinutes / 60 : null,
                 );
-            } catch (err) {
+            
+    aiCoachApi.getProfile()
+      .then((p: any) => setCoachProfile(p))
+      .catch(() => {});
+
+    const todayStr = new Date().toISOString().slice(0, 10);
+    dietApi.summary(todayStr)
+      .then((s: any) => setDietTodaySummary(s))
+      .catch(() => {});
+} catch (err) {
                 console.error('DataDashboard fetch error:', err);
             } finally {
                 setLoading(false);
@@ -159,6 +170,17 @@ const DataDashboard: React.FC<Props> = ({ onNavigate }) => {
         }
         return clamp((weeklyCompletedHours / weeklyTargetHours) * 100, 0, 100);
     }, [weeklyCompletedHours, weeklyTargetHours]);
+
+    const todayDiet = dietTodaySummary || dietSummary;
+    const nutritionTarget = coachProfile?.fitnessPlan || null;
+    const consumedCalories = Number(todayDiet?.totalCalories ?? 0);
+    const calorieTarget = Number(nutritionTarget?.totalCalories ?? 0);
+    const remainingCalories = calorieTarget > 0 ? Math.max(0, calorieTarget - consumedCalories) : null;
+    const macroRows = [
+        { label: '\u86cb\u767d\u8d28', consumed: Number(todayDiet?.totalProtein ?? 0), target: Number(nutritionTarget?.proteinGrams ?? 0), color: '#4A90E2', unit: 'g' },
+        { label: '\u78b3\u6c34', consumed: Number(todayDiet?.totalCarbs ?? 0), target: Number(nutritionTarget?.carbsGrams ?? 0), color: '#50E3C2', unit: 'g' },
+        { label: '\u8102\u80aa', consumed: Number(todayDiet?.totalFat ?? 0), target: Number(nutritionTarget?.fatGrams ?? 0), color: '#F5A623', unit: 'g' },
+    ];
 
     return (
         <div className="min-h-screen pb-32 pt-6 px-6 bg-bg-dark text-white font-sans">
@@ -300,55 +322,62 @@ const DataDashboard: React.FC<Props> = ({ onNavigate }) => {
 
             <div className="bg-[#111] rounded-[32px] p-6 border border-white/5 mb-4 shadow-lg">
                 <div className="flex justify-between items-start mb-6">
-                    <h2 className="text-lg font-bold">今日饮食</h2>
+                    <div>
+                        <h2 className="text-lg font-bold">{'\u4eca\u65e5\u996e\u98df'}</h2>
+                        {remainingCalories != null && (
+                            <p className="text-xs text-gray-500 mt-1">{'\u8fd8\u53ef\u6444\u5165'} <span className="text-primary font-bold">{remainingCalories}</span> kcal</p>
+                        )}
+                    </div>
                     <button
                         onClick={() => onNavigate?.(View.Diet)}
                         className="flex items-center gap-1 bg-[#2a2a2a] text-[#B8FF00] px-3 py-1 rounded-lg text-[10px] font-bold active:scale-95 transition-transform"
                     >
                         <span className="material-icons-round text-sm">filter_center_focus</span>
-                        拍照识别
+                        {'\u62cd\u7167\u8bc6\u522b'}
                     </button>
                 </div>
 
-                <div className="mb-6">
-                    <div className="flex items-baseline gap-1">
-                        <span className="text-3xl font-bold font-serif text-white">
-                            {dietSummary ? dietSummary.totalCalories.toLocaleString() : '--'}
-                        </span>
-                        <span className="text-sm text-gray-500">kcal</span>
+                <div className="grid grid-cols-2 gap-3 mb-6">
+                    <div className="bg-black/30 rounded-2xl p-4 border border-white/5">
+                        <p className="text-[10px] text-gray-500 mb-1">{'\u5df2\u6444\u5165'}</p>
+                        <div className="flex items-baseline gap-1">
+                            <span className="text-2xl font-bold font-serif text-white">{consumedCalories.toLocaleString()}</span>
+                            <span className="text-xs text-gray-500">kcal</span>
+                        </div>
+                    </div>
+                    <div className="bg-primary/10 rounded-2xl p-4 border border-primary/20">
+                        <p className="text-[10px] text-primary/70 mb-1">{'\u4eca\u65e5\u76ee\u6807'}</p>
+                        <div className="flex items-baseline gap-1">
+                            <span className="text-2xl font-bold font-serif text-primary">{calorieTarget > 0 ? calorieTarget.toLocaleString() : '--'}</span>
+                            <span className="text-xs text-primary/70">kcal</span>
+                        </div>
                     </div>
                 </div>
 
+                {calorieTarget > 0 && (
+                    <div className="mb-5">
+                        <div className="flex justify-between text-xs mb-1.5">
+                            <span className="font-bold text-gray-400">{'\u70ed\u91cf\u8fdb\u5ea6'}</span>
+                            <span className="text-gray-500">{consumedCalories} / {calorieTarget} kcal</span>
+                        </div>
+                        <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                            <div className="h-full bg-primary rounded-full" style={{ width: `${Math.min(100, (consumedCalories / calorieTarget) * 100)}%` }} />
+                        </div>
+                    </div>
+                )}
+
                 <div className="space-y-4">
-                    <div>
-                        <div className="flex justify-between text-xs mb-1.5">
-                            <span className="font-bold text-gray-400">蛋白质</span>
-                            <span className="text-gray-500">{dietSummary ? `${dietSummary.totalProtein}g` : '--'}</span>
+                    {macroRows.map((row) => (
+                        <div key={row.label}>
+                            <div className="flex justify-between text-xs mb-1.5">
+                                <span className="font-bold text-gray-400">{row.label}</span>
+                                <span className="text-gray-500">{row.consumed} / {row.target || '--'}{row.unit}</span>
+                            </div>
+                            <div className="h-1.5 bg-white/10 rounded-full overflow-hidden flex">
+                                <div className="h-full rounded-full" style={{ width: `${row.target > 0 ? Math.min(100, (row.consumed / row.target) * 100) : 0}%`, backgroundColor: row.color }} />
+                            </div>
                         </div>
-                        <div className="h-1.5 bg-white/10 rounded-full overflow-hidden flex">
-                            <div className="h-full bg-[#4A90E2] rounded-full" style={{ width: `${dietSummary ? Math.min(100, (dietSummary.totalProtein / 120) * 100) : 0}%` }} />
-                        </div>
-                    </div>
-
-                    <div>
-                        <div className="flex justify-between text-xs mb-1.5">
-                            <span className="font-bold text-gray-400">脂肪</span>
-                            <span className="text-gray-500">{dietSummary ? `${dietSummary.totalFat}g` : '--'}</span>
-                        </div>
-                        <div className="h-1.5 bg-white/10 rounded-full overflow-hidden flex">
-                            <div className="h-full bg-[#F5A623] rounded-full" style={{ width: `${dietSummary ? Math.min(100, (dietSummary.totalFat / 55) * 100) : 0}%` }} />
-                        </div>
-                    </div>
-
-                    <div>
-                        <div className="flex justify-between text-xs mb-1.5">
-                            <span className="font-bold text-gray-400">碳水</span>
-                            <span className="text-gray-500">{dietSummary ? `${dietSummary.totalCarbs}g` : '--'}</span>
-                        </div>
-                        <div className="h-1.5 bg-white/10 rounded-full overflow-hidden flex">
-                            <div className="h-full bg-[#50E3C2] rounded-full" style={{ width: `${dietSummary ? Math.min(100, (dietSummary.totalCarbs / 200) * 100) : 0}%` }} />
-                        </div>
-                    </div>
+                    ))}
                 </div>
             </div>
 
@@ -394,8 +423,42 @@ const DataDashboard: React.FC<Props> = ({ onNavigate }) => {
                 </div>
             </div>
 
-            <div className="bg-[#111] rounded-[32px] p-6 border border-white/5 mb-4 shadow-lg">
-                <div className="flex items-center gap-2 mb-4">
+          {/* --- 饮水时间表 --- */}
+          <div className="bg-[#111] rounded-[32px] p-6 border border-white/5 mb-4 shadow-lg">
+            <h3 className="text-lg font-bold text-white mb-4">
+              饮水时间表
+              {coachProfile?.hydrationPlan && (
+                <span className="text-sm font-normal text-gray-500 ml-2">目标 {coachProfile.hydrationPlan.dailyTargetMl}ml</span>
+              )}
+            </h3>
+            {coachProfile?.hydrationPlan?.schedule ? (
+              <div className="space-y-2">
+                {coachProfile.hydrationPlan.schedule.map((slot: any, i: number) => {
+                  const [h, m] = (slot.time || "").split(":").map(Number);
+                  const now = new Date();
+                  const slotTime = new Date(); slotTime.setHours(h || 0, m || 0, 0, 0);
+                  const isPast = slotTime <= now;
+                  return (
+                    <div key={i} className={`flex items-center justify-between px-4 py-3 rounded-2xl text-sm ${isPast ? "bg-primary/10 text-primary border border-primary/20" : "bg-white/5 text-gray-400 border border-white/5"}`}>
+                      <div className="flex items-center gap-3">
+                        <span className={`w-2 h-2 rounded-full ${isPast ? "bg-primary" : "bg-gray-600"}`} />
+                        <span className="font-bold">{slot.time}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span>{slot.amountMl}ml</span>
+                        {isPast && <span className="material-icons-round text-sm text-primary">check_circle</span>}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-center py-8 text-gray-500 text-sm">暂无饮水计划</p>
+            )}
+          </div>
+
+          <div className="bg-[#111] rounded-[32px] p-6 border border-white/5 mb-4 shadow-lg">
+          <div className="flex items-center gap-2 mb-4">
                     <span className="material-icons-round text-primary text-lg">auto_awesome</span>
                     <h2 className="text-sm font-bold font-serif">AI 下一步建议</h2>
                 </div>

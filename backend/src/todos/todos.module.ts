@@ -234,12 +234,22 @@ export class TodosService {
           this.isCoachProgressMetadata(todo.metadata),
         );
         if (hasCoachTodos) {
-          return;
+          await this.prisma.todo.deleteMany({
+            where: {
+              userId,
+              date,
+              completed: false,
+              metadata: {
+                path: ['source'],
+                equals: 'ai-coach-progress',
+              } as any,
+            },
+          });
+        } else {
+          await this.prisma.todo.deleteMany({
+            where: { userId, date },
+          });
         }
-
-        await this.prisma.todo.deleteMany({
-          where: { userId, date },
-        });
       }
 
       await this.prisma.todo.createMany({

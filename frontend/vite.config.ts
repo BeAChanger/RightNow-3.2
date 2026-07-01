@@ -9,7 +9,7 @@ export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     const apiTarget = env.VITE_API_PROXY_TARGET || 'http://localhost:5000';
     const apiRoutePattern =
-      '^/api/(auth|users|weight|diet|training|training-sessions|todos|checkins|evolution|evolution-stage|posts|comments|friendships|groups|chat|upload|image-gen|fitness-plan|ai-coach|prompts)(?:/|$)';
+      '^/api/(auth|users|weight|diet|training|training-sessions|todos|checkins|evolution|evolution-stage|posts|comments|friendships|groups|chat|upload|image-gen|fitness-plan|ai-coach|prompts|wechat)(?:/|$)';
     return {
       server: {
         port: 5173,

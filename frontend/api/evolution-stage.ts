@@ -29,6 +29,13 @@ export interface PredictionResponse {
   scenario: string;
 }
 
+export interface NorthStarResponse {
+  startBodyFat: number;
+  targetBodyFat: number;
+  stages: EvolutionStage[];
+  northStarUrl?: string;
+}
+
 function toNumber(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
@@ -126,5 +133,10 @@ export const evolutionStageApi = {
       params: { proteinChangePercent },
     });
     return normalizePredictionResponse(data);
+  },
+
+  async northStar(startImageUrl: string): Promise<NorthStarResponse> {
+    const { data } = await client.post<unknown>('/evolution-stage/north-star', { startImageUrl });
+    return data as NorthStarResponse;
   },
 };

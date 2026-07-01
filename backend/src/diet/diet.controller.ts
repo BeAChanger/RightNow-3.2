@@ -75,4 +75,8 @@ export class DietController {
   remove(@CurrentUser('id') userId: string, @Param('id') id: string) {
     return this.dietService.remove(userId, id);
   }
+  @Post("estimate-before-meal")
+  estimateBeforeMeal(@Body() body: { imageBase64?: string }) {
+    return this.dietService.estimateBeforeMeal(body);
+  }
 }

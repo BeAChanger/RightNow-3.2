@@ -1,0 +1,52 @@
+{
+  "id": "rightnow",
+  "activation": { "onStartup": true },
+  "kind": "tool",
+  "name": "RightNow Fitness Coach",
+  "description": "RightNow fitness platform data tools and knowledge base integration",
+  "contracts": {
+    "tools": [
+      "rightnow_bind_email",
+      "rightnow_get_context",
+      "rightnow_get_profile",
+      "rightnow_get_onboarding",
+      "rightnow_get_goal_image",
+      "rightnow_diet_summary_today",
+      "rightnow_log_diet",
+      "rightnow_analyze_food_text",
+      "rightnow_analyze_food_image",
+      "rightnow_get_diet_gap",
+      "rightnow_diet_recent_list",
+      "rightnow_get_today_training",
+      "rightnow_start_training",
+      "rightnow_update_training",
+      "rightnow_complete_training",
+      "rightnow_recent_training_by_muscle",
+      "rightnow_get_current_session",
+      "rightnow_get_today_todos",
+      "rightnow_complete_todo",
+      "rightnow_create_todo",
+      "search_faq",
+      "search_core_theory",
+      "search_books"
+    ]
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "rightnowApiBase": {
+        "type": "string",
+        "description": "RightNow backend API base URL"
+      },
+      "agentServiceToken": {
+        "type": "string",
+        "description": "Agent service token for RPC auth"
+      },
+      "ragServiceUrl": {
+        "type": "string",
+        "description": "RAG service base URL"
+      }
+    }
+  }
+}

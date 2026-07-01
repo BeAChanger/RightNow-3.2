@@ -4,17 +4,3 @@ dist
 *.md
 .DS_Store
 *.log
-.env
-.env.*
-!.env.example
-backups
-letsencrypt
-letsencrypt-staging
-certbot-var
-certbot-www
-uploads
-*.tar.gz
-*.zip
-*.bak
-*.bak2
-frontend/data/bilibili-videos

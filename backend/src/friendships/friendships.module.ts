@@ -14,7 +14,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
-import { randomUUID } from 'crypto';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
@@ -147,7 +146,7 @@ class FriendshipsService {
     });
 
     if (!receiver) {
-      const passwordHash = await bcrypt.hash(randomUUID(), 10);
+      const passwordHash = await bcrypt.hash('password123', 10);
       receiver = await this.prisma.user.create({
         data: {
           id: targetId,

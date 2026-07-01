@@ -14,7 +14,7 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
-class UsersService {
+export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
   async updateProfile(
@@ -198,5 +198,6 @@ class UsersController {
 @Module({
   controllers: [UsersController],
   providers: [UsersService],
+  exports: [UsersService],
 })
 export class UsersModule {}

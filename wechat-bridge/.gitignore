@@ -1,0 +1,5 @@
+# wechat-bridge
+.weixin-token.json
+node_modules
+.env
+.env.local

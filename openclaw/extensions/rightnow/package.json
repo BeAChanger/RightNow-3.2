@@ -1,0 +1,12 @@
+{
+  "name": "@openclaw/rightnow",
+  "version": "1.0.0",
+  "private": true,
+  "description": "RightNow fitness platform data tools and knowledge base integration",
+  "type": "module",
+  "openclaw": {
+    "extensions": [
+      "./index.js"
+    ]
+  }
+}

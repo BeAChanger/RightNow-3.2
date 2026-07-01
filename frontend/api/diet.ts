@@ -27,6 +27,14 @@ export interface FoodAnalysis {
   mealType: string;
 }
 
+export interface MealEstimateResult {
+  estimated: FoodAnalysis;
+  advice: string;
+  mealTypeGuess: string;
+  warning?: string;
+  processedAt: string;
+}
+
 export type NutritionData = FoodAnalysis;
 
 function asObject(value: unknown): Record<string, unknown> | null {
@@ -113,12 +121,12 @@ function normalizeFoodAnalysis(payload: unknown): FoodAnalysis {
   const source = nested || obj;
 
   return {
-    name: typeof source?.name === 'string' ? source.name : '未知食物',
+    name: typeof source?.name === 'string' ? source.name : 'Unknown food',
     calories: Math.round(toNumber(source?.calories)),
     protein: Math.round(toNumber(source?.protein)),
     fat: Math.round(toNumber(source?.fat)),
     carbs: Math.round(toNumber(source?.carbs)),
-    mealType: typeof source?.mealType === 'string' ? source.mealType : '加餐',
+    mealType: typeof source?.mealType === 'string' ? source.mealType : 'snack',
   };
 }
 
@@ -137,7 +145,15 @@ export const dietApi = {
     return normalizeDietSummary(data);
   },
 
-  async create(body: { name: string; calories: number; fat?: number; protein?: number; carbs?: number; date: string; mealType?: string }): Promise<DietRecord> {
+  async create(body: {
+    name: string;
+    calories: number;
+    fat?: number;
+    protein?: number;
+    carbs?: number;
+    date: string;
+    mealType?: string;
+  }): Promise<DietRecord> {
     const { data } = await client.post<unknown>('/diet', body);
     const normalized = normalizeDietRecord(data);
     if (!normalized) {
@@ -167,5 +183,14 @@ export const dietApi = {
   async analyzeImage(imageBase64: string): Promise<FoodAnalysis> {
     const { data } = await client.post<unknown>('/diet/analyze/image', { imageBase64 }, { timeout: 90_000 });
     return normalizeFoodAnalysis(data);
+  },
+
+  async estimateBeforeMeal(imageBase64: string): Promise<MealEstimateResult> {
+    const { data } = await client.post<MealEstimateResult>(
+      '/diet/estimate-before-meal',
+      { imageBase64 },
+      { timeout: 90_000 },
+    );
+    return data;
   },
 };

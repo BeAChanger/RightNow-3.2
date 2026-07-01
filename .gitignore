@@ -1,48 +1,93 @@
 # Dependencies
 node_modules/
+.pnp
+.pnp.js
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+*.so
+venv/
+.venv/
 
-# Environment
+# Environment files (ALL - never commit real secrets)
 .env
-.env.local
-.env.production
-.env.*.local
+.env.*
 !.env.example
+.xiaozhua-runtime.env
+.gateway-token
+*gateway-token*
 
 # Build outputs
 dist/
 build/
+.next/
+out/
 *.log
-*.tar.gz
-*.zip
+*.tsbuildinfo
 
-# IDE
-.vscode/
+# IDE and editor files
 .idea/
-
-# OS
+.vscode/
+*.swp
+*.swo
+*~
 .DS_Store
 Thumbs.db
 
-# Database
+# Database files
 *.db
 *.sqlite
-chroma_db/
+*.db-journal
 
-# Uploads
+# Runtime data and state
+openclaw-data/
+openclaw-data2/
+openclaw-runtime/
+openclaw-gw-config/
+openclaw-native/
+openclaw-workspace/
+openclaw/node_modules/
+openclaw/dist/
+blogger-data/
+cleaned-data/
+backups/
 uploads/
 
-# Runtime and operational artifacts
-backups/
-letsencrypt/
-letsencrypt-staging/
+# TLS / Certificates
 certbot-var/
 certbot-www/
-AGENT_HANDOFF_*.md
+letsencrypt/
+letsencrypt-staging/
+
+# Backup files
 *.bak
 *.bak2
+*.backup
+*.orig
+*.bak-*
+*.bak.*
 
-# Large source-data artifacts that should not be committed by default
-frontend/data/bilibili-videos/
+# Backup directories
+frontend.bak*/
+openclaw-agent.bak*/
+*-bak-*/
+
+# Docker volumes
+volumes/
+data/
+
+# Large data files
 *.m4a
+*.mp3
+*.mp4
+*.webm
+*.avi
+*.mov
+frontend/data/bilibili-videos/
+
+# OS files
+Desktop.ini
+
+# Misc
+*.tmp
+*.temp
