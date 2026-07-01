@@ -1,0 +1,123 @@
+# docker-compose.openclaw-sidecar.yml
+# =============================================================================
+# T-OPS 旁路（sidecar）方案草稿 —— 第1波产出，【未 up，等 T-OC 确认 OpenClaw 构建后再协调】
+# =============================================================================
+# 目的：在【不影响线上 5 容器】的前提下，把【真 OpenClaw】旁路起来做验证。
+#
+# 🔴 安全设计要点（每一条都是为了"零影响"红线）：
+#   1) 独立 compose 项目：启动时务必带  -p openclaw-sidecar
+#      → 生成独立网络 openclaw-sidecar_default，绝不与 rightnow_default 串台
+#   2) 仅绑定 127.0.0.1:18790（loopback），不对公网开放，且【避开】线上 18789
+#      （线上 rn-openclaw-agent 占用 127.0.0.1:18789；18790 经核实空闲）
+#   3) 容器内 gateway 用 --bind lan(0.0.0.0)：因为 bridge 网络下 loopback bind
+#      会导致 host 经 -p 映射无法访问（见 openclaw/Dockerfile 注释）。安全前提是
+#      只把端口绑在宿主 127.0.0.1，外网仍打不进来。
+#   4) 不设 container_name=rn-* 、不设 network-alias: openclaw-agent
+#      → 不会被 nginx 的 upstream "openclaw-agent" 误命中、不会与现有容器重名
+#   5) 独立命名卷（sidecar 前缀），不挂线上任何业务卷
+#   6) restart: "no" —— 这是验证用临时件，不要自我复活
+#   7) image 必须显式提供 OPENCLAW_IMAGE，避免误触发 ~5GB 重镜像构建/拉取
+#
+# ▶ 由谁、何时启动：等 T-OC 确认"真 OpenClaw 镜像怎么 build / tag 成什么"后，
+#   T-OPS 与 T-OC 协调，按本文件末尾"启动手册"执行。本波【绝不 up】。
+# =============================================================================
+
+services:
+  openclaw-sidecar:
+    # ⚠️ 不写 build:，强制用已构建好的镜像，避免误触发重构建。
+    #    由 T-OC 先 `docker build -t openclaw:local ./openclaw` 后再启动本 sidecar。
+    image: ${OPENCLAW_IMAGE:?must set OPENCLAW_IMAGE, e.g. OPENCLAW_IMAGE=openclaw:local}
+
+    # 不设 container_name，让 compose 用 <project>-openclaw-sidecar-1 自动命名，
+    # 杜绝与 rn-openclaw-agent 重名。
+    restart: "no"
+
+    # 复用 openclaw 官方 compose 的容器内路径锁定（防止 .env 里的宿主路径泄漏进容器）
+    environment:
+      HOME: /home/node
+      OPENCLAW_HOME: /home/node
+      TERM: xterm-256color
+      OPENCLAW_STATE_DIR: /home/node/.openclaw
+      OPENCLAW_CONFIG_PATH: /home/node/.openclaw/openclaw.json
+      OPENCLAW_CONFIG_DIR: /home/node/.openclaw
+      OPENCLAW_WORKSPACE_DIR: /home/node/.openclaw/workspace
+      # gateway token：如需鉴权由协调时通过 .env.sidecar 注入，默认空
+      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN:-}
+      OPENCLAW_ALLOW_INSECURE_PRIVATE_WS: ${OPENCLAW_ALLOW_INSECURE_PRIVATE_WS:-}
+      OPENCLAW_DISABLE_BONJOUR: "1"   # 容器里强制关 Bonjour
+      TZ: ${OPENCLAW_TZ:-Asia/Shanghai}
+
+    # 🔴 只在宿主 loopback 暴露 18790；容器内仍是 gateway 默认 18789。
+    #    形式 "127.0.0.1:18790:18789" = 宿主127.0.0.1:18790 → 容器18789
+    ports:
+      - "127.0.0.1:18790:18789"
+
+    # 安全加固（与官方 compose 对齐）
+    cap_drop:
+      - NET_RAW
+      - NET_ADMIN
+    security_opt:
+      - no-new-privileges:true
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+    # 独立命名卷，绝不挂线上业务数据
+    volumes:
+      - sidecar_state:/home/node/.openclaw
+      - sidecar_workspace:/home/node/.openclaw/workspace
+
+    init: true
+
+    # 容器内绑 lan(0.0.0.0) + 18789，外部可达性仅由上面的 127.0.0.1 端口映射决定
+    command:
+      [
+        "node",
+        "openclaw.mjs",
+        "gateway",
+        "--bind",
+        "lan",
+        "--port",
+        "18789",
+      ]
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:18789/healthz').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+volumes:
+  sidecar_state:
+  sidecar_workspace:
+
+# =============================================================================
+# ▶ 启动手册（等 T-OC 确认后再执行，本波勿动）：
+#
+#   # 0. 前置：T-OC 已构建好镜像（举例 openclaw:local）
+#   cd /root/rightnow
+#   docker images | grep openclaw     # 确认镜像存在
+#
+#   # 1. 启动 sidecar（独立项目名 openclaw-sidecar，独立网络，零影响主栈）
+#   OPENCLAW_IMAGE=openclaw:local \
+#     docker compose -p openclaw-sidecar -f docker-compose.openclaw-sidecar.yml up -d
+#
+#   # 2. 验证（只走宿主 loopback，外网打不进来）
+#   curl -fsS http://127.0.0.1:18790/healthz && echo OK
+#   docker ps --filter name=openclaw-sidecar
+#
+#   # 3. 确认主栈 5 容器毫发无损
+#   docker ps --format '{{.Names}}\t{{.Status}}'
+#
+#   # 4. 验证完拆除 sidecar（不影响主栈）
+#   docker compose -p openclaw-sidecar -f docker-compose.openclaw-sidecar.yml down -v
+#
+# 🔴 切流（把 nginx /imhook 从 rn-openclaw-agent:18789 改指 OpenClaw）属于
+#    "全员验收后的最后单点操作"，【不在本文件职责内，本波严禁】。
+# =============================================================================

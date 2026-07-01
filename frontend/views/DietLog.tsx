@@ -16,6 +16,10 @@ const DietLog: React.FC = () => {
     const [summary, setSummary] = useState<DietSummary | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+  const [isEstimateOpen, setIsEstimateOpen] = useState(false);
+  const [estimateResult, setEstimateResult] = useState<any>(null);
+  const [estimating, setEstimating] = useState(false);
+  const [estimatePreview, setEstimatePreview] = useState<string | null>(null);
     const [error, setError] = useState('');
     const [analyzing, setAnalyzing] = useState(false);
 
@@ -127,6 +131,29 @@ const DietLog: React.FC = () => {
     };
 
 
+  const handleEstimateBeforeMeal = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setEstimatePreview(reader.result as string);
+    reader.readAsDataURL(file);
+    const base64Reader = new FileReader();
+    base64Reader.onload = async () => {
+      const base64 = (base64Reader.result as string).split(',')[1];
+      setEstimating(true);
+      try {
+        const result = await dietApi.estimateBeforeMeal(base64);
+        setEstimateResult(result);
+        setIsEstimateOpen(true);
+      } catch {
+        alert('预估失败，请重试');
+      } finally {
+        setEstimating(false);
+      }
+    };
+    base64Reader.readAsDataURL(file);
+  };
+
     return (
         <div className="min-h-screen bg-bg-dark text-white pb-24 px-6 pt-12">
             <header className="flex items-center justify-between mb-8">
@@ -223,6 +250,18 @@ const DietLog: React.FC = () => {
                                 <span className="material-icons-round text-sm notranslate">camera_alt</span>
                             </button>
                             <span className="text-sm font-bold tracking-widest text-[#B8FF00] pointer-events-none">拍照记录</span>
+                        </div>
+                        <div
+                            className="flex items-center gap-3 bg-[#1a1a1a] border border-[#F5A623]/30 p-2 pr-4 pl-2 rounded-full shadow-2xl cursor-pointer hover:bg-[#F5A623]/10 transition-colors"
+                            onClick={() => {
+                                const input = document.getElementById("estimate-file-input");
+                                if (input) input.click();
+                            }}
+                        >
+                            <button className="w-10 h-10 rounded-full bg-[#F5A623]/10 flex items-center justify-center pointer-events-none text-[#F5A623]">
+                                <span className="material-icons-round text-sm notranslate">restaurant_menu</span>
+                            </button>
+                            <span className="text-sm font-bold tracking-widest text-[#F5A623] pointer-events-none">饭前预估</span>
                         </div>
                     </div>
                 </div>
@@ -339,8 +378,59 @@ const DietLog: React.FC = () => {
                     </div>
                 </div>
             )}
+
+            {/* 饭前预估结果弹窗 */}
+            {isEstimateOpen && estimateResult && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center px-6">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => { setIsEstimateOpen(false); setEstimateResult(null); setEstimatePreview(null); }} />
+                    <div className="bg-[#1c1c1e] w-full max-w-sm rounded-[32px] p-6 relative z-10 shadow-2xl border border-white/10">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-xl font-serif font-bold text-white">饭前预估</h3>
+                            <button onClick={() => { setIsEstimateOpen(false); setEstimateResult(null); setEstimatePreview(null); }} className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10">
+                                <span className="material-icons-round text-gray-400 text-sm">close</span>
+                            </button>
+                        </div>
+                        {estimatePreview && (
+                            <img src={estimatePreview} alt="食物预览" className="w-full h-40 object-cover rounded-2xl mb-4" />
+                        )}
+                        {estimating ? (
+                            <div className="flex flex-col items-center py-8 gap-3">
+                                <div className="w-10 h-10 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                                <p className="text-sm text-gray-300 font-bold">AI 正在识别食物...</p>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="bg-[#F5A623]/10 border border-[#F5A623]/30 rounded-2xl p-4 mb-3">
+                                    <div className="text-sm font-bold text-[#F5A623] mb-1">
+                                        {estimateResult.mealTypeGuess === "breakfast" ? "早餐" : estimateResult.mealTypeGuess === "lunch" ? "午餐" : estimateResult.mealTypeGuess === "dinner" ? "晚餐" : "加餐/零食"}
+                                        · 预估 {estimateResult.estimated?.calories} kcal
+                                    </div>
+                                    <div className="flex gap-3 text-xs text-gray-400">
+                                        <span>蛋白质 {estimateResult.estimated?.protein}g</span>
+                                        <span>碳水 {estimateResult.estimated?.carbs}g</span>
+                                        <span>脂肪 {estimateResult.estimated?.fat}g</span>
+                                    </div>
+                                </div>
+                                {estimateResult.warning && (
+                                    <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-3 mb-3 text-sm text-red-400">
+                                        {estimateResult.warning}
+                                    </div>
+                                )}
+                                <div className="bg-primary/10 border border-primary/30 rounded-2xl p-4 mb-4 text-sm text-gray-200">
+                                    {estimateResult.advice}
+                                </div>
+                                <button
+                                    onClick={() => { setIsEstimateOpen(false); setEstimateResult(null); setEstimatePreview(null); }}
+                                    className="w-full bg-primary hover:bg-[#a6e600] disabled:bg-white/10 disabled:text-gray-500 transition-all text-black font-bold text-lg py-4 rounded-xl shadow-[0_0_20px_rgba(184,255,0,0.3)]"
+                                >
+                                    关闭
+                                </button>
+                            </>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
-
 export default DietLog;

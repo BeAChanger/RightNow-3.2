@@ -1,0 +1,10 @@
+FROM openclaw/openclaw:latest
+
+# Add RightNow plugin files (plugin SDK typebox dep is already in base image)
+COPY --chown=node:node extensions/rightnow/openclaw.plugin.json /app/extensions/rightnow/openclaw.plugin.json
+COPY --chown=node:node extensions/rightnow/package.json /app/extensions/rightnow/package.json
+COPY --chown=node:node extensions/rightnow/index.ts /app/extensions/rightnow/index.ts
+COPY --chown=node:node extensions/rightnow/src/ /app/extensions/rightnow/src/
+
+# Enable rightnow plugin at startup
+ENV OPENCLAW_EXTENSIONS=stepfun,deepseek,memory-core,feishu,rightnow

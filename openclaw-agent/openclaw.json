@@ -1,0 +1,74 @@
+{
+  "agents": {
+    "defaults": {
+      "model": {
+        "provider": "stepfun",
+        "model": "step-2-16k"
+      }
+    }
+  },
+  "channels": {
+    "feishu": {
+      "enabled": true,
+      "appId": "${FEISHU_APP_ID}",
+      "appSecret": "${FEISHU_APP_SECRET}"
+    },
+    "telegram": {
+      "enabled": false,
+      "botToken": "${TELEGRAM_BOT_TOKEN}"
+    }
+  },
+  "gateway": {
+    "port": 18789,
+    "bind": "0.0.0.0"
+  },
+  "cron": [
+    {
+      "name": "hydration-reminder-morning",
+      "schedule": "0 10 * * *",
+      "timezone": "Asia/Shanghai",
+      "wakeMode": "now",
+      "prompt": "Check hydration status for today. If the user hasn't met their water goal, send a gentle reminder."
+    },
+    {
+      "name": "hydration-reminder-afternoon",
+      "schedule": "0 15 * * *",
+      "timezone": "Asia/Shanghai",
+      "wakeMode": "now",
+      "prompt": "Check hydration status. Send reminder if behind target."
+    },
+    {
+      "name": "diet-lunch-reminder",
+      "schedule": "30 13 * * *",
+      "timezone": "Asia/Shanghai",
+      "wakeMode": "now",
+      "prompt": "Check if the user has logged lunch. If not, gently ask if they'd like to record it."
+    },
+    {
+      "name": "diet-dinner-reminder",
+      "schedule": "0 20 * * *",
+      "timezone": "Asia/Shanghai",
+      "wakeMode": "now",
+      "prompt": "Check if the user has logged dinner. If not, gently ask if they'd like to record it."
+    },
+    {
+      "name": "training-evening-check",
+      "schedule": "0 21 * * *",
+      "timezone": "Asia/Shanghai",
+      "wakeMode": "now",
+      "prompt": "Check if the user had a training task today. If it's not completed, give a low-friction starting suggestion."
+    },
+    {
+      "name": "weekly-checkin",
+      "schedule": "0 10 * * 1",
+      "timezone": "Asia/Shanghai",
+      "wakeMode": "now",
+      "prompt": "Weekly check-in time. Review the past week's data and prompt for weight/measurements update."
+    }
+  ],
+  "extensions": {
+    "rightnow": {
+      "enabled": true
+    }
+  }
+}

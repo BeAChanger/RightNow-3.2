@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Gemini AI Service
  * 闂傚倸鍊搁崐鎼佸磹閹间礁纾圭€瑰嫭鍣磋ぐ鎺戠倞妞ゆ帒顦伴弲顏堟偡濠婂啰效婵犫偓娓氣偓濮婅櫣绱掑Ο铏逛紘濠碘槅鍋勭€氭澘顕ｉ崨濠勭懝闁逞屽墴瀵鎮㈤崗灏栨嫽闂佸湱铏庨崰妤咁敁閺嶎厽鈷戦梺顐ゅ仜閼活垶宕㈤幖浣圭厽闁硅櫣鍋涢々顒勬煙楠炲灝鐏╅柍瑙勫灩閳ь剨缍嗘禍鐐哄磹閻愮儤鈷戦梻鍫熶緱閻掗箖鏌涙惔銈夊摵闁哄懓鍩栭妶锝夊礃閳圭偓瀚藉┑鐐舵彧缂嶁偓婵☆偄瀚。鍧楁⒒娴ｇ懓顕滅€光偓閹间礁钃熼柕濞垮劗濡插牊鎱ㄥΔ鈧Λ娆撳煝閸儲鈷戦悹鍥ｂ偓铏亖闂佹悶鍔嬬划娆撶嵁閸愵喖鐒洪柛鎰ㄦ櫅閸斿懘姊洪幐搴ｇ畵閻庢凹鍠氱划鍫ュ醇閵夛腹鎷洪柣鐘叉搐瀵爼宕径瀣ㄤ簻妞ゆ劑鍩勫Σ鎼佹偂閵堝鐓涚€广儱娴锋禍瑙勭箾瀹割喕绨奸柛瀣姍閹綊宕堕鍕闂? Gemini 3 Flash (gemini-3-flash-preview)
  * 闂傚倸鍊搁崐鎼佸磹閹间礁纾归柟闂寸绾惧綊鏌ｉ幋锝呅撻柛濠傛健閺屻劑寮撮悙娴嬪亾閸濄儳涓嶉柡宥庡幗閻撴洘銇勯幇鍓佺ɑ缂佲偓閳ь剛绱掗悙顒€鍔ゆ繛纭风節瀵鏁嶉崟顏呭媰闁荤姴娲﹁ぐ鍐╂叏鎼达絿纾奸柣鎰靛墮閸斻倖绻涚涵椋庣瘈鐎殿喖顭烽幃銏ゆ偂鎼达絿鏆伴梻浣虹帛椤ㄥ懘鎮у鍏炬盯宕熼鐘碉紲闂佸憡鎸嗛崘褍顥氶梺璇叉捣閻熸娊宕惰閻ゅ嫰姊洪棃娑辩劸闁稿孩鐟╅幃銏ゆ偂鎼达紕鈧厼顪冮妶鍡樷拹闁稿骸纾弫顕€宕稿Δ浣叉嫽婵炶揪绲肩拃锕傛倿閻愵兙浜滈柟瀛樼箓閺嗭絿鈧娲樼换鍫ョ嵁鐎ｎ喗鏅濋柍褜鍓熼幏鎴︽偄閸忚偐鍙嗗┑鐘绘涧濡厼危閸濄儳纾兼い鎰╁灮鏁堥梺鍝勬湰缁嬫挻绂掗敂鐐珰婵炴潙顑呮禍鐐繆閵堝懏鍣圭紒鈧径鎰厵闂傚倸顕崝宥夋煃? Gemini 3.1 Flash Lite/Image Preview (fallback)
@@ -709,69 +709,41 @@ export const COACH_WELCOME_MESSAGE = [
 // ── 四段式方案交付 Prompt ──
 
 export const STAGE1_ASSESSMENT_PROMPT = [
-  '你现在处于"现状评估"阶段。',
-  '请基于用户的所有数据，输出四栏结构：',
-  '1. **原始数据**：年龄、性别、身高、体重、训练频率、训练场景、饮食环境',
-  '2. **估算数据**：BMI、目标BMI、预估体脂率、目标体脂率、基础代谢（标注"估算值"）',
-  '3. **现状判断**：2-3句话总结用户当前的身体状况和训练水平',
-  '4. **先解决什么**：指出当前最需要优先解决的问题',
-  '',
-  '输出完毕后，必须追问用户：',
-  '"你看这版现状评估有没有需要改的？如果你最近有更精准的数据（体测仪、体检单、腰围等），可以现在补给我，我按更准的数据修正。"',
-  '',
-  '必须等待用户确认后才能进入下一阶段。不要一次性输出所有内容。',
+  'You are in the current-state assessment stage.',
+  'Reply in Simplified Chinese only. Keep it under 220 Chinese characters.',
+  'Do not use Markdown, ###, ##, bold markers, tables, or long numbered reports.',
+  'Use short line breaks. Cover: basic user info, key estimates, your judgment, and the one priority problem.',
+  'Include age, gender, height, weight, training frequency, diet environment, BMI, body-fat estimate, BMR and TDEE when available.',
+  'End with one separate Chinese line asking whether the basic information and judgment are correct, and tell the user to reply the Chinese word for confirmation to continue.',
+  'Do not output nutrition, training, or hydration plans yet.',
 ].join('\n');
 
 export const STAGE2_EXPECTATION_PROMPT = [
-  '你现在处于"预期管理"阶段。',
-  '在给出具体方案前，校准用户的预期，建立心理防火墙。',
-  '必须包含四层递进：',
-  '1. **生理真相**：体重波动是正常的（水分、激素、进食时机）；前两周掉秤快主要是水分和糖原',
-  '2. **时间线校准**：按健康速度拆解4周、8周、12周的预期变化（每周约0.5-1kg是健康的）',
-  '3. **波动容忍度**：区分正常波动（1-2kg）、需要警惕（连续2周不降）、必须调整（连续3周不降反升）',
-  '4. **失败预案**：让用户选择最可能让自己破戒的场景：',
-  '   - A：聚餐/应酬',
-  '   - B：平台期看不到效果',
-  '   - C：纯粹懒得动',
-  '   - D：压力大想吃东西',
-  '',
-  '输出完毕后，必须等用户选择并确认。',
-  '根据用户选择的场景给出对应的预防策略。',
+  'You are in the expectation-calibration stage.',
+  'Reply in Simplified Chinese only. Keep it under 220 Chinese characters.',
+  'Do not use Markdown, ###, ##, bold markers, tables, or long numbered reports.',
+  'Use three short lines covering weight fluctuation, timeline expectation, and execution standard.',
+  'Explain that daily 1-2kg weight changes can be normal, the user should watch 7-day averages, and the first two weeks often include water and glycogen changes.',
+  'End with one separate Chinese line asking whether this rhythm is acceptable, and tell the user to confirm to continue to nutrition.',
 ].join('\n');
 
 export const STAGE3_NUTRITION_PROMPT = [
-  '你现在处于"饮食建议"阶段。',
-  '基于用户的TDEE和目标方向（减脂/增肌/维持），给出具体饮食方案：',
-  '1. **运动日配额**：总热量、碳水g、蛋白质g、脂肪g（按g/kg体重计算并说明原因）',
-  '2. **非运动日配额**：碳水比运动日少0.5g/kg，蛋白质和脂肪不变',
-  '3. **分餐建议**：早/午/晚餐+加餐的热量和蛋白分配',
-  '4. **明天怎么吃**：给一个具体的次日范例（包含具体食物和估算量）',
-  '5. **两周调参规则**：看晨重7日均值+腰围+训练表现；',
-  '   - 每周降0.5-1kg：不调',
-  '   - 掉太慢：优先减碳水20-30g/天',
-  '   - 掉太快：优先加碳水20-30g/天',
-  '   - 训练表现明显下降：加运动日碳水',
-  '',
-  '减脂男性默认：碳水2.5-3.0g/kg，蛋白质1.5g/kg，脂肪0.8g/kg。',
-  '',
-  '输出完毕后必须等待用户确认，再进入训练框架。',
+  'You are in the nutrition-plan stage.',
+  'Reply in Simplified Chinese only. Keep it under 320 Chinese characters.',
+  'Do not use Markdown, ###, ##, bold markers, or tables.',
+  'Must include today total calories, grams of carbs/protein/fat, breakfast/lunch/dinner/snack direction, and photo rules.',
+  'Photo rules: before eating, a photo estimates how to eat; after eating, a photo records the meal and syncs to dashboard.',
+  'End with one separate Chinese line asking the user to confirm to continue to training and hydration.',
 ].join('\n');
 
 export const STAGE4_TRAINING_PROMPT = [
-  '你现在处于"训练框架建议"阶段。',
-  '必须包含：',
-  '1. **为什么选这个分化**：根据用户训练频率和恢复能力说明',
-  '2. **分化框架**：明确每天练什么部位',
-  '3. **每天动作类别**：每类1-3个动作示例',
-  '4. **重量校准**：大复合动作70-80% e1RM，6-10次；其他8-12次；小肌群12-15次',
-  '',
-  '分化规则：',
-  '- 频率不明→默认3分化（推/拉/腿+核心）',
-  '- 每周4-5练→4分化（背+肩后束+二头 / 胸+肩前中束+三头 / 腿+核心 / 弱项强化）',
-  '- 首次方案不默认上5分化',
-  '',
-  '训练框架输出完毕后，不立即发当天训练TODO。',
-  '等用户说"开始训练"再下发当天具体训练内容。',
+  'You are in the training-and-hydration stage.',
+  'Reply in Simplified Chinese only. Be specific but not a long report.',
+  'Do not use Markdown, ###, ##, bold markers, or tables.',
+  'Must include: training split, today focus muscle group, 4-6 concrete exercises with weight, sets and reps, and a hydration schedule.',
+  'If there is no training history, estimate weights from body weight and clearly say they are adjustable starting weights.',
+  'Hydration must include total ml per day and 5-7 time points.',
+  'End by telling the user to execute today and report back after training or meals.',
 ].join('\n');
 
 // ── 用户画像上下文 ──
@@ -784,13 +756,13 @@ const BODY_STYLE_LABELS: Record<string, string> = {
   curvy: '丰满型',
 };
 
-const GOAL_DIRECTION_LABELS: Record<string, string> = {
+export const GOAL_DIRECTION_LABELS: Record<string, string> = {
   fat_loss: '减脂塑形',
   recomposition: '体态重塑',
   muscle_gain: '增肌提升',
 };
 
-const STAGE_LABELS: Record<string, string> = {
+export const STAGE_LABELS: Record<string, string> = {
   foundation: '基础适应期',
   build: '增肌构建期',
   cut: '减脂塑形期',
@@ -1584,7 +1556,7 @@ export async function buildCoachKnowledgePrompt(
   try {
     const response = await fetch('/api/chat/search', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (localStorage.getItem('rightnow_token') || '') },
       body: JSON.stringify({
         query: queryText,
         topK: 4,

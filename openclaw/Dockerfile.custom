@@ -1,0 +1,10 @@
+FROM openclaw/openclaw:latest
+
+# Copy the RightNow plugin files
+COPY --chown=node:node extensions/rightnow/openclaw.plugin.json /app/extensions/rightnow/openclaw.plugin.json
+COPY --chown=node:node extensions/rightnow/package.json /app/extensions/rightnow/package.json
+COPY --chown=node:node extensions/rightnow/index.js /app/extensions/rightnow/index.js
+COPY --chown=node:node extensions/rightnow/src/ /app/extensions/rightnow/src/
+
+# Enable the rightnow plugin alongside essential bundled extensions
+ENV OPENCLAW_EXTENSIONS=stepfun,deepseek,memory-core,feishu,rightnow

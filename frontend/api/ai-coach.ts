@@ -170,6 +170,9 @@ export const aiCoachApi = {
   getProfile: () =>
     apiClient.get<CoachProfile>('/ai-coach/profile').then((r) => r.data),
 
+  getTodayWorkout: () =>
+    apiClient.get<any>('/ai-coach/today-workout').then((r) => r.data),
+
   refreshProfile: () =>
     apiClient.post<CoachProfile>('/ai-coach/profile/refresh').then((r) => r.data),
 };

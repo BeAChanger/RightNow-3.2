@@ -1,0 +1,7 @@
+FROM rightnow-rag:latest
+COPY rag-service/config.py /app/config.py
+COPY rag-service/main.py /app/main.py
+COPY rag-service/services/retriever.py /app/services/retriever.py
+COPY rag-service/services/ingest.py /app/services/ingest.py
+COPY rag-service/services/fast_multi_layer.py /app/services/fast_multi_layer.py
+COPY rag-service/services/faq_ingest.py /app/services/faq_ingest.py

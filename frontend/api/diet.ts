@@ -56,7 +56,14 @@ function normalizeDietRecord(payload: unknown): DietRecord | null {
     carbs: obj.carbs == null ? undefined : toNumber(obj.carbs),
     date: typeof obj.date === 'string' ? obj.date : new Date().toISOString().slice(0, 10),
     mealType: typeof obj.mealType === 'string' ? obj.mealType : undefined,
-  };
+  
+  async estimateBeforeMeal(imageBase64: string): Promise<
+    { estimated: any; advice: string; mealTypeGuess: string; warning?: string; processedAt: string }
+  > {
+    const { data } = await apiClient.post('/diet/estimate-before-meal', { imageBase64 });
+    return data;
+  },
+};
 }
 
 function normalizeDietList(payload: unknown): DietRecord[] {

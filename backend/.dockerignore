@@ -4,11 +4,3 @@ dist
 *.md
 .DS_Store
 *.log
-.env
-.env.*
-!.env.example
-uploads
-*.tar.gz
-*.zip
-*.bak
-*.bak2

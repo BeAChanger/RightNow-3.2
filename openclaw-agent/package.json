@@ -1,0 +1,16 @@
+{
+  "name": "rightnow-xiaozhua-gateway",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "小爪 IM Gateway — Feishu bot bridge with StepFun LLM and RightNow RPC",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "dependencies": {
+    "@larksuiteoapi/node-sdk": "^1.68.0",
+    "express": "^5.1.0"
+  }
+}

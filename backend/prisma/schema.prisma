@@ -52,6 +52,34 @@ model User {
   trainingSessions  TrainingSession[]
   evolutionStages      EvolutionStage[]
   evolutionAssessments EvolutionAssessment[]
+  wechatBinding     WechatBinding?
+  agentChannelBindings AgentChannelBinding[]
+  agentBindTokens   AgentBindToken[]
+}
+
+model WechatBinding {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  peerId       String   @unique // 微信 iLink from_user_id, e.g. "xxx@im.wechat"
+  botAccountId String?  // ilink_bot_id this peer was bound through
+  source       String   @default("openclaw") // openclaw | bridge | direct
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([peerId])
+}
+
+model WechatBindCode {
+  id         String   @id @default(cuid())
+  userId     String
+  code       String   @unique // 6-char shortcode shown to the user on the web
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model WeightRecord {
@@ -208,6 +236,9 @@ model EvolutionAssessment {
   geminiBodyFat      Float?
   isGeminiCalibrated Boolean         @default(false)
   assessmentCount    Int
+  multiModelDetail  Json?
+  modelCount        Int?
+  modelSpread       Float?
   createdAt          DateTime        @default(now())
   user               User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   record             EvolutionRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
@@ -496,3 +527,48 @@ model AiFeedbackCard {
   @@index([trainingRecordId])
 }
 
+
+model AgentChannelBinding {
+  id            String    @id @default(cuid())
+  userId        String
+  email         String
+  channel       String
+  channelUserId String
+  channelChatId String?
+  displayName   String?
+  status        String    @default("active")
+  lastSeenAt    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([channel, channelUserId])
+  @@index([userId, status])
+}
+
+model AgentBindToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model AgentAuditLog {
+  id            String   @id @default(cuid())
+  userId        String?
+  channel       String?
+  channelUserId String?
+  tool          String
+  ok            Boolean
+  errorCode     String?
+  argsDigest    String?
+  createdAt     DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([tool, createdAt])
+}

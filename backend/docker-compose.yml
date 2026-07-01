@@ -4,9 +4,9 @@ services:
     container_name: rightnow-fitness-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-rightnow_fitness}
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rightnow_local_password}
+      POSTGRES_DB: rightnow_fitness
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
     ports:
       - "15433:5432"
     volumes:

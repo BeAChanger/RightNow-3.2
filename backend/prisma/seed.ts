@@ -38,12 +38,10 @@ async function upsertBasicUser(input: {
 }
 
 async function main() {
-  const demoPassword = process.env.DEMO_SEED_PASSWORD || 'rightnow-demo-local-only';
-
   const demoUser = await upsertBasicUser({
-    email: process.env.DEMO_SEED_EMAIL || 'demo@example.com',
+    email: 'demo@rightnow.fit',
     name: 'Demo User',
-    password: demoPassword,
+    password: 'password123',
     profile: {
       gender: 'male',
       height: 176,
@@ -58,9 +56,9 @@ async function main() {
   });
 
   const buddyUser = await upsertBasicUser({
-    email: process.env.BUDDY_SEED_EMAIL || 'buddy@example.com',
+    email: 'buddy@rightnow.fit',
     name: 'Buddy User',
-    password: process.env.BUDDY_SEED_PASSWORD || demoPassword,
+    password: 'password123',
     profile: {
       gender: 'female',
       height: 165,
@@ -74,8 +72,8 @@ async function main() {
     },
   });
 
-  const adminEmail = (process.env.ADMIN_SEED_EMAIL || 'admin@example.com').trim().toLowerCase();
-  const adminPassword = process.env.ADMIN_SEED_PASSWORD || 'rightnow-admin-local-only';
+  const adminEmail = (process.env.ADMIN_SEED_EMAIL || 'admin@admin.com').trim().toLowerCase();
+  const adminPassword = process.env.ADMIN_SEED_PASSWORD || '123456';
   const adminName = process.env.ADMIN_SEED_NAME || 'RightNow Admin';
 
   const adminUser = await upsertBasicUser({

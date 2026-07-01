@@ -1,10 +1,12 @@
 FROM node:20-alpine AS builder
+ARG VITE_STEPFUN_API_KEY
 WORKDIR /app
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm install
 ARG CACHE_BUST
 COPY frontend/ ./
 ENV VITE_API_BASE_URL=/api
+ENV VITE_STEPFUN_API_KEY=${VITE_STEPFUN_API_KEY}
 RUN npm run build
 
 FROM nginx:1.25-alpine

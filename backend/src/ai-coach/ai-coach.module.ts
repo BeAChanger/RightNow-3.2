@@ -245,8 +245,57 @@ const SHANGHAI_DATE_FORMATTER = new Intl.DateTimeFormat('en-CA', {
 const getShanghaiDateString = (): string =>
   SHANGHAI_DATE_FORMATTER.format(new Date());
 
+
+// --- Today Workout ---
+interface TodayWorkoutExercise {
+  name: string;
+  weightKg: number;
+  sets: string;
+  repsRange: string;
+  notes?: string;
+}
+
+interface TodayWorkoutResponse {
+  generatedAt: string;
+  focus: string;
+  source: 'anchored' | 'progressive';
+  exercises: TodayWorkoutExercise[];
+  summary: string;
+  weightKg: number;
+}
 @Injectable()
 class AiCoachService {
+  private static readonly EXERCISE_LIBRARY: Record<string, Array<{ name: string; defaultReps: string; bodyWeightFactor: number; notes: string }>> = {
+    'push': [
+      { name: '上斜推胸', defaultReps: '8-12', bodyWeightFactor: 0.8, notes: '控制离心 3 秒' },
+      { name: '杠铃卧推', defaultReps: '6-10', bodyWeightFactor: 0.9, notes: '收紧肩胛骨' },
+      { name: '双杠臂屈伸', defaultReps: '8-12', bodyWeightFactor: 0, notes: '自重 4 组至力竭' },
+      { name: '坐姿哑铃推举', defaultReps: '10-15', bodyWeightFactor: 0.5, notes: '沉肩下放' },
+    ],
+    'pull': [
+      { name: '杠铃划船', defaultReps: '8-12', bodyWeightFactor: 0.6, notes: '躯干与地面平行' },
+      { name: '引体向上', defaultReps: '6-10', bodyWeightFactor: 0, notes: '负重或辅助至极限' },
+      { name: '坐姿绳索划船', defaultReps: '10-15', bodyWeightFactor: 0.4, notes: '顶峰收缩 1 秒' },
+      { name: '高位下拉', defaultReps: '10-15', bodyWeightFactor: 0.45, notes: '宽握，拉到锁骨' },
+    ],
+    'legs': [
+      { name: '杠铃深蹲', defaultReps: '6-10', bodyWeightFactor: 0.5, notes: '髋部低于膝' },
+      { name: '罗马尼亚硬拉', defaultReps: '8-12', bodyWeightFactor: 0.55, notes: '下背不过度弓起' },
+      { name: '保加利亚分腿蹲', defaultReps: '10-15', bodyWeightFactor: 0.25, notes: '每侧 3 组' },
+      { name: '腿举 (倒蹬)', defaultReps: '8-12', bodyWeightFactor: 0.7, notes: '快推慢收' },
+    ],
+    'full_body': [
+      { name: '杠铃深蹲', defaultReps: '6-10', bodyWeightFactor: 0.5, notes: '髋部低于膝' },
+      { name: '杠铃卧推', defaultReps: '6-10', bodyWeightFactor: 0.8, notes: '收紧肩胛骨' },
+      { name: '杠铃划船', defaultReps: '8-12', bodyWeightFactor: 0.6, notes: '躯干与地面平行' },
+      { name: '罗马尼亚硬拉', defaultReps: '8-12', bodyWeightFactor: 0.55, notes: '肩袖预康复' },
+    ],
+    'rest': [
+      { name: '瑜伽/拉伸', defaultReps: '-', bodyWeightFactor: 0, notes: '30 分钟柔韧性训练' },
+      { name: '泡沫轴放松', defaultReps: '-', bodyWeightFactor: 0, notes: '大腿前侧+背+肩' },
+      { name: '单车/慢跑', defaultReps: '-', bodyWeightFactor: 0, notes: '45分钟 心率130-140' },
+    ],
+  };
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
@@ -477,7 +526,7 @@ class AiCoachService {
         ? ['全身循环', '下肢+有氧', '上肢+有氧', '核心强化', '全身代谢', '低强度有氧', '恢复拉伸']
         : ['基础全身', '轻有氧', '基础全身', '核心灵活性', '全身激活', '轻有氧', '恢复拉伸'];
 
-    const realDays = Math.max(3, Math.min(6, trainingDaysPerWeek || 3));
+    const realDays = Math.max(1, Math.min(6, trainingDaysPerWeek || 3));
     const week: CoachProfilePlan['weeklyTrainingPlan'] = [];
     for (let day = 1; day <= 7; day += 1) {
       const trainingDay = day <= realDays;
@@ -540,7 +589,42 @@ class AiCoachService {
       ],
     };
   }
-
+  async buildTodayWorkout(userId: string): Promise<TodayWorkoutResponse> {
+    const profile = await this.prisma.aiCoachProfile.findUnique({ where: { userId } });
+    const u = (await this.prisma.user.findUnique({ where: { id: userId } })) as any;
+    const weightKg = u?.weight ?? 65;
+    const gender = (u?.gender ?? 'male') as string;
+    const gmul = gender === 'female' ? 0.5 : 1.0;
+    const plan = (profile?.fitnessPlan as any)?.weeklyTrainingPlan;
+    const idx = new Date().getDay();
+    const entry = Array.isArray(plan) ? plan[idx] : null;
+    const focus = entry?.focus ?? 'rest';
+    const lib = AiCoachService.EXERCISE_LIBRARY[focus] ?? AiCoachService.EXERCISE_LIBRARY['full_body'] ?? [];
+    const d30 = new Date(); d30.setDate(d30.getDate() - 30);
+    const recs = await this.prisma.trainingRecord.findMany({
+      where: { userId, date: { gte: d30.toISOString().slice(0, 10) } },
+      include: { details: true } as any, orderBy: { date: 'desc' },
+    });
+    const hist = new Map();
+    for (const r of recs) for (const d of (r as any).details) {
+      const e = hist.get(d.exerciseName); const wgt = d.weight ?? 0;
+      if (!e || wgt > e.max) hist.set(d.exerciseName, { max: wgt });
+    }
+    const exercises = [];
+    for (const ex of lib) {
+      let ew = 0;
+      const h = hist.get(ex.name);
+      if (h && h.max > 0) { ew = Math.round((h.max + Math.max(h.max * 0.025, 2.5)) * 2) / 2; }
+      else if (ex.bodyWeightFactor > 0) { ew = Math.round(weightKg * ex.bodyWeightFactor * gmul * 2) / 2; }
+      const note = h && h.max > 0 ? ex.notes + ' (上次 ' + h.max + 'kg)' : ex.notes;
+      exercises.push({ name: ex.name, weightKg: ew, sets: '4 组', repsRange: ex.defaultReps, notes: note });
+    }
+    const sum = exercises.filter(e => e.repsRange !== '-').map(e => e.name + ' ' + (e.weightKg === 0 ? '自重' : e.weightKg + 'kg') + ' 4组').join('、');
+    return {
+      generatedAt: new Date().toISOString(), focus, source: hist.size > 0 ? 'progressive' : 'anchored',
+      exercises, summary: sum, weightKg,
+    };
+  }
   private buildRecommendationSummary(
     stage: CoachStage,
     goalDirection: GoalDirection,
@@ -689,8 +773,8 @@ class AiCoachService {
 
   async saveIntake(userId: string, body: CoachIntakeInput): Promise<CoachIntakeResponse> {
     const trainingDaysPerWeek = Number(body.trainingDaysPerWeek ?? 0);
-    if (trainingDaysPerWeek <= 2) {
-      throw new BadRequestException('AI 教练至少要求每周 3 天训练频率。');
+    if (trainingDaysPerWeek < 1) {
+      throw new BadRequestException('AI ???????? 1 ??????');
     }
 
     const extraAnswers = this.buildIntakeExtraAnswers(body);
@@ -744,7 +828,7 @@ class AiCoachService {
           }
         : null,
       constraints: {
-        minTrainingDays: 3,
+        minTrainingDays: 1,
         hardRejectUnderMinDays: true,
         knowledgeDomains: ['nutrition', 'exercise', 'training', 'metrics'],
       },
@@ -1247,6 +1331,11 @@ class AiCoachController {
   @Get('onboarding')
   getOnboardingProfile(@CurrentUser() user: { sub: string }) {
     return this.service.getOnboardingProfile(user.sub);
+  }
+
+  @Get('today-workout')
+  getTodayWorkout(@CurrentUser() user: { sub: string }) {
+    return this.service.buildTodayWorkout(user.sub);
   }
 
   @Post('onboarding')

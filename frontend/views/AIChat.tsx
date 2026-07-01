@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { aiCoachApi, authApi, trainingSessionApi } from '../api';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { aiCoachApi, authApi, chatApi, trainingSessionApi } from '../api';
 import type {
   CoachAssessment,
   CoachIntakePayload,
@@ -20,11 +20,34 @@ import {
   STAGE2_EXPECTATION_PROMPT,
   STAGE3_NUTRITION_PROMPT,
   STAGE4_TRAINING_PROMPT,
+  GOAL_DIRECTION_LABELS,
+  STAGE_LABELS,
 } from '../services/gemini';
 import type { GeminiMessage, UserProfileContext } from '../services/gemini';
+import type { ChatMessage, WechatBindingInfo } from '../api/chat';
+import { chatApi, wechatApi } from '../api/chat';
 import { View } from '../types';
+
+const FREE_CHAT_PROMPT_SUFFIX = '\n回答要求：中文、简洁、可执行。';
+
+type CoachFlowStage =
+  | 'idle'
+  | 'welcome'
+  | 'loading'
+  | 'assessment'
+  | 'intake'
+  | 'generating'
+  | 'first_plan'
+  | 'coaching_active'
+  | 'plan_summary'
+  | 'delivery_stage1'
+  | 'delivery_stage2'
+  | 'delivery_stage3'
+  | 'delivery_stage4';
+
 import AssessmentCard, { type AssessmentData } from '../components/coach/AssessmentCard';
 import FirstDayPlanCard, { type FirstDayPlanData } from '../components/coach/FirstDayPlanCard';
+import CoachPlanSummaryCard, { type CoachPlanSummaryData } from '../components/coach/CoachPlanSummaryCard';
 import IntakeQuestion, { type QuestionType } from '../components/coach/IntakeQuestion';
 
 interface Props {
@@ -43,38 +66,14 @@ interface DisplayMessage {
 }
 
 interface IntakeAnswerState {
-  trainingExperience?: string;
-  injuryHistory?: string;
-  trainingDaysPerWeek?: number;
+  weeklyTrainingDays?: number;
   sessionDurationMinutes?: number;
-  trainingEnvironment?: string;
-  timePreference?: string;
-  strengthAnchorsRaw?: string;
+  strengthLevel?: string;
   dietEnvironment?: string;
-  typicalBreakfast?: string;
-  typicalLunch?: string;
-  typicalDinner?: string;
-  alcoholFrequency?: string;
-  snackFrequency?: string;
-  diningOutFrequency?: string;
-  sleepHours?: number;
-  sleepQuality?: string;
-  stressLevel?: string;
-  cardioType?: string;
-  cardioFrequency?: string;
-  stepsPerDay?: number;
-  motivationLevel?: string;
-  biggestChallenge?: string;
-  targetAreas?: string[];
+  injuryStatus?: string;
 }
 
-type IntakeCategory =
-  | 'training_background'
-  | 'training_conditions'
-  | 'strength_anchors'
-  | 'diet_environment'
-  | 'recovery_lifestyle'
-  | 'goals_motivation';
+type IntakeCategory = 'deep_assessment';
 
 interface CoachIntakeStep {
   key: keyof IntakeAnswerState;
@@ -86,209 +85,53 @@ interface CoachIntakeStep {
 }
 
 const INTAKE_CATEGORY_LABELS: Record<IntakeCategory, string> = {
-  training_background: '训练背景',
-  training_conditions: '训练条件',
-  strength_anchors: '力量锚点',
-  diet_environment: '饮食环境',
-  recovery_lifestyle: '恢复与生活',
-  goals_motivation: '目标与动机',
+  deep_assessment: '深度评估',
 };
 
 const EXTENDED_INTAKE_STEPS: CoachIntakeStep[] = [
-  // ── 训练背景 (2题) ──
+  // ── Q1: 每周训练天数 ──
   {
-    key: 'trainingExperience',
-    category: 'training_background',
-    question: '你现在的训练经验更接近哪种情况？',
+    key: 'weeklyTrainingDays',
+    category: 'deep_assessment',
+    question: '你每周能稳定训练几天？',
     type: 'single',
-    options: ['零基础，刚开始接触', '练过但不稳定，断断续续', '训练较稳定，能独立安排', '经验丰富，系统训练2年以上'],
-    mapAnswer: (answer) => (typeof answer === 'string' ? answer : '练过但不稳定'),
-  },
-  {
-    key: 'injuryHistory',
-    category: 'training_background',
-    question: '目前最需要我重点规避的身体限制是？',
-    type: 'single',
-    options: ['无明显限制', '膝关节不适', '腰背不适', '肩颈不适', '手腕/手肘不适', '其他需要注意'],
-    mapAnswer: (answer) => (typeof answer === 'string' ? answer : '无明显限制'),
-  },
-
-  // ── 训练条件 (4题) ──
-  {
-    key: 'trainingDaysPerWeek',
-    category: 'training_conditions',
-    question: '你每周能稳定训练几天？（现实一点）',
-    type: 'frequency',
-    options: ['每周3天', '每周4天', '每周5天', '每周6天'],
+    options: ['3次', '4次', '5次', '6次'],
     mapAnswer: (answer) => {
       const raw = typeof answer === 'string' ? answer : '';
       const days = Number(raw.replace(/[^0-9]/g, ''));
-      return Number.isFinite(days) && days >= 3 ? days : 3;
+      return Number.isFinite(days) && days >= 1 ? days : 3;
     },
   },
+  // ── Q2: 单次训练时长 ──
   {
     key: 'sessionDurationMinutes',
-    category: 'training_conditions',
-    question: '每次训练你平均能投入多长时间？',
+    category: 'deep_assessment',
+    question: '每次训练平均多长时间？',
     type: 'single',
-    options: ['30分钟', '45分钟', '60分钟', '75分钟', '90分钟'],
+    options: ['30min', '45min', '60min', '75min', '90min'],
     mapAnswer: (answer) => {
       const raw = typeof answer === 'string' ? answer : '';
       const minutes = Number(raw.replace(/[^0-9]/g, ''));
       return Number.isFinite(minutes) && minutes > 0 ? minutes : 45;
     },
   },
-  {
-    key: 'trainingEnvironment',
-    category: 'training_conditions',
-    question: '你主要在哪里训练？',
-    type: 'single',
-    options: ['商业健身房', '居家训练', '两者都有'],
-    mapAnswer: (answer) => (typeof answer === 'string' ? answer : '商业健身房'),
-  },
-  {
-    key: 'timePreference',
-    category: 'training_conditions',
-    question: '你一般计划在什么时候训练？',
-    type: 'single',
-    options: ['早饭前', '早饭后', '午饭前', '午饭后', '晚饭前', '晚饭后', '不固定'],
-    mapAnswer: (answer) => (typeof answer === 'string' ? answer : '晚饭后'),
-  },
-
-  // ── 力量锚点 (1题，自由输入) ──
-  {
-    key: 'strengthAnchorsRaw',
-    category: 'strength_anchors',
-    question: '说说你近期的力量水平吧——比如卧推/深蹲/下拉能做多重、几次、是否接近力竭？\n\n（例如："卧推60kg 8次接近力竭，高位下拉50kg 12次"）',
-    type: 'text',
-    options: [],
-    mapAnswer: (answer) => (typeof answer === 'string' ? answer : ''),
-  },
-
-  // ── 饮食环境 (6题) ──
+  // ── Q4: 饮食环境 ──
   {
     key: 'dietEnvironment',
-    category: 'diet_environment',
-    question: '你的日常饮食主要靠什么？',
+    category: 'deep_assessment',
+    question: '你日常饮食主要是什么情况？',
     type: 'single',
-    options: ['主要在家自己做', '主要吃食堂', '主要点外卖', '混合，差不多各占一半'],
+    options: ['家做', '食堂', '外卖', '混合'],
     mapAnswer: (answer) => (typeof answer === 'string' ? answer : '混合'),
   },
+  // ── Q5: 伤病 ──
   {
-    key: 'typicalBreakfast',
-    category: 'diet_environment',
-    question: '你早餐一般吃什么？',
+    key: 'injuryStatus',
+    category: 'deep_assessment',
+    question: '有没有伤病或哪里不舒服？',
     type: 'single',
-    options: ['包子/油条/煎饼等中式早餐', '面包/牛奶/麦片等西式', '经常不吃早餐', '不固定'],
-    mapAnswer: (answer) => (typeof answer === 'string' ? answer : '不固定'),
-  },
-  {
-    key: 'typicalLunch',
-    category: 'diet_environment',
-    question: '午餐一般怎么解决？',
-    type: 'single',
-    options: ['食堂/公司餐', '外卖', '自带便当', '不固定'],
-    mapAnswer: (answer) => (typeof answer === 'string' ? answer : '外卖'),
-  },
-  {
-    key: 'typicalDinner',
-    category: 'diet_environment',
-    question: '晚餐通常怎么吃？',
-    type: 'single',
-    options: ['在家做', '外卖', '外食/聚餐', '吃得很少或不吃'],
-    mapAnswer: (answer) => (typeof answer === 'string' ? answer : '在家做'),
-  },
-  {
-    key: 'alcoholFrequency',
-    category: 'diet_environment',
-    question: '喝酒的频率大概是？',
-    type: 'single',
-    options: ['基本不喝', '偶尔社交喝一点', '每周都喝', '几乎天天喝'],
-    mapAnswer: (answer) => (typeof answer === 'string' ? answer : '基本不喝'),
-  },
-  {
-    key: 'snackFrequency',
-    category: 'diet_environment',
-    question: '零食/夜宵的频率？',
-    type: 'single',
-    options: ['基本不吃', '偶尔吃', '经常吃', '每天都吃'],
-    mapAnswer: (answer) => (typeof answer === 'string' ? answer : '偶尔吃'),
-  },
-
-  // ── 恢复与生活 (5题) ──
-  {
-    key: 'sleepHours',
-    category: 'recovery_lifestyle',
-    question: '你平均每天睡几个小时？',
-    type: 'single',
-    options: ['5小时以下', '5-6小时', '6-7小时', '7-8小时', '8小时以上'],
-    mapAnswer: (answer) => {
-      const raw = typeof answer === 'string' ? answer : '6-7小时';
-      const h = Number(raw.replace(/[^0-9]/g, ''));
-      return Number.isFinite(h) ? h : 6.5;
-    },
-  },
-  {
-    key: 'sleepQuality',
-    category: 'recovery_lifestyle',
-    question: '睡眠质量怎么样？',
-    type: 'single',
-    options: ['很好，一觉到天亮', '还行，偶尔醒', '一般，入睡困难或易醒', '很差，长期睡眠不足'],
-    mapAnswer: (answer) => (typeof answer === 'string' ? answer : '还行'),
-  },
-  {
-    key: 'stressLevel',
-    category: 'recovery_lifestyle',
-    question: '最近压力大吗？（工作/学业/生活）',
-    type: 'single',
-    options: ['压力很小', '正常水平', '有点大', '非常大'],
-    mapAnswer: (answer) => (typeof answer === 'string' ? answer : '正常水平'),
-  },
-  {
-    key: 'cardioType',
-    category: 'recovery_lifestyle',
-    question: '平时有做有氧/户外运动吗？',
-    type: 'single',
-    options: ['跑步', '骑车', '游泳', '球类运动', '基本不做有氧'],
-    mapAnswer: (answer) => (typeof answer === 'string' ? answer : '基本不做有氧'),
-  },
-  {
-    key: 'stepsPerDay',
-    category: 'recovery_lifestyle',
-    question: '每天大概走多少步？',
-    type: 'single',
-    options: ['3000步以下', '3000-6000步', '6000-10000步', '10000步以上'],
-    mapAnswer: (answer) => {
-      const raw = typeof answer === 'string' ? answer : '6000-10000步';
-      const s = Number(raw.replace(/[^0-9]/g, ''));
-      return Number.isFinite(s) ? s : 8000;
-    },
-  },
-
-  // ── 目标与动机 (3题) ──
-  {
-    key: 'motivationLevel',
-    category: 'goals_motivation',
-    question: '你对这次健身改变的决心有多大？',
-    type: 'single',
-    options: ['试试看，不一定坚持', '有一定决心，但怕坚持不了', '比较坚定，会努力执行', '非常坚定，这次一定要做到'],
-    mapAnswer: (answer) => (typeof answer === 'string' ? answer : '比较坚定'),
-  },
-  {
-    key: 'biggestChallenge',
-    category: 'goals_motivation',
-    question: '你觉得坚持健身最大的挑战会是什么？',
-    type: 'single',
-    options: ['工作/学习太忙，没时间', '管不住嘴，饮食难控', '容易懒，缺乏动力', '不知道练得对不对', '应酬/社交太多'],
-    mapAnswer: (answer) => (typeof answer === 'string' ? answer : '工作太忙'),
-  },
-  {
-    key: 'targetAreas',
-    category: 'goals_motivation',
-    question: '最想优先改善哪些部位？（可多选）',
-    type: 'multi',
-    options: ['胸部', '背部', '肩部', '手臂', '腹部/核心', '腿部', '臀部'],
-    mapAnswer: (answer) => (Array.isArray(answer) ? answer : typeof answer === 'string' ? [answer] : []),
+    options: ['无', '膝盖', '腰', '肩颈', '手腕脚踝', '其他'],
+    mapAnswer: (answer) => (typeof answer === 'string' ? answer : '无'),
   },
 ];
 
@@ -339,7 +182,7 @@ const buildTrainingModePrompt = (session: any, profile: UserProfileContext): str
   );
 };
 
-const mapAssessmentToCardData = (assessment: CoachAssessment): AssessmentData => {
+const mapAssessmentToCardData = (assessment: CoachAssessment, profile?: Partial<UserProfileContext>): AssessmentData => {
   const currentBodyFat =
     typeof assessment.bodyFatEstimate === 'number' ? assessment.bodyFatEstimate : Math.max(12, assessment.bmi * 0.9);
   const defaultTarget =
@@ -353,6 +196,10 @@ const mapAssessmentToCardData = (assessment: CoachAssessment): AssessmentData =>
   const minWeeks = Math.max(8, assessment.targetWeeks || 12);
 
   return {
+    gender: profile?.gender ?? null,
+    height: typeof profile?.height === 'number' ? profile.height : null,
+    weight: typeof profile?.weight === 'number' ? profile.weight : null,
+    age: typeof profile?.age === 'number' ? profile.age : null,
     currentBodyFat: formatPercent(currentBodyFat),
     targetBodyFat: formatPercent(targetBodyFat),
     goalDirection: GOAL_DIRECTION_LABELS[assessment.goalDirection] || '综合优化',
@@ -364,6 +211,13 @@ const mapAssessmentToCardData = (assessment: CoachAssessment): AssessmentData =>
     minWeeks,
     isVisualAssessment: Boolean(assessment.isVisualAssessment),
   };
+};
+
+const TASK_ICON_MAP: Record<string, string> = {
+  training: 'fitness_center',
+  nutrition: 'restaurant',
+  recovery: 'self_improvement',
+  habit: 'task_alt',
 };
 
 const toFirstDayCardData = (plan: FirstDayPlan): FirstDayPlanData => ({
@@ -382,6 +236,150 @@ const toFirstDayCardData = (plan: FirstDayPlan): FirstDayPlanData => ({
           : 'workout',
   })),
 });
+
+const clampNumber = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
+const roundTo = (value: number, step: number): number => Math.round(value / step) * step;
+const extractKgByKeywords = (text: string, keywords: string[]): number | null => {
+  const lower = text.toLowerCase();
+  for (const keyword of keywords) {
+    const index = lower.indexOf(keyword.toLowerCase());
+    if (index < 0) continue;
+    const segment = lower.slice(index, Math.min(lower.length, index + 80));
+    const match = segment.match(/(\d+(?:\.\d+)?)/);
+    if (match) return Number(match[1]);
+  }
+  return null;
+};
+
+const buildCoachPlanSummary = (
+  profile: UserProfileContext & { strengthLevel?: string | null },
+  card: AssessmentData | null,
+  answers: IntakeAnswerState,
+): CoachPlanSummaryData => {
+  const weeklyDays = clampNumber(Number(answers.weeklyTrainingDays || profile.trainingDaysPerWeek || 3), 1, 6);
+  const sessionMinutes = Math.max(20, Number(answers.sessionDurationMinutes || profile.sessionDurationMinutes || 45));
+  const weightKg = Math.max(45, Number(profile.weight || card?.weight || 70));
+  const tdee = Math.max(1600, Number(profile.tdee || card?.tdee || 2200));
+  const bodyFat = typeof profile.bodyFatEstimate === 'number' ? profile.bodyFatEstimate : parsePercent(card?.currentBodyFat || '');
+  const bmi = typeof profile.bmi === 'number' ? profile.bmi : Number(card?.bmi || 0);
+  const dietEnvironment = answers.dietEnvironment || profile.dietEnvironment || '\u672a\u586b\u5199';
+  const injury = answers.injuryStatus || profile.injuryHistory || '\u65e0\u660e\u663e\u9650\u5236';
+  const strengthText = answers.strengthLevel || profile.strengthLevel || '';
+  const splitName = weeklyDays >= 4 ? '\u56db\u5206\u5316\u8bad\u7ec3' : weeklyDays === 3 ? '\u4e09\u5206\u5316\u8bad\u7ec3' : '\u4e00\u5206\u5316\u5168\u8eab\u8bad\u7ec3';
+  const splitRationale = weeklyDays >= 4
+    ? '\u6bcf\u5468 4 \u5929\u4ee5\u4e0a\uff0c\u6309\u4e0a\u80a2\u63a8\u3001\u4e0a\u80a2\u62c9\u3001\u4e0b\u80a2\u3001\u6838\u5fc3/\u5f31\u9879\u62c6\u5206\uff0c\u6062\u590d\u548c\u523a\u6fc0\u66f4\u5747\u8861\u3002'
+    : weeklyDays === 3
+      ? '\u6bcf\u5468 3 \u5929\uff0c\u6309\u63a8\u3001\u62c9\u3001\u817f/\u6838\u5fc3\u5b89\u6392\uff0c\u9891\u7387\u8db3\u591f\u4e14\u6062\u590d\u538b\u529b\u53ef\u63a7\u3002'
+      : '\u53ef\u8bad\u7ec3\u5929\u6570\u8f83\u5c11\uff0c\u4f18\u5148\u7528\u5168\u8eab\u8bad\u7ec3\u8986\u76d6\u4e3b\u8981\u808c\u7fa4\u3002';
+  const benchKg = extractKgByKeywords(strengthText, ['\u5367\u63a8', '\u63a8\u80f8', 'bench']);
+  const squatKg = extractKgByKeywords(strengthText, ['\u6df1\u8e72', '\u817f\u4e3e', 'squat']);
+  const rowKg = extractKgByKeywords(strengthText, ['\u5212\u8239', '\u4e0b\u62c9', 'row']);
+  const lightNote = strengthText.trim()
+    ? '\u91cd\u91cf\u6309\u4f60\u586b\u5199\u7684\u529b\u91cf\u6c34\u5e73\u4fdd\u5b88\u4e0b\u8c03\uff0c\u5148\u4fdd\u8bc1\u52a8\u4f5c\u8d28\u91cf\u548c\u8170\u90e8\u5b89\u5168\u3002'
+    : '\u4f60\u6ca1\u6709\u586b\u5199\u5177\u4f53\u529b\u91cf\u6570\u636e\uff0c\u4eca\u5929\u5168\u90e8\u4ece\u6700\u8f7b\u91cd\u91cf\u5f00\u59cb\uff0c\u80fd\u7a33\u5b9a\u5b8c\u6210\u518d\u52a0\u91cd\u91cf\u3002';
+  const weightText = (value: number | null, fallback: string, factor = 0.85) => value ? `${Math.max(2.5, roundTo(value * factor, 2.5))}kg` : fallback;
+  const weekly = weeklyDays >= 4
+    ? [
+        { day: 'Day A', focus: '\u80f8 + \u80a9\u524d\u675f' },
+        { day: 'Day B', focus: '\u80cc + \u80b1\u4e8c\u5934' },
+        { day: 'Day C', focus: '\u817f + \u6838\u5fc3' },
+        { day: 'Day D', focus: '\u80a9 / \u624b\u81c2\u5f31\u9879' },
+      ]
+    : weeklyDays === 3
+      ? [
+          { day: 'Day A', focus: '\u80f8 + \u80a9 + \u4e09\u5934' },
+          { day: 'Day B', focus: '\u80cc + \u4e8c\u5934 + \u6838\u5fc3' },
+          { day: 'Day C', focus: '\u817f\u81c0 + \u6838\u5fc3' },
+        ]
+      : Array.from({ length: weeklyDays }, (_, index) => ({ day: `Day ${index + 1}`, focus: '\u5168\u8eab\u57fa\u7840\u8bad\u7ec3' }));
+  const exercises = weeklyDays >= 4
+    ? [
+        { name: '\u4e0a\u659c\u54d1\u94c3\u63a8\u80f8', weight: weightText(benchKg, '2-5kg/\u624b', 0.55), sets: '4\u7ec4', reps: '8-12\u6b21' },
+        { name: '\u5668\u68b0\u5750\u59ff\u63a8\u80f8', weight: weightText(benchKg, '\u6700\u8f7b\u6863/15kg', 0.65), sets: '4\u7ec4', reps: '8-12\u6b21' },
+        { name: '\u8774\u8776\u673a\u5939\u80f8', weight: '\u6700\u8f7b\u6863', sets: '3\u7ec4', reps: '12-15\u6b21' },
+        { name: '\u5750\u59ff\u54d1\u94c3\u63a8\u80a9', weight: '2-5kg/\u624b', sets: '3\u7ec4', reps: '10-12\u6b21' },
+      ]
+    : weeklyDays === 3
+      ? [
+          { name: '\u6760\u94c3\u5367\u63a8', weight: weightText(benchKg, '\u7a7a\u6746/20kg', 0.75), sets: '4\u7ec4', reps: '6-10\u6b21' },
+          { name: '\u4e0a\u659c\u54d1\u94c3\u63a8\u80f8', weight: '2-5kg/\u624b', sets: '3\u7ec4', reps: '10-12\u6b21' },
+          { name: '\u5668\u68b0\u5750\u59ff\u63a8\u80a9', weight: '\u6700\u8f7b\u6863', sets: '3\u7ec4', reps: '10-12\u6b21' },
+          { name: '\u7ef3\u7d22\u4e0b\u538b', weight: '\u6700\u8f7b\u6863', sets: '3\u7ec4', reps: '12-15\u6b21' },
+        ]
+      : [
+          { name: '\u676f\u5f0f\u6df1\u8e72', weight: weightText(squatKg, '\u81ea\u91cd/10kg'), sets: '3\u7ec4', reps: '10\u6b21' },
+          { name: '\u4e0a\u659c\u54d1\u94c3\u63a8\u80f8', weight: weightText(benchKg, '2-5kg/\u624b'), sets: '3\u7ec4', reps: '10\u6b21' },
+          { name: '\u5750\u59ff\u5212\u8239', weight: weightText(rowKg, '\u6700\u8f7b\u6863/15kg'), sets: '3\u7ec4', reps: '10\u6b21' },
+          { name: '\u7f57\u9a6c\u5c3c\u4e9a\u786c\u62c9', weight: '\u7a7a\u6746/10kg', sets: '2\u7ec4', reps: '10\u6b21' },
+          { name: '\u6b7b\u866b\u6838\u5fc3', weight: '\u81ea\u91cd', sets: '2\u7ec4', reps: '12\u6b21' },
+          { name: '\u8dd1\u6b65\u673a\u5feb\u8d70', weight: '\u5761\u5ea6 3-5', sets: '1\u7ec4', reps: '12\u5206\u949f' },
+        ];
+  const targetCalories = Math.max(1200, Math.round(tdee - 400));
+  const proteinGrams = Math.round(weightKg * 1.6);
+  const fatGrams = Math.round(weightKg * 0.8);
+  const carbsGrams = Math.max(80, Math.round((targetCalories - proteinGrams * 4 - fatGrams * 9) / 4));
+  const water = Math.max(1500, roundTo(weightKg * 35, 50));
+  const scheduleBase = [['08:00', 0.15], ['10:30', 0.14], ['12:30', 0.15], ['15:30', 0.15], ['18:00', 0.18], ['20:30', 0.15], ['22:00', 0.08]] as const;
+  return {
+    assessment: {
+      title: '\u57fa\u4e8e\u4f60\u7684\u4f53\u6d4b\u3001\u8bad\u7ec3\u65f6\u95f4\u548c\u996e\u98df\u73af\u5883\uff0c\u5148\u7ed9\u4e00\u7248\u53ef\u6267\u884c\u65b9\u6848\u3002',
+      lines: [
+        `\u57fa\u7840\u6570\u636e\uff1a${profile.age || card?.age || '\u5f85\u786e\u8ba4'}\u5c81 / ${profile.gender === 'female' ? '\u5973' : profile.gender === 'male' ? '\u7537' : '\u6027\u522b\u5f85\u786e\u8ba4'} / ${profile.height || card?.height || '--'}cm / ${weightKg}kg`,
+        `\u8eab\u4f53\u72b6\u6001\uff1aBMI ${bmi || '--'}\uff0c\u4f53\u8102 ${bodyFat || '--'}%\uff0cTDEE ${tdee} kcal`,
+        `\u6267\u884c\u6761\u4ef6\uff1a\u6bcf\u5468 ${weeklyDays} \u7ec3\uff0c\u6bcf\u6b21 ${sessionMinutes} \u5206\u949f\uff0c\u996e\u98df\u73af\u5883\uff1a${dietEnvironment}`,
+      ],
+      priority: injury && injury !== '\u65e0\u660e\u663e\u9650\u5236' ? `\u5148\u5904\u7406\u300c${injury}\u300d\u76f8\u5173\u9650\u5236\uff0c\u907f\u514d\u8bad\u7ec3\u4e2d\u52a0\u91cd\u3002` : '\u5148\u5efa\u7acb\u7a33\u5b9a\u8bad\u7ec3\u8282\u594f\u548c\u70ed\u91cf\u7f3a\u53e3\u3002',
+    },
+    training: { splitName, rationale: splitRationale, weekly, todayFocus: weekly[0]?.focus || '\u5168\u8eab\u57fa\u7840\u8bad\u7ec3', exercises, note: lightNote },
+    diet: {
+      targetCalories,
+      deficit: 400,
+      proteinGrams,
+      carbsGrams,
+      fatGrams,
+      tips: [
+        '\u4eca\u5929\u6309 TDEE - 400 kcal \u6267\u884c\uff0c\u4fdd\u6301 300-500 kcal \u7684\u6e29\u548c\u7f3a\u53e3\u3002',
+        dietEnvironment.includes('\u98df\u5802') ? '\u98df\u5802\u4f18\u5148\u9009\u4e00\u4efd\u4f18\u8d28\u86cb\u767d\u3001\u534a\u76d8\u852c\u83dc\u3001\u4e00\u62f3\u4e3b\u98df\uff0c\u5c11\u6cb9\u5c11\u6c64\u6c41\u3002' : '\u5916\u5356\u6216\u5bb6\u5e38\u996d\u4f18\u5148\u4fdd\u8bc1\u86cb\u767d\u8d28\uff0c\u4e3b\u98df\u4e0d\u8fc7\u91cf\uff0c\u6cb9\u8102\u548c\u996e\u6599\u5148\u63a7\u4f4f\u3002',
+        '\u5403\u524d\u5148\u62cd\u7167\u95ee\u6559\u7ec3\u600e\u4e48\u5403\uff1b\u5403\u5b8c\u518d\u62cd\u7167\u8bb0\u5f55\uff0c\u70ed\u91cf\u4f1a\u540c\u6b65\u5230\u996e\u98df\u548c\u4eca\u65e5\u770b\u677f\u3002',
+      ],
+    },
+    hydration: { dailyTargetMl: water, schedule: scheduleBase.map(([time, ratio]) => ({ time, amountMl: roundTo(water * ratio, 50) })) },
+  };
+};
+
+const buildFirstDayPlanFromSummary = (summary: CoachPlanSummaryData): FirstDayPlan => {
+  const trainingTasks = summary.training.exercises.map((ex, index) => ({
+    id: `training-${index + 1}`,
+    title: `${ex.name}\uff5c${ex.weight}\uff5c${ex.sets} x ${ex.reps}`,
+    category: 'training' as const,
+    detail: `${summary.training.todayFocus}\uff1a${ex.name} ${ex.weight} ${ex.sets} ${ex.reps}`,
+    completed: false,
+  }));
+
+  return {
+    headline: summary.training.todayFocus || summary.training.splitName,
+    tasks: [
+      ...trainingTasks,
+      {
+        id: 'nutrition-target',
+        title: `${'\u996e\u98df\u63a7\u5236\u5728'} ${summary.diet.targetCalories} kcal`,
+        category: 'nutrition',
+        detail: `P ${summary.diet.proteinGrams}g / C ${summary.diet.carbsGrams}g / F ${summary.diet.fatGrams}g`,
+        completed: false,
+      },
+      {
+        id: 'hydration-target',
+        title: `${'\u559d\u6c34'} ${summary.hydration.dailyTargetMl}ml`,
+        category: 'recovery',
+        detail: summary.hydration.schedule.map((slot) => `${slot.time} ${slot.amountMl}ml`).join('\uff1b'),
+        completed: false,
+      },
+    ],
+    nutritionNote: summary.diet.tips.join('\n'),
+    recoveryNote: `${'\u996e\u6c34\u76ee\u6807'} ${summary.hydration.dailyTargetMl}ml`,
+    coachMessage: '\u8ba1\u5212\u5df2\u5b58\u6863\uff0c\u4eca\u5929\u7684\u8bad\u7ec3\u52a8\u4f5c\u4f1a\u9010\u9879\u540c\u6b65\u5230 TODO\u3002',
+  };
+};
 
 const buildAssessmentSummary = (assessment: CoachAssessment): string => {
   const currentBodyFat =
@@ -442,11 +440,82 @@ const AIChat: React.FC<Props> = ({
   const [intakeStepIndex, setIntakeStepIndex] = useState(0);
   const [intakeAnswers, setIntakeAnswers] = useState<IntakeAnswerState>({});
   const [firstDayPlanData, setFirstDayPlanData] = useState<FirstDayPlanData | null>(null);
+  const [planSummaryData, setPlanSummaryData] = useState<CoachPlanSummaryData | null>(null);
   const [onboardingStarted, setOnboardingStarted] = useState(false);
   const [onboardingProfile, setOnboardingProfile] = useState<OnboardingProfile | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const freeChatHistoryRef = useRef<GeminiMessage[]>([]);
   const [userProfile, setUserProfile] = useState<UserProfileContext>({});
+
+  // ── WeChat inline bind ──
+  const [wechatShow, setWechatShow] = useState<'banner' | 'qrcode' | 'scanned' | 'logged-in' | 'binding' | 'bound' | 'hidden'>('banner');
+  const [wechatBindCode, setWechatBindCode] = useState<string | null>(null);
+  const [wechatAccountId, setWechatAccountId] = useState<string | null>(null);
+  const wechatPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const wechatQrRef = useRef<HTMLCanvasElement>(null);
+
+  const wechatStopPoll = useCallback(() => {
+    if (wechatPollRef.current) { clearInterval(wechatPollRef.current); wechatPollRef.current = null; }
+  }, []);
+
+  // Check WeChat binding status on mount
+  useEffect(() => {
+    wechatApi.getBinding().then(b => { if (b) setWechatShow('hidden'); }).catch(() => {});
+  }, []);
+
+  useEffect(() => () => wechatStopPoll(), [wechatStopPoll]);
+
+  const wechatStartLogin = async () => {
+    const token = localStorage.getItem('rightnow_token');
+    // Check if bridge is already logged in — skip QR if so.
+    try {
+      const bs = await fetch('/api/wechat/bot/status', { headers: { Authorization: `Bearer ${token}` } });
+      const bd = await bs.json();
+      if (bd?.data?.loggedIn || bd?.loggedIn) {
+        setWechatAccountId(bd?.data?.accountId || bd?.accountId || null);
+        setWechatShow('logged-in');
+        return;
+      }
+    } catch { /* bridge may be unreachable */ }
+
+    setWechatShow('qrcode');
+    try {
+      const res = await fetch('/api/wechat/bot/login/start', {
+        method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      });
+      const data = await res.json();
+      const qrcodeUrl = data?.data?.qrcodeUrl || data?.qrcodeUrl;
+      if (!qrcodeUrl) throw new Error('No QR URL');
+      setTimeout(() => {
+        import('qrcode').then(QRCode => {
+          if (wechatQrRef.current) QRCode.toCanvas(wechatQrRef.current, qrcodeUrl, { width: 240, margin: 2 });
+        }).catch(() => {});
+      }, 200);
+      wechatStopPoll();
+      wechatPollRef.current = setInterval(async () => {
+        try {
+          const sr = await fetch('/api/wechat/bot/login/status', { headers: { Authorization: `Bearer ${token}` } });
+          const sd = await sr.json();
+          const status = sd?.data?.status || sd?.status;
+          if (status === 'confirmed') { wechatStopPoll(); setWechatAccountId(sd?.data?.accountId || sd?.accountId || null); setWechatShow('logged-in'); }
+          else if (status === 'scaned') setWechatShow('scanned');
+          else if (status === 'expired') { wechatStopPoll(); setWechatShow('banner'); addMessage('ai', '二维码已过期，请点「绑定微信」重新扫码。'); }
+        } catch { /* */ }
+      }, 2500);
+    } catch { setWechatShow('banner'); }
+  };
+
+  const wechatGenerateCode = async () => {
+    try {
+      const { code } = await wechatApi.generateBindCode();
+      setWechatBindCode(code);
+      setWechatShow('binding');
+      const interval = setInterval(async () => {
+        try { const b = await wechatApi.getBinding(); if (b) { setWechatShow('hidden'); clearInterval(interval); } } catch { /* */ }
+      }, 3000);
+      setTimeout(() => clearInterval(interval), 5 * 60 * 1000);
+    } catch { addMessage('ai', '❌ 生成绑定码失败，请稍后再试。'); }
+  };
 
   const addMessage = (sender: 'user' | 'ai', text: string) => {
     setMessages((prev) => [
@@ -491,6 +560,18 @@ const AIChat: React.FC<Props> = ({
     const finalPlan = saveResult?.plan || generatedPlan;
     setFirstDayPlanData(toFirstDayCardData(finalPlan));
     setCoachStage('first_plan');
+
+    // 标记建档完成，下次进入不再弹出评估
+    try {
+      const updatedProfile = await onboardingApi.saveProfile({ onboardingCompleted: true });
+      if (updatedProfile) {
+        setOnboardingProfile(updatedProfile);
+        setUserProfile(prev => ({ ...prev, onboardingCompleted: true }));
+      }
+    } catch {
+      // 非关键：即使保存失败，下次仍然可以重新评估
+    }
+
     addMessage('ai', finalPlan.coachMessage || '首日计划已完成，先做第一项，我们一会儿复盘。');
   };
 
@@ -513,6 +594,7 @@ const AIChat: React.FC<Props> = ({
       setIntakeStepIndex(0);
       setIntakeAnswers({});
       setFirstDayPlanData(null);
+      setPlanSummaryData(null);
       setOnboardingStarted(false);
       setOnboardingProfile(null);
       freeChatHistoryRef.current = [];
@@ -570,9 +652,11 @@ const AIChat: React.FC<Props> = ({
         return;
       }
 
+      let fetchedProfile: OnboardingProfile | null = null;
       // ── 加载用户建档数据 ──
       try {
         const profile = await onboardingApi.getProfile();
+        fetchedProfile = profile;
         if (!cancelled && profile) {
           setOnboardingProfile(profile);
           // 将建档数据注入 userProfile
@@ -608,16 +692,18 @@ const AIChat: React.FC<Props> = ({
         // Non-critical: works without onboarding data
       }
 
-      if (!coachTrigger) {
-        setCoachStage('welcome');
-        addMessage('ai', COACH_WELCOME_MESSAGE);
-        return;
+      let hasSavedCoachPlan = false;
+      try {
+        const progress = await aiCoachApi.getProgress();
+        hasSavedCoachPlan = Array.isArray(progress?.activePlan?.tasks) && progress.activePlan.tasks.length > 0;
+      } catch {
+        hasSavedCoachPlan = false;
       }
 
-      // ── coachTrigger 路径：已建档直接激活，未建档显示欢迎 ──
-      if (onboardingProfile?.onboardingCompleted) {
+      if (fetchedProfile?.onboardingCompleted || hasSavedCoachPlan) {
+        setOnboardingStarted(true);
         setCoachStage('coaching_active');
-        addMessage('ai', '欢迎回来！你的档案已经完善，有什么想聊的直接告诉我。');
+        addMessage('ai', '\u6b22\u8fce\u56de\u6765\uff01\u4f60\u7684\u79c1\u6559\u6863\u6848\u5df2\u5b8c\u6210\uff0c\u4eca\u5929\u53ef\u4ee5\u76f4\u63a5\u6309 TODO \u6267\u884c\u3002');
         return;
       }
 
@@ -632,14 +718,149 @@ const AIChat: React.FC<Props> = ({
     };
   }, [mode, sessionId, coachTrigger]);
 
+  // ── Live sync: load history from backend + poll for new messages ──
+  const lastPollRef = useRef<string | null>(null);
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const seenIdsRef = useRef<Set<string>>(new Set());
+
+  // Seed seenIds from initial local messages so we don't duplicate on first poll.
+  useEffect(() => {
+    for (const m of messages) {
+      seenIdsRef.current.add(m.id);
+    }
+  }, []); // run once on mount before messages populate
+
+  // Keep seenIds in sync with whatever addMessage puts into state.
+  useEffect(() => {
+    for (const m of messages) {
+      seenIdsRef.current.add(m.id);
+    }
+  }, [messages]);
+
+  useEffect(() => {
+    // Only poll in free-chat / coaching-active / welcome modes.
+    // Skip during onboarding flows (assessment, intake, generating) — those
+    // messages are managed by chatWithGemini directly.
+    const pollable =
+      coachStage === 'welcome' ||
+      coachStage === 'coaching_active' ||
+      coachStage === 'idle' ||
+      coachStage.startsWith('delivery_');
+    if (!pollable) {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
+      return;
+    }
+
+    // Load initial history on first pollable entry.
+    if (!lastPollRef.current) {
+      chatApi
+        .history(1, 30)
+        .then((res) => {
+          if (res.data.length > 0) {
+            const backendMsgs = res.data.filter((m) => !seenIdsRef.current.has(m.id));
+            if (backendMsgs.length > 0) {
+              setMessages((prev) => {
+                // Merge backend messages (which may include messages from WeChat
+                // or previous sessions) with local ones, dedup by id.
+                const existing = new Set(prev.map((p) => p.id));
+                const fresh = backendMsgs
+                  .filter((m) => !existing.has(m.id))
+                  .map((m: ChatMessage) => ({
+                    id: m.id,
+                    sender: m.role === 'assistant' ? 'ai' as const : 'user' as const,
+                    text: m.content,
+                    time: new Date(m.createdAt).toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    }),
+                  }));
+                return [...prev, ...fresh];
+              });
+            }
+            lastPollRef.current =
+              res.data[res.data.length - 1]?.createdAt || new Date().toISOString();
+          } else if (!lastPollRef.current) {
+            lastPollRef.current = new Date().toISOString();
+          }
+        })
+        .catch(() => {
+          if (!lastPollRef.current) lastPollRef.current = new Date().toISOString();
+        });
+    }
+
+    // Poll every 5 seconds for new messages from backend.
+    pollIntervalRef.current = setInterval(() => {
+      const since = lastPollRef.current || new Date().toISOString();
+      chatApi
+        .poll(since)
+        .then((res) => {
+          if (res.data.length > 0) {
+            const fresh = res.data
+              .filter((m) => !seenIdsRef.current.has(m.id))
+              .map((m: ChatMessage) => ({
+                id: m.id,
+                sender: m.role === 'assistant' ? 'ai' as const : 'user' as const,
+                text: m.content,
+                time: new Date(m.createdAt).toLocaleTimeString([], {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                }),
+              }));
+            if (fresh.length > 0) {
+              setMessages((prev) => [...prev, ...fresh]);
+              lastPollRef.current =
+                res.data[res.data.length - 1]?.createdAt || lastPollRef.current;
+            }
+          }
+        })
+        .catch(() => {
+          /* poll failures are non-critical */
+        });
+    }, 5000);
+
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
+    };
+  }, [coachStage]);
+
   // ── 开始私教建档 ──
   const startOnboarding = () => {
     setOnboardingStarted(true);
-    setCoachStage('intake');
-    setIntakeStepIndex(0);
-    setIntakeAnswers({});
+    setCoachStage('loading');
     setCoachError(null);
-    addMessage('ai', '好，那我来了解一下你的情况。一共 ' + TOTAL_INTAKE_STEPS + ' 个问题，大概 3 分钟。');
+
+    void (async () => {
+      try {
+        const [assessment, authUser] = await Promise.all([
+          aiCoachApi.getAssessment(),
+          authApi.me().catch(() => null),
+        ]);
+        if (assessment) {
+          const cardData = mapAssessmentToCardData(assessment, authUser || userProfile);
+          setAssessmentData(cardData);
+          setCoachStage('assessment');
+          addMessage('ai', '这是根据你的数据生成的体测评估卡。你可以修改 BMI/BMR/TDEE/体脂率 和周数，确认后我继续为你定制方案。');
+        } else {
+          // No assessment data yet, go directly to intake
+          setCoachStage('intake');
+          setIntakeStepIndex(0);
+          setIntakeAnswers({});
+          addMessage('ai', `好，那我来了解一下你的情况。一共 ${TOTAL_INTAKE_STEPS} 个问题，很快就好。`);
+        }
+      } catch {
+        // Fallback: go directly to intake
+        setCoachStage('intake');
+        setIntakeStepIndex(0);
+        setIntakeAnswers({});
+        addMessage('ai', `好，那我来了解一下你的情况。一共 ${TOTAL_INTAKE_STEPS} 个问题，很快就好。`);
+      }
+    })();
   };
 
   const handleAssessmentConfirm = (selectedWeeks: number) => {
@@ -665,50 +886,24 @@ const AIChat: React.FC<Props> = ({
           isVisualAssessment: assessmentData.isVisualAssessment,
         });
 
-        const context = await aiCoachApi.prepareFirstPlan();
-        if (context.intake) {
-          await prepareAndSaveFirstPlan(context);
-          return;
-        }
-
         setCoachStage('intake');
         setIntakeStepIndex(0);
         setIntakeAnswers({});
-        addMessage('ai', '还差 4 个小问题，答完我就生成你的首日计划。');
-      } catch {
+        setPlanSummaryData(null);
+        setFirstDayPlanData(null);
+        addMessage('ai', `\u8fd8\u5dee ${TOTAL_INTAKE_STEPS} \u4e2a\u5c0f\u95ee\u9898\uff0c\u7b54\u5b8c\u6211\u5c31\u751f\u6210\u4f60\u7684\u8bad\u7ec3\u3001\u996e\u98df\u548c\u996e\u6c34\u8ba1\u5212\u3002`);
+      } catch (err: any) {
         setAssessmentConfirmed(false);
         setCoachStage('assessment');
-        setCoachError('保存体测失败，请再试一次。');
+        const status = err?.response?.status || '未知';
+        const detail = err?.response?.data?.message || err?.message || String(err);
+        setCoachError('[v3] 保存失败 HTTP=' + status + ' | ' + detail);
+        console.error('[v3] Assessment save failed', err?.response?.status, err?.message, err);
       }
     })();
   };
 
-  // ── 扩展建档完成 → 保存数据 + 启动四段式交付 ──
-  // ── 安全取数：处理 sleepHours / stepsPerDay 中可能的多数字字符串 ──
-  const safeSleepHours = (raw: unknown): number | undefined => {
-    if (typeof raw === 'number' && Number.isFinite(raw) && raw > 0 && raw < 24) return raw;
-    if (typeof raw === 'string') {
-      // 取第一个数字（例如 "5-6小时" → 5）
-      const m = raw.match(/(\d+)/);
-      if (m) {
-        const v = Number(m[1]);
-        if (Number.isFinite(v) && v > 0 && v < 24) return v;
-      }
-    }
-    return undefined; // fallback to 6.5 in the caller
-  };
-
-  const safeStepsPerDay = (raw: unknown): number | undefined => {
-    if (typeof raw === 'number' && Number.isFinite(raw) && raw > 0 && raw < 100000) return raw;
-    if (typeof raw === 'string') {
-      const m = raw.match(/(\d+)/);
-      if (m) {
-        const v = Number(m[1]);
-        if (Number.isFinite(v) && v > 0 && v < 100000) return v;
-      }
-    }
-    return undefined;
-  };
+  // ── 深度评估完成 → 保存数据 + 启动四段式交付 ──
 
   const submitExtendedIntake = (answers: IntakeAnswerState) => {
     setCoachError(null);
@@ -717,73 +912,61 @@ const AIChat: React.FC<Props> = ({
     void (async () => {
       // ── Phase 1: 保存数据 ──
       try {
+        const trainingDays = clampNumber(Number(answers.weeklyTrainingDays || 3), 1, 6);
+        const sessionMinutes = Math.max(20, Number(answers.sessionDurationMinutes || 45));
+
         await aiCoachApi.saveIntake({
-          trainingExperience: answers.trainingExperience || '练过但不稳定',
-          injuryHistory: answers.injuryHistory || '无明显限制',
-          trainingDaysPerWeek: Math.max(3, Number(answers.trainingDaysPerWeek || 3)),
-          sessionDurationMinutes: Math.max(20, Number(answers.sessionDurationMinutes || 45)),
+          trainingExperience: '待评估',
+          injuryHistory: answers.injuryStatus || '无',
+          trainingDaysPerWeek: trainingDays,
+          sessionDurationMinutes: sessionMinutes,
         });
 
         const onboardingInput: OnboardingProfileInput = {
-          trainingExperience: answers.trainingExperience,
-          injuryHistory: answers.injuryHistory,
-          weeklyTrainingDays: Number(answers.trainingDaysPerWeek || 3),
-          sessionDurationMinutes: Number(answers.sessionDurationMinutes || 45),
-          trainingEnvironment: answers.trainingEnvironment,
-          timePreference: answers.timePreference,
-          strengthAnchors: null,
+          trainingExperience: '待评估',
+          injuryHistory: answers.injuryStatus,
+          weeklyTrainingDays: trainingDays,
+          sessionDurationMinutes: sessionMinutes,
           dietEnvironment: answers.dietEnvironment,
-          typicalBreakfast: answers.typicalBreakfast,
-          typicalLunch: answers.typicalLunch,
-          typicalDinner: answers.typicalDinner,
-          alcoholFrequency: answers.alcoholFrequency,
-          snackFrequency: answers.snackFrequency,
-          diningOutFrequency: answers.diningOutFrequency,
-          sleepHours: safeSleepHours(answers.sleepHours) ?? 6.5,
-          sleepQuality: answers.sleepQuality,
-          stressLevel: answers.stressLevel,
-          cardioType: answers.cardioType,
-          cardioFrequency: answers.cardioFrequency,
-          stepsPerDay: safeStepsPerDay(answers.stepsPerDay) ?? 8000,
-          motivationLevel: answers.motivationLevel,
-          biggestChallenge: answers.biggestChallenge,
-          targetAreas: Array.isArray(answers.targetAreas) ? answers.targetAreas : [],
-          goalDirection: undefined,
+          strengthAnchors: null,
           onboardingCompleted: true,
           onboardingStep: TOTAL_INTAKE_STEPS,
+          // Provide defaults for fields we no longer collect
+          sleepHours: 6.5,
+          stepsPerDay: 8000,
+          stressLevel: '正常水平',
+          motivationLevel: '比较坚定',
+          biggestChallenge: '工作太忙',
+          targetAreas: [],
         };
 
+        // Merge strengthLevel as extra context
         const savedProfile = await onboardingApi.saveProfile(onboardingInput);
         setOnboardingProfile(savedProfile);
 
+        const profileForPlan = {
+          ...userProfile,
+          injuryHistory: answers.injuryStatus,
+          trainingDaysPerWeek: trainingDays,
+          sessionDurationMinutes: sessionMinutes,
+          dietEnvironment: answers.dietEnvironment,
+          strengthLevel: answers.strengthLevel,
+          onboardingCompleted: true,
+        };
+
         setUserProfile(prev => ({
           ...prev,
-          trainingExperience: savedProfile.trainingExperience,
-          injuryHistory: savedProfile.injuryHistory,
-          trainingDaysPerWeek: savedProfile.weeklyTrainingDays,
-          sessionDurationMinutes: savedProfile.sessionDurationMinutes,
-          trainingEnvironment: savedProfile.trainingEnvironment,
-          timePreference: savedProfile.timePreference,
-          dietEnvironment: savedProfile.dietEnvironment,
-          typicalBreakfast: savedProfile.typicalBreakfast,
-          typicalLunch: savedProfile.typicalLunch,
-          typicalDinner: savedProfile.typicalDinner,
-          alcoholFrequency: savedProfile.alcoholFrequency,
-          snackFrequency: savedProfile.snackFrequency,
-          diningOutFrequency: savedProfile.diningOutFrequency,
-          sleepHours: savedProfile.sleepHours,
-          sleepQuality: savedProfile.sleepQuality,
-          stressLevel: savedProfile.stressLevel,
-          cardioType: savedProfile.cardioType,
-          cardioFrequency: savedProfile.cardioFrequency,
-          stepsPerDay: savedProfile.stepsPerDay,
-          motivationLevel: savedProfile.motivationLevel,
-          biggestChallenge: savedProfile.biggestChallenge,
-          targetAreas: savedProfile.targetAreas?.join('、'),
-          onboardingCompleted: true,
+          ...profileForPlan,
         }));
 
-        addMessage('ai', '✅ 建档数据已保存！现在给你做私教评估...');
+        const summary = buildCoachPlanSummary(profileForPlan, assessmentData, answers);
+        const archivedPlan = buildFirstDayPlanFromSummary(summary);
+        await aiCoachApi.saveFirstPlan(archivedPlan);
+        await aiCoachApi.refreshProfile().catch(() => null);
+        setPlanSummaryData(summary);
+        setCoachStage('plan_summary');
+        addMessage('ai', '\u2705 \u8bc4\u4f30\u6570\u636e\u548c\u4eca\u65e5\u8ba1\u5212\u5df2\u5b58\u6863\uff0cTODO \u548c\u770b\u677f\u4e5f\u4f1a\u540c\u6b65\u66f4\u65b0\u3002');
+        return;
       } catch (saveErr: any) {
         console.error('Onboarding save failed', saveErr);
         setCoachStage('intake');
@@ -793,28 +976,14 @@ const AIChat: React.FC<Props> = ({
 
       // ── Phase 2: AI 生成 Stage 1 ──
       try {
+        // Build enriched profile for AI generation — includes strengthLevel even though it is not persisted to OnboardingProfile yet.
         const profile = {
           ...userProfile,
-          trainingExperience: answers.trainingExperience,
-          injuryHistory: answers.injuryHistory,
-          trainingDaysPerWeek: Number(answers.trainingDaysPerWeek || 3),
+          injuryHistory: answers.injuryStatus,
+          trainingDaysPerWeek: Number(answers.weeklyTrainingDays || 3),
           sessionDurationMinutes: Number(answers.sessionDurationMinutes || 45),
-          trainingEnvironment: answers.trainingEnvironment,
-          timePreference: answers.timePreference,
           dietEnvironment: answers.dietEnvironment,
-          typicalBreakfast: answers.typicalBreakfast,
-          typicalLunch: answers.typicalLunch,
-          typicalDinner: answers.typicalDinner,
-          alcoholFrequency: answers.alcoholFrequency,
-          snackFrequency: answers.snackFrequency,
-          sleepHours: safeSleepHours(answers.sleepHours) ?? 6.5,
-          sleepQuality: answers.sleepQuality,
-          stressLevel: answers.stressLevel,
-          cardioType: answers.cardioType,
-          stepsPerDay: safeStepsPerDay(answers.stepsPerDay) ?? 8000,
-          motivationLevel: answers.motivationLevel,
-          biggestChallenge: answers.biggestChallenge,
-          targetAreas: Array.isArray(answers.targetAreas) ? answers.targetAreas.join('、') : undefined,
+          strengthLevel: answers.strengthLevel || '未提供',
           onboardingCompleted: true,
         };
 
@@ -920,8 +1089,9 @@ const AIChat: React.FC<Props> = ({
             stagePrompts[coachStage] + '\n用户尚未确认，请在当前阶段上下文中回答用户的问题，回答完毕后提醒用户确认以进入下一阶段。' + FREE_CHAT_PROMPT_SUFFIX,
             userProfile,
           );
-          const reply = await chatWithGemini(userText, stagePrompt, freeChatHistoryRef.current);
-          const assistantText = reply?.trim() || '请确认是否继续。';
+          const reply = await chatApi
+            .send({ content: userText, systemPrompt: stagePrompt });
+          const assistantText = reply.content.trim() || '请确认是否继续。';
           freeChatHistoryRef.current = [
             ...freeChatHistoryRef.current,
             { role: 'user', parts: [{ text: userText }] },
@@ -938,9 +1108,10 @@ const AIChat: React.FC<Props> = ({
                   userProfile,
                 );
 
-          const reply = await chatWithGemini(userText, modePrompt, freeChatHistoryRef.current);
+          const reply = await chatApi
+            .send({ content: userText, systemPrompt: modePrompt });
           const assistantText =
-            reply?.trim() || '我在，告诉我你今天的训练目标和状态。';
+            reply.content.trim() || '我在，告诉我你今天的训练目标和状态。';
 
           freeChatHistoryRef.current = [
             ...freeChatHistoryRef.current,
@@ -951,8 +1122,11 @@ const AIChat: React.FC<Props> = ({
           addMessage('ai', assistantText);
           void appendTrainingLog('assistant', assistantText);
         }
-      } catch {
-        addMessage('ai', '网络波动，请稍后再试。');
+      } catch (err: any) {
+        const msg = err?.response?.data?.message || err?.message || String(err || '');
+        console.error('[chat] send error:', err);
+        addMessage('ai', `发送失败: ${msg}`);
+        throw err;
       } finally {
         setSending(false);
       }
@@ -971,6 +1145,7 @@ const AIChat: React.FC<Props> = ({
     coachStage === 'delivery_stage2' ||
     coachStage === 'delivery_stage3' ||
     coachStage === 'delivery_stage4';
+  const showInlineWechatBind = false;
 
   const inputPlaceholder =
     mode === 'training'
@@ -1008,7 +1183,7 @@ const AIChat: React.FC<Props> = ({
             className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
           >
             <div
-              className={`max-w-[80%] rounded-2xl p-4 text-sm leading-relaxed ${
+              className={`max-w-[80%] rounded-2xl p-4 text-sm leading-relaxed whitespace-pre-line ${
                 msg.sender === 'user'
                   ? 'bg-primary text-black rounded-tr-none'
                   : 'bg-[#1A1A1A] text-gray-200 rounded-tl-none border border-white/5'
@@ -1039,7 +1214,7 @@ const AIChat: React.FC<Props> = ({
             <div className="w-full max-w-sm">
               <div className="flex justify-between items-center mb-2 px-1">
                 <span className="text-[10px] text-primary font-bold tracking-wider">
-                  {INTAKE_CATEGORY_LABELS[currentIntakeStep?.category || 'training_background']}
+                  {INTAKE_CATEGORY_LABELS[currentIntakeStep?.category || 'deep_assessment']}
                 </span>
                 <span className="text-[10px] text-gray-500">
                   {intakeStepIndex + 1}/{TOTAL_INTAKE_STEPS}
@@ -1050,6 +1225,72 @@ const AIChat: React.FC<Props> = ({
                   className="h-full bg-primary rounded-full transition-all duration-500"
                   style={{ width: `${((intakeStepIndex + 1) / TOTAL_INTAKE_STEPS) * 100}%` }}
                 />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── 四段式交付阶段提示 ── */}
+
+        {/* ── 微信绑定入口（AI 聊天内嵌）── */}
+        {showInlineWechatBind && wechatShow === 'banner' && (
+          <div className="flex justify-center mt-2">
+            <button
+              onClick={wechatStartLogin}
+              className="flex items-center gap-2 bg-green-500/10 border border-green-500/30 rounded-xl px-4 py-3 text-sm text-green-400 hover:bg-green-500/20 active:scale-[0.98] transition-all"
+            >
+              <span className="material-icons-round text-lg">chat</span>
+              <span>绑定微信，双端同步对话</span>
+              <span className="material-icons-round text-sm">arrow_forward</span>
+            </button>
+          </div>
+        )}
+
+        {showInlineWechatBind && wechatShow === 'qrcode' && (
+          <div className="flex justify-center mt-2">
+            <div className="bg-[#1A1A1A] border border-green-500/20 rounded-2xl p-5 space-y-3 text-center max-w-xs w-full">
+              <p className="text-xs text-gray-300">用微信扫二维码登录 Bot</p>
+              <div className="bg-white rounded-xl p-3 inline-block">
+                <canvas ref={wechatQrRef} style={{ width: 240, height: 240 }} />
+              </div>
+              <p className="text-[10px] text-gray-500">扫码后在手机上点确认</p>
+              <button onClick={() => { wechatStopPoll(); setWechatShow('banner'); }} className="text-xs text-gray-500 underline">取消</button>
+            </div>
+          </div>
+        )}
+
+        {showInlineWechatBind && wechatShow === 'scanned' && (
+          <div className="flex justify-center mt-2">
+            <div className="bg-primary/10 border border-primary/30 rounded-xl px-4 py-3 text-center animate-pulse">
+              <p className="text-sm text-primary font-bold">👀 已扫码，请在微信确认</p>
+            </div>
+          </div>
+        )}
+
+        {showInlineWechatBind && wechatShow === 'logged-in' && (
+          <div className="flex justify-center mt-2">
+            <div className="bg-green-500/10 border border-green-500/30 rounded-2xl p-5 space-y-3 text-center max-w-xs w-full">
+              <span className="material-icons-round text-4xl text-green-400">check_circle</span>
+              <p className="text-sm text-green-300 font-bold">Bot 已登录</p>
+              {wechatAccountId && <p className="text-[10px] text-gray-500 truncate">{wechatAccountId}</p>}
+              <button onClick={wechatGenerateCode} className="w-full py-3 rounded-xl bg-primary text-black font-bold text-sm hover:bg-primary/90 transition-colors">
+                生成绑定码
+              </button>
+            </div>
+          </div>
+        )}
+
+        {showInlineWechatBind && wechatShow === 'binding' && wechatBindCode && (
+          <div className="flex justify-center mt-2">
+            <div className="bg-primary/5 border-2 border-primary/30 rounded-2xl p-5 space-y-3 text-center max-w-xs w-full">
+              <p className="text-xs text-gray-300">给微信 ClawBot 发送：</p>
+              <div className="bg-black/50 rounded-xl py-3 px-4">
+                <span className="text-2xl font-mono font-bold tracking-[0.25em] text-primary">绑定 {wechatBindCode}</span>
+              </div>
+              <p className="text-[10px] text-gray-500">5分钟内有效 · 发送后自动绑定</p>
+              <div className="flex items-center justify-center gap-2 text-gray-400">
+                <span className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                <span className="text-xs">等待绑定...</span>
               </div>
             </div>
           </div>
@@ -1122,6 +1363,20 @@ const AIChat: React.FC<Props> = ({
                   setCoachStage('coaching_active');
                   addMessage('ai', '完成任一任务后告诉我，我会立刻给你下一步反馈。');
                   onNavigate?.(View.ActionCenter);
+                }}
+              />
+            </div>
+          </div>
+        )}
+
+        {mode === 'coach' && coachStage === 'plan_summary' && planSummaryData && (
+          <div className="flex justify-start">
+            <div className="w-full max-w-[94%]">
+              <CoachPlanSummaryCard
+                data={planSummaryData}
+                onStart={() => {
+                  setCoachStage('coaching_active');
+                  addMessage('ai', '\u597d\uff0c\u4ece\u4eca\u5929\u5f00\u59cb\u6309\u8fd9\u4efd\u65b9\u6848\u6267\u884c\u3002\u8bad\u7ec3\u3001\u5403\u996d\u548c\u559d\u6c34\u6709\u53d8\u5316\uff0c\u968f\u65f6\u544a\u8bc9\u6211\uff0c\u6211\u4f1a\u5e2e\u4f60\u8c03\u6574\u3002');
                 }}
               />
             </div>

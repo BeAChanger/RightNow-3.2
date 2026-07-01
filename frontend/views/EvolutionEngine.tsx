@@ -23,17 +23,22 @@ const EvolutionEngine: React.FC<Props> = ({
   const [images, setImages] = useState<Array<string | null>>([null, null, null]);
   const [isGenerating, setIsGenerating] = useState(true);
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const generate = async () => {
     setIsGenerating(true);
     setImages([null, null, null]);
     setSelectedIdx(null);
+    setErrorMessage(null);
     const results = await generateIdealBodyAll3({
       currentImageBase64: userImage || undefined,
       targetStyle: bodyStyle || 'athletic',
       gender: gender || 'male',
     });
     setImages(results);
+    if (!results.some(Boolean)) {
+      setErrorMessage('生图服务暂时受限，请稍后再试或检查中转站额度。');
+    }
     setIsGenerating(false);
   };
 
@@ -55,61 +60,66 @@ const EvolutionEngine: React.FC<Props> = ({
         <p className="text-sm text-center text-gray-400">
           {isGenerating
             ? '正在为你生成三个理想身材版本...'
+            : errorMessage
+              ? errorMessage
             : selectedIdx === null
               ? '点击选择你满意的理想身材版本'
               : `已选择「${CARD_LABELS[selectedIdx]}」`}
         </p>
 
-        {/* Tarot cards row */}
-        <div className="flex items-end justify-center gap-4">
-          {[0, 1, 2].map(i => {
-            const isSelected = selectedIdx === i;
-            const isDimmed = selectedIdx !== null && !isSelected;
-            return (
-              <div
-                key={i}
-                onClick={() => !isGenerating && setSelectedIdx(i)}
-                className={`relative transition-all duration-300 ${!isGenerating ? 'cursor-pointer' : 'cursor-default'}`}
-                style={{
-                  transform: `rotate(${isSelected ? 0 : CARD_ROTATIONS[i]}deg) scale(${isSelected ? 1.1 : 0.95})`,
-                  opacity: isDimmed ? 0.45 : 1,
-                }}
-              >
-                {/* Card */}
-                <div className={`w-[105px] h-[170px] rounded-2xl overflow-hidden border-2 transition-all duration-300 ${
-                  isSelected
-                    ? 'border-[#B8FF00] shadow-[0_0_28px_rgba(184,255,0,0.55)]'
-                    : 'border-white/15'
-                }`}>
-                  {isGenerating || images[i] === null ? (
-                    <div className={`w-full h-full bg-gradient-to-br from-[#0f1a0f] to-[#0a0a0a] flex items-center justify-center ${isGenerating ? 'animate-pulse' : ''}`}>
-                      {isGenerating ? (
+        {errorMessage && !isGenerating ? (
+          <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-6 text-center">
+            <span className="material-icons-round mb-3 text-3xl text-white/35">hourglass_empty</span>
+            <p className="text-sm font-bold text-white/80">暂时没有生成可用图片</p>
+            <p className="mt-2 text-xs leading-5 text-white/45">当前中转站返回繁忙或限流，请稍后点击下方按钮重新生成。</p>
+          </div>
+        ) : (
+          <div className="flex items-end justify-center gap-4">
+            {[0, 1, 2].map(i => {
+              const isSelected = selectedIdx === i;
+              const isDimmed = selectedIdx !== null && !isSelected;
+              return (
+                <div
+                  key={i}
+                  onClick={() => !isGenerating && images[i] && setSelectedIdx(i)}
+                  className={`relative transition-all duration-300 ${!isGenerating && images[i] ? 'cursor-pointer' : 'cursor-default'}`}
+                  style={{
+                    transform: `rotate(${isSelected ? 0 : CARD_ROTATIONS[i]}deg) scale(${isSelected ? 1.1 : 0.95})`,
+                    opacity: isDimmed ? 0.45 : 1,
+                  }}
+                >
+                  {/* Card */}
+                  <div className={`w-[105px] h-[170px] rounded-2xl overflow-hidden border-2 transition-all duration-300 ${
+                    isSelected
+                      ? 'border-[#B8FF00] shadow-[0_0_28px_rgba(184,255,0,0.55)]'
+                      : 'border-white/15'
+                  }`}>
+                    {isGenerating || images[i] === null ? (
+                      <div className={`w-full h-full bg-gradient-to-br from-[#0f1a0f] to-[#0a0a0a] flex items-center justify-center ${isGenerating ? 'animate-pulse' : ''}`}>
                         <div className="w-8 h-8 rounded-full border-2 border-[#B8FF00]/30 border-t-[#B8FF00] animate-spin" />
-                      ) : (
-                        <span className="material-icons-round text-gray-600 text-2xl">broken_image</span>
-                      )}
-                    </div>
-                  ) : (
-                    <img src={images[i]!} alt={CARD_LABELS[i]} className="w-full h-full object-cover" />
-                  )}
-                </div>
-
-                {/* Check badge */}
-                {isSelected && (
-                  <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-[#B8FF00] flex items-center justify-center shadow-lg">
-                    <span className="material-icons-round text-black text-sm">check</span>
+                      </div>
+                    ) : (
+                      <img src={images[i]!} alt={CARD_LABELS[i]} className="w-full h-full object-cover" />
+                    )}
                   </div>
-                )}
 
-                {/* Label */}
-                <div className={`mt-2 text-center transition-colors ${isSelected ? 'text-[#B8FF00]' : 'text-gray-500'}`}>
-                  <p className="text-[11px] font-bold">{CARD_LABELS[i]}</p>
-                  <p className="text-[9px] mt-0.5">{CARD_SUBTITLES[i]}</p>
+                  {/* Check badge */}
+                  {isSelected && (
+                    <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-[#B8FF00] flex items-center justify-center shadow-lg">
+                      <span className="material-icons-round text-black text-sm">check</span>
+                    </div>
+                  )}
+
+                  {/* Label */}
+                  <div className={`mt-2 text-center transition-colors ${isSelected ? 'text-[#B8FF00]' : 'text-gray-500'}`}>
+                    <p className="text-[11px] font-bold">{CARD_LABELS[i]}</p>
+                    <p className="text-[9px] mt-0.5">{CARD_SUBTITLES[i]}</p>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Bottom Actions */}
@@ -117,9 +127,9 @@ const EvolutionEngine: React.FC<Props> = ({
         {/* Confirm */}
         <button
           onClick={() => selectedIdx !== null && onComplete(images[selectedIdx], null)}
-          disabled={selectedIdx === null || isGenerating}
+          disabled={selectedIdx === null || isGenerating || !images[selectedIdx]}
           className={`w-full py-3.5 rounded-full text-sm font-bold flex items-center justify-center gap-2 transition-all ${
-            selectedIdx !== null && !isGenerating
+            selectedIdx !== null && !isGenerating && images[selectedIdx]
               ? 'bg-[#B8FF00] text-black shadow-[0_0_25px_rgba(184,255,0,0.3)]'
               : 'bg-white/5 text-white/30 cursor-not-allowed'
           }`}

@@ -1,6 +1,6 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { View } from './types';
-import { authApi, TOKEN_KEY, aiCoachApi, userApi } from './api';
+import { authApi, TOKEN_KEY, aiCoachApi, userApi, evolutionStageApi } from './api';
 import type { AuthUser } from './api';
 import { assessBodyFatFromImages } from './services/gemini';
 import Login from './views/Login';
@@ -27,6 +27,7 @@ import TrainingLog from './views/TrainingLog';
 import TrainingHistory from './views/TrainingHistory';
 import TrainingConfirm from './views/TrainingConfirm';
 import CommunityShare from './views/CommunityShare';
+import WechatSettings from './views/WechatSettings';
 import BottomNav from './components/BottomNav';
 import FloatingAdvisor from './components/FloatingAdvisor';
 
@@ -313,6 +314,7 @@ const App: React.FC = () => {
     if (isComplete) {
       // Normal flow: Co-creation
       setCurrentView(View.Evolution);
+      if (image) { evolutionStageApi.northStar(image).catch(() => {}); }
     } else {
       // Skipped flow: Go to Dashboard (Incomplete State)
       setCurrentView(View.Dashboard);
@@ -447,6 +449,8 @@ const App: React.FC = () => {
             shareData={shareData}
           />
         );
+      case View.WechatSettings:
+        return <WechatSettings onBack={() => setCurrentView(View.Dashboard)} />;
 
       // Check-In Flow
       case View.CheckInType:
@@ -484,7 +488,8 @@ const App: React.FC = () => {
     currentView === View.TrainingLog ||
     currentView === View.TrainingHistory ||
     currentView === View.TrainingConfirm ||
-    currentView === View.CommunityShare;
+    currentView === View.CommunityShare ||
+    currentView === View.WechatSettings;
 
   // Views where BottomNav should be hidden
   const shouldHideBottomNav =
@@ -503,7 +508,8 @@ const App: React.FC = () => {
     currentView === View.TrainingLog ||
     currentView === View.TrainingHistory ||
     currentView === View.TrainingConfirm ||
-    currentView === View.CommunityShare;
+    currentView === View.CommunityShare ||
+    currentView === View.WechatSettings;
 
   // Show loading while checking auth
   if (!authChecked) {

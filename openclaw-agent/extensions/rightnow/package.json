@@ -1,0 +1,10 @@
+{
+  "name": "@openclaw/rightnow",
+  "version": "1.0.0",
+  "private": true,
+  "description": "RightNow fitness connector for OpenClaw",
+  "type": "module",
+  "openclaw": {
+    "extensions": ["./index.ts"]
+  }
+}

@@ -1,0 +1,125 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: rn-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-rightnow_fitness}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in your private .env file}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: rn-backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in your private .env file}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in your private .env file}
+      PORT: 5000
+      HOST: 0.0.0.0
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173,http://localhost:5174}
+      RAG_SERVICE_URL: http://rag:8000
+      ADMIN_SEED_EMAIL: ${ADMIN_SEED_EMAIL:-admin@example.com}
+      ADMIN_SEED_PASSWORD: ${ADMIN_SEED_PASSWORD:?Set ADMIN_SEED_PASSWORD in your private .env file}
+      ADMIN_SEED_NAME: ${ADMIN_SEED_NAME:-RightNow Admin}
+      IMAGE_GEN_BASE_URL: ${IMAGE_GEN_BASE_URL:-}
+      IMAGE_GEN_MODEL: ${IMAGE_GEN_MODEL:-gpt-image-2}
+      IMAGE_GEN_API_KEY: ${IMAGE_GEN_API_KEY:-}
+      IMAGE_GEN_PROXY_URL: ${IMAGE_GEN_PROXY_URL:-}
+      STEPFUN_BASE_URL: ${STEPFUN_BASE_URL:-https://api.stepfun.com/v1}
+      STEPFUN_API_KEY: ${STEPFUN_API_KEY:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - uploads:/app/uploads
+
+  rag:
+    build:
+      context: .
+      dockerfile: Dockerfile.rag
+    container_name: rn-rag
+    restart: unless-stopped
+    environment:
+      RAG_CORS_ORIGINS: "*"
+      # ── 新四层架构 ──
+      # L1 FAQ 快路
+      RAG_USE_L1_FAQ: "true"
+      RAG_L1_COLLECTION: kb_l1_faq
+      RAG_L1_CHROMA_DIR: /app/chroma_l1_faq
+      RAG_L1_FAQ_PATH: /data/l1-faq/faq.json
+      RAG_L1_FAST_THRESHOLD: "0.30"
+      RAG_L1_SEARCH_EF: "16"
+      RAG_L1_WAIT_MS: "150"
+      # L2 内核其它
+      RAG_USE_L2_CORE: "true"
+      RAG_L2_COLLECTION: kb_l2_core
+      RAG_L2_CHROMA_DIR: /app/chroma_l2_core
+      RAG_L2_DATA_PATH: /data/l2-core
+      # L3 书籍
+      RAG_USE_L3_BOOKS: "true"
+      RAG_L3_COLLECTION: kb_l3_books
+      RAG_L3_CHROMA_DIR: /app/chroma_l3_books
+      RAG_L3_DATA_PATH: /data/l3-books
+      # 快路开关
+      RAG_FAST_PATH: "true"
+      # 兼容旧架构（默认关闭）
+      RAG_USE_LEGACY: "false"
+      # 通用
+      RAG_CHROMA_PERSIST_DIR: /app/chroma_db
+      RAG_BLOGGER_CHROMA_DIR: /app/chroma_blogger
+      RAG_CLEANED_DATA_PATH: /data/cleaned-data
+      RAG_BLOGGER_DATA_PATH: /data/blogger-data
+      RAG_EMBEDDING_MODEL: BAAI/bge-small-zh-v1.5
+      RAG_USE_BLOGGER: "true"
+      RAG_USE_WEB_SEARCH: "true"
+      RAG_WEB_SEARCH_ENGINE: duckduckgo
+      RAG_SIMILARITY_THRESHOLD: "0.35"
+      RAG_CHUNK_SIZE: "800"
+      RAG_CHUNK_OVERLAP: "100"
+      HF_ENDPOINT: https://hf-mirror.com
+    volumes:
+      - chroma_data:/app/chroma_db
+      - chroma_blogger_data:/app/chroma_blogger
+      - chroma_l1_data:/app/chroma_l1_faq
+      - chroma_l2_data:/app/chroma_l2_core
+      - chroma_l3_data:/app/chroma_l3_books
+      - ./cleaned-data:/data/cleaned-data:ro
+      - ./blogger-data:/data/blogger-data:ro
+      - ./l1-faq:/data/l1-faq:ro
+      - ./l2-core:/data/l2-core:ro
+      - ./l3-books:/data/l3-books:ro
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: rn-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./letsencrypt:/etc/letsencrypt:ro
+      - ./certbot-www:/var/www/certbot
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
+  uploads:
+  chroma_data:
+  chroma_blogger_data:
+  chroma_l1_data:
+  chroma_l2_data:
+  chroma_l3_data:

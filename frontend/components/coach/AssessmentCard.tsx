@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 
 export interface AssessmentData {
+    gender?: string | null;
+    height?: number | null;
+    weight?: number | null;
+    age?: number | null;
     currentBodyFat: string;
     targetBodyFat: string;
     goalDirection: string;
@@ -31,14 +35,23 @@ const AssessmentCard: React.FC<Props> = ({ data, onDataUpdate, onConfirm, isConf
 
     const startEditing = (field: keyof AssessmentData) => {
         setEditingField(field);
-        setTempValue(editableData[field].toString().replace(/%/g, ''));
+        const rawValue = editableData[field];
+        setTempValue(rawValue == null ? '' : rawValue.toString().replace(/%/g, ''));
     };
 
     const saveEditing = () => {
         if (!editingField) return;
 
         const newData = { ...editableData };
-        if (editingField === 'currentBodyFat') {
+        if (editingField === 'gender') {
+            newData.gender = tempValue.trim() || editableData.gender;
+        } else if (editingField === 'height') {
+            newData.height = parseFloat(tempValue) || editableData.height;
+        } else if (editingField === 'weight') {
+            newData.weight = parseFloat(tempValue) || editableData.weight;
+        } else if (editingField === 'age') {
+            newData.age = parseInt(tempValue, 10) || editableData.age;
+        } else if (editingField === 'currentBodyFat') {
             newData.currentBodyFat = tempValue.includes('%') ? tempValue : `${tempValue}%`;
         } else if (editingField === 'bmi') {
             newData.bmi = parseFloat(tempValue) || editableData.bmi;
@@ -109,6 +122,53 @@ const AssessmentCard: React.FC<Props> = ({ data, onDataUpdate, onConfirm, isConf
                         <p className="text-xs text-gray-400 mb-1">最短健康周期</p>
                         <p className="text-primary font-bold text-base">{editableData.minWeeks} 周</p>
                     </div>
+                </div>
+
+                {/* Basic Info Confirmation */}
+                <div className="grid grid-cols-4 gap-2">
+                    <MetricItem
+                        label="性别"
+                        value={editableData.gender === 'male' ? '男' : editableData.gender === 'female' ? '女' : (editableData.gender || '待确认')}
+                        isEditing={editingField === 'gender'}
+                        tempValue={tempValue}
+                        setTempValue={setTempValue}
+                        onEdit={() => startEditing('gender')}
+                        onSave={saveEditing}
+                        onKeyDown={handleKeyDown}
+                    />
+                    <MetricItem
+                        label="身高"
+                        value={editableData.height ? `${editableData.height} cm` : '待确认'}
+                        isEditing={editingField === 'height'}
+                        tempValue={tempValue}
+                        setTempValue={setTempValue}
+                        onEdit={() => startEditing('height')}
+                        onSave={saveEditing}
+                        onKeyDown={handleKeyDown}
+                        suffix=" cm"
+                    />
+                    <MetricItem
+                        label="体重"
+                        value={editableData.weight ? `${editableData.weight} kg` : '待确认'}
+                        isEditing={editingField === 'weight'}
+                        tempValue={tempValue}
+                        setTempValue={setTempValue}
+                        onEdit={() => startEditing('weight')}
+                        onSave={saveEditing}
+                        onKeyDown={handleKeyDown}
+                        suffix=" kg"
+                    />
+                    <MetricItem
+                        label="年龄"
+                        value={editableData.age ? `${editableData.age} 岁` : '待确认'}
+                        isEditing={editingField === 'age'}
+                        tempValue={tempValue}
+                        setTempValue={setTempValue}
+                        onEdit={() => startEditing('age')}
+                        onSave={saveEditing}
+                        onKeyDown={handleKeyDown}
+                        suffix=" 岁"
+                    />
                 </div>
 
                 {/* Body Fat Comparison */}

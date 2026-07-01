@@ -6,7 +6,7 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-rightnow_fitness}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in your private .env file}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -22,26 +22,47 @@ services:
     container_name: rn-backend
     restart: unless-stopped
     environment:
-      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in your private .env file}
-      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in your private .env file}
+      DATABASE_URL: ${DATABASE_URL}
+      JWT_SECRET: ${JWT_SECRET}
       PORT: 5000
       HOST: 0.0.0.0
-      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173,http://localhost:5174}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173,http://localhost:5174,http://103.236.92.40:25650,http://103.236.94.79,http://shuaijun.cn,https://shuaijun.cn}
       RAG_SERVICE_URL: http://rag:8000
       ADMIN_SEED_EMAIL: ${ADMIN_SEED_EMAIL:-admin@example.com}
-      ADMIN_SEED_PASSWORD: ${ADMIN_SEED_PASSWORD:?Set ADMIN_SEED_PASSWORD in your private .env file}
+      ADMIN_SEED_PASSWORD: ${ADMIN_SEED_PASSWORD}
       ADMIN_SEED_NAME: ${ADMIN_SEED_NAME:-RightNow Admin}
       IMAGE_GEN_BASE_URL: ${IMAGE_GEN_BASE_URL:-}
       IMAGE_GEN_MODEL: ${IMAGE_GEN_MODEL:-gpt-image-2}
       IMAGE_GEN_API_KEY: ${IMAGE_GEN_API_KEY:-}
       IMAGE_GEN_PROXY_URL: ${IMAGE_GEN_PROXY_URL:-}
+      IMAGE_GEN_FALLBACK_MODEL: ${IMAGE_GEN_FALLBACK_MODEL:-}
+      ARK_IMAGE_API_KEY: ${ARK_IMAGE_API_KEY:-}
+      ARK_IMAGE_BASE_URL: ${ARK_IMAGE_BASE_URL:-}
+      ARK_IMAGE_MODEL: ${ARK_IMAGE_MODEL:-doubao-seedream-5-0-260128}
+      LEGACY_IMAGE_GEN_API_KEY: ${LEGACY_IMAGE_GEN_API_KEY:-}
+      LEGACY_IMAGE_GEN_BASE_URL: ${LEGACY_IMAGE_GEN_BASE_URL:-}
+      LEGACY_IMAGE_GEN_MODEL: ${LEGACY_IMAGE_GEN_MODEL:-gpt-image-2}
+      MIRROR_IMAGE_API_KEY: ${MIRROR_IMAGE_API_KEY:-}
+      MIRROR_IMAGE_BASE_URL: ${MIRROR_IMAGE_BASE_URL:-}
+      MIRROR_IMAGE_MODEL: ${MIRROR_IMAGE_MODEL:-gpt-image-2}
       STEPFUN_BASE_URL: ${STEPFUN_BASE_URL:-https://api.stepfun.com/v1}
       STEPFUN_API_KEY: ${STEPFUN_API_KEY:-}
+      STEPFUN_CHAT_MODEL: ${STEPFUN_CHAT_MODEL:-step-3.7-flash}
+      DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL:-}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      DEEPSEEK_CHAT_MODEL: ${DEEPSEEK_CHAT_MODEL:-deepseek-chat}
+      AGENT_SERVICE_TOKEN: ${AGENT_SERVICE_TOKEN:-}
+      INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:-}
+      OPENCLAW_GATEWAY_URL: http://rn-openclaw-gateway:18789
+      OPENCLAW_CONFIG_PATH: /root/.openclaw/openclaw.json
+      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN:-}
+      PUSH_BRIDGE_URL: http://wechat-bridge:3000
     depends_on:
       postgres:
         condition: service_healthy
     volumes:
       - uploads:/app/uploads
+      - /root/.openclaw:/root/.openclaw
 
   rag:
     build:
@@ -51,6 +72,23 @@ services:
     restart: unless-stopped
     environment:
       RAG_CORS_ORIGINS: "*"
+      RAG_USE_L1_FAQ: "true"
+      RAG_L1_COLLECTION: kb_l1_faq
+      RAG_L1_CHROMA_DIR: /app/chroma_l1_faq
+      RAG_L1_FAQ_PATH: /data/l1-faq/faq.json
+      RAG_L1_FAST_THRESHOLD: "0.30"
+      RAG_L1_SEARCH_EF: "16"
+      RAG_L1_WAIT_MS: "150"
+      RAG_USE_L2_CORE: "true"
+      RAG_L2_COLLECTION: kb_l2_core
+      RAG_L2_CHROMA_DIR: /app/chroma_l2_core
+      RAG_L2_DATA_PATH: /data/l2-core
+      RAG_USE_L3_BOOKS: "true"
+      RAG_L3_COLLECTION: kb_l3_books
+      RAG_L3_CHROMA_DIR: /app/chroma_l3_books
+      RAG_L3_DATA_PATH: /data/l3-books
+      RAG_FAST_PATH: "true"
+      RAG_USE_LEGACY: "false"
       RAG_CHROMA_PERSIST_DIR: /app/chroma_db
       RAG_BLOGGER_CHROMA_DIR: /app/chroma_blogger
       RAG_CLEANED_DATA_PATH: /data/cleaned-data
@@ -60,12 +98,37 @@ services:
       RAG_USE_WEB_SEARCH: "true"
       RAG_WEB_SEARCH_ENGINE: duckduckgo
       RAG_SIMILARITY_THRESHOLD: "0.35"
+      RAG_CHUNK_SIZE: "800"
+      RAG_CHUNK_OVERLAP: "100"
       HF_ENDPOINT: https://hf-mirror.com
     volumes:
       - chroma_data:/app/chroma_db
       - chroma_blogger_data:/app/chroma_blogger
+      - chroma_l1_data:/app/chroma_l1_faq
+      - chroma_l2_data:/app/chroma_l2_core
+      - chroma_l3_data:/app/chroma_l3_books
       - ./cleaned-data:/data/cleaned-data:ro
       - ./blogger-data:/data/blogger-data:ro
+      - ./l1-faq:/data/l1-faq:ro
+      - ./l2-core:/data/l2-core:ro
+      - ./l3-books:/data/l3-books:ro
+
+  wechat-bridge:
+    build:
+      context: ./wechat-bridge
+      dockerfile: Dockerfile
+    container_name: rn-wechat-bridge
+    restart: unless-stopped
+    environment:
+      INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:-}
+      RIGHTNOW_API_BASE: http://backend:5000/api
+      PUSH_PORT: "3000"
+    depends_on:
+      - backend
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - ./wechat-bridge/data:/app/data
 
   frontend:
     build:
@@ -83,8 +146,42 @@ services:
     depends_on:
       - backend
 
+  openclaw-gateway:
+    build:
+      context: ./openclaw
+      dockerfile: Dockerfile
+      args:
+        OPENCLAW_EXTENSIONS: "stepfun,deepseek,memory-core,feishu,rightnow"
+        OPENCLAW_BUNDLED_PLUGIN_DIR: extensions
+    container_name: rn-openclaw-gateway
+    restart: unless-stopped
+    environment:
+      OPENCLAW_MODEL: stepfun/step-3.7-flash
+      STEPFUN_API_KEY: ${STEPFUN_API_KEY}
+      STEPFUN_BASE_URL: ${STEPFUN_BASE_URL:-https://api.stepfun.com/v1}
+      OPENCLAW_GATEWAY_BIND: lan
+      OPENCLAW_GATEWAY_PORT: "18789"
+      OPENCLAW_GATEWAY_AUTH_MODE: token
+      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN}
+      OPENCLAW_WORKSPACE_DIR: /home/node/.openclaw/workspace
+    ports:
+      - "127.0.0.1:18789:18789"
+    volumes:
+      - ./openclaw/extensions/rightnow:/app/extensions/rightnow:ro
+      - /root/.openclaw:/home/node/.openclaw
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:18789/healthz').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
 volumes:
   pgdata:
   uploads:
   chroma_data:
   chroma_blogger_data:
+  chroma_l1_data:
+  chroma_l2_data:
+  chroma_l3_data:
+

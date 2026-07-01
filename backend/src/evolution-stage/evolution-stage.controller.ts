@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { EvolutionStageService } from './evolution-stage.service';
@@ -26,5 +26,13 @@ export class EvolutionStageController {
     const parsed = Number.parseFloat(proteinChangePercent ?? '0.1');
     const normalized = Number.isFinite(parsed) ? parsed : 0.1;
     return this.service.getPrediction(user.sub, { proteinChangePercent: normalized });
+  }
+
+  @Post('north-star')
+  async northStar(
+    @CurrentUser() user: { sub: string },
+    @Body() body: { startImageUrl: string },
+  ) {
+    return this.service.generateNorthStar(user.sub, body.startImageUrl);
   }
 }

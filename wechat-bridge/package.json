@@ -1,0 +1,19 @@
+{
+  "name": "rightnow-wechat-bridge",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "Bridges Tencent's iLink Bot API (WeChat) to the RightNow backend /chat endpoints.",
+  "scripts": {
+    "start": "node bridge.mjs",
+    "login": "node bridge.mjs --login"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "dotenv": "^17.3.1",
+    "qrcode": "^1.5.4",
+    "qrcode-terminal": "^0.12.0"
+  }
+}

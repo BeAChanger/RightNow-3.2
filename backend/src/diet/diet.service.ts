@@ -16,6 +16,14 @@ export interface FoodAnalysis {
   mealType: string;
 }
 
+export interface MealEstimateResult {
+  estimated: FoodAnalysis;
+  advice: string;
+  mealTypeGuess: string;
+  warning?: string;
+  processedAt: string;
+}
+
 const DEFAULT_FOOD_ANALYSIS_SYSTEM_PROMPT = [
   '你是 RightNow 的食物识别与营养估算引擎，负责根据用户上传的食物图片或文字描述，识别食物并估算总热量和三大营养素。',
   '你必须只返回一个合法 JSON 对象，不要输出 Markdown、解释、前后缀或代码块。',
@@ -333,5 +341,37 @@ export class DietService {
       return `data:image/jpeg;base64,${text.replace(/\s/g, '')}`;
     }
     throw new BadRequestException('imageBase64 must be a valid image data URL or base64 string');
+  }
+
+  async estimateBeforeMeal(body: { imageBase64?: string }): Promise<MealEstimateResult> {
+    const analysis = await this.analyzeImage(body);
+    const advice = this.buildMealAdvice(analysis);
+    const hour = new Date().getHours();
+    let mealTypeGuess = analysis.mealType || 'snack';
+    if (!analysis.mealType || analysis.mealType === 'snack') {
+      if (hour < 10) mealTypeGuess = 'breakfast';
+      else if (hour < 14) mealTypeGuess = 'lunch';
+      else if (hour < 18) mealTypeGuess = 'snack';
+      else mealTypeGuess = 'dinner';
+    }
+    let warning: string | undefined;
+    if (analysis.calories > 1200) warning = '单餐热量超过 1200kcal，建议适当减少分量';
+    else if (analysis.carbs > analysis.protein * 3 && analysis.protein < 20) warning = '碳水比例偏高且蛋白质不足，建议增加瘦肉/蛋/豆制品';
+    return { estimated: analysis, advice, mealTypeGuess, warning, processedAt: new Date().toISOString() };
+  }
+
+  private buildMealAdvice(analysis: FoodAnalysis): string {
+    const parts: string[] = [];
+    const ratio = analysis.carbs / Math.max(analysis.protein, 1);
+    if (ratio > 4) parts.push('这个分量作为正餐碳水偏多，建议减少 1/3 米饭/面类，加一份蔬菜');
+    else if (ratio > 2.5) parts.push('碳水比例尚可，可以再加一份蛋白质（鸡胸/鱼/豆腐）让结构更均衡');
+    else if (analysis.protein > 30 && analysis.carbs < 30) parts.push('高蛋白低碳水组合，适合减脂期的主餐搭配');
+    else parts.push('宏量比例均衡，作为一餐搭配合理');
+    if (analysis.fat > 40) parts.push('脂肪含量偏高，注意烹饪油用量');
+    if (analysis.calories < 250) parts.push('热量偏低，作为正餐分量偏少');
+    const hour = new Date().getHours();
+    if (hour < 10 && analysis.carbs < 40) parts.push('早餐碳水偏低，建议增加燕麦/全麦面包');
+    if (hour >= 17 && hour < 21 && analysis.carbs > 80) parts.push('晚餐碳水偏高，建议减半碳水并增加蔬菜');
+    return parts.join('。');
   }
 }

@@ -42,6 +42,32 @@ interface PromptTemplateDelegate {
   }): Promise<PromptTemplateRow | null>;
 }
 
+// ── Body-Fat Result Types ────────────────────────────────────────────
+
+export interface BodyFatEstimateAggregate {
+  final: number;
+  median: number;
+  spread: number;
+  keptCount: number;
+  totalCount: number;
+  breakdown: Array<{
+    provider: string;
+    value: number;
+    confidence: number | null;
+    signals: string[];
+    kept: boolean;
+    rejectionReason: string | null;
+  }>;
+}
+
+export interface BodyFatEstimateResult {
+  value: number;
+  aggregate: BodyFatEstimateAggregate;
+}
+
+const MIN_PLAUSIBLE = 3;
+const MAX_PLAUSIBLE = 60;
+
 @Injectable()
 export class AiService {
   constructor(
@@ -108,11 +134,7 @@ export class AiService {
 
     const text = await this.requestGemini(
       userPrompt,
-      {
-        temperature: 0.3,
-        topP: 0.8,
-        maxOutputTokens: 512,
-      },
+      { temperature: 0.3, topP: 0.8, maxOutputTokens: 512 },
       systemPrompt,
     );
 
@@ -132,11 +154,7 @@ export class AiService {
 
     const text = await this.requestGemini(
       userPrompt,
-      {
-        temperature: 0.3,
-        topP: 0.8,
-        maxOutputTokens: 512,
-      },
+      { temperature: 0.3, topP: 0.8, maxOutputTokens: 512 },
       systemPrompt,
     );
 
@@ -148,39 +166,136 @@ export class AiService {
     }>(text);
   }
 
-  async estimateBodyFatFromImage(imageUrl: string): Promise<number> {
+  // ── Body-Fat Estimation (Solo Model with Context) ──────────────────
+
+  /**
+   * Estimate body-fat percentage from a single photo using a solo vision model.
+   * Accepts optional user context (gender, age, height, weight) to improve
+   * prompt quality. Falls back from StepFun vision → Gemini text-only.
+   *
+   * Returns a structured result with an aggregate object that mirrors the
+   * multi-model format (single-entry breakdown), keeping the schema compatible.
+   */
+  async estimateBodyFatFromImage(
+    imageUrl: string,
+    context?: {
+      gender?: string | null;
+      age?: number | null;
+      height?: number | null;
+      weight?: number | null;
+    },
+  ): Promise<BodyFatEstimateResult> {
     const dataUrl = await this.imageUrlToDataUrl(imageUrl);
-    const systemPrompt =
-      'You are a body composition estimation assistant. Analyze the visible physique in the photo and estimate the body fat percentage. Return only a JSON object in the format {"bodyFat": 18.5}. Do not include explanation, markdown, or any other fields.';
-    const userPrompt =
-      'Estimate this person\'s body fat percentage from the uploaded photo. Return JSON only.';
 
-    const text = await this.requestVision(userPrompt, dataUrl, {
-      temperature: 0.2,
-      maxOutputTokens: 128,
-    }, systemPrompt);
-
-    const parsed = this.parseJsonResponse<{ bodyFat?: number }>(text);
-    const value = Number(parsed?.bodyFat);
-    if (!Number.isFinite(value)) {
-      throw new Error('Model returned invalid body fat percentage');
+    // Build context-aware prompts.
+    const ctxLines: string[] = [];
+    if (context?.gender) {
+      ctxLines.push(`- 性别: ${context.gender === 'female' ? '女性' : '男性'}`);
     }
-    return value;
+    if (context?.age != null && context.age > 0) {
+      ctxLines.push(`- 年龄: ${context.age} 岁`);
+    }
+    if (context?.height != null && context.height > 0) {
+      ctxLines.push(`- 身高: ${context.height} cm`);
+    }
+    if (context?.weight != null && context.weight > 0) {
+      ctxLines.push(`- 体重: ${context.weight} kg`);
+    }
+    const ctxBlock = ctxLines.length > 0 ? `\n用户补充信息:\n${ctxLines.join('\n')}` : '';
+
+    const systemPrompt =
+      `你是一位资深运动科学评估专家。根据单张照片中可见的体型特征估算体脂率。${ctxBlock}\n` +
+      `注意: 用户信息仅供参考，请以目视评估为主。\n` +
+      '返回纯 JSON，格式: {"bodyFat": 18.5, "confidence": 0.8, "visibleSignals": ["腹部线条模糊","肩臂轮廓清晰"]}\n' +
+      '不要加解释、markdown 或其他字段。';
+
+    const userPrompt =
+      '请从上传的照片中估算这个人的体脂率。返回 JSON only。';
+
+    let rawValue: number | null = null;
+    let confidence: number | null = null;
+    let signals: string[] = [];
+    let providerLabel = 'stepfun-vision';
+
+    try {
+      const text = await this.requestVision(userPrompt, dataUrl, {
+        temperature: 0.2,
+        maxOutputTokens: 256,
+      }, systemPrompt);
+
+      const parsed = this.parseJsonResponse<{
+        bodyFat?: number;
+        bodyFatEstimate?: number;
+        confidence?: number;
+        visibleSignals?: string[];
+      }>(text);
+
+      rawValue = Number(parsed?.bodyFat ?? parsed?.bodyFatEstimate);
+      confidence = typeof parsed?.confidence === 'number' ? parsed.confidence : null;
+      signals = Array.isArray(parsed?.visibleSignals) ? parsed.visibleSignals : [];
+      providerLabel = 'stepfun-vision';
+    } catch (error) {
+      // StepFun failed → try Gemini fallback.
+      const message = error instanceof Error ? error.message : 'unknown';
+      try {
+        const text = await this.requestGemini(
+          `${userPrompt}\n(StepFun vision failed: ${message})\nImage data URL (truncated): ${dataUrl.slice(0, 500)}`,
+          { temperature: 0.2, maxOutputTokens: 128 },
+          systemPrompt,
+        );
+        const parsed = this.parseJsonResponse<{ bodyFat?: number; bodyFatEstimate?: number }>(text);
+        rawValue = Number(parsed?.bodyFat ?? parsed?.bodyFatEstimate);
+        providerLabel = 'gemini-text-fallback';
+      } catch {
+        // Both failed – will throw below.
+      }
+    }
+
+    if (!Number.isFinite(rawValue)) {
+      throw new Error('Model(s) returned invalid body fat percentage');
+    }
+
+    const normalizedValue = this.clampBodyFat(rawValue!);
+    const safeConfidence = confidence != null ? confidence : 0.7;
+
+    return {
+      value: normalizedValue,
+      aggregate: {
+        final: normalizedValue,
+        median: normalizedValue,
+        spread: 0,
+        keptCount: 1,
+        totalCount: 1,
+        breakdown: [
+          {
+            provider: providerLabel,
+            value: normalizedValue,
+            confidence: safeConfidence,
+            signals,
+            kept: true,
+            rejectionReason: null,
+          },
+        ],
+      },
+    };
+  }
+
+  // ── Private Helpers ─────────────────────────────────────────────────
+
+  private clampBodyFat(value: number): number {
+    const clamped = Math.max(MIN_PLAUSIBLE, Math.min(MAX_PLAUSIBLE, value));
+    return Number(clamped.toFixed(1));
   }
 
   private async imageUrlToDataUrl(imageUrl: string): Promise<string> {
-    if (imageUrl.startsWith('data:')) {
-      return imageUrl;
-    }
+    if (imageUrl.startsWith('data:')) return imageUrl;
 
     let buffer: Buffer;
     let mime = 'image/jpeg';
 
     if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
       const response = await fetch(imageUrl);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch image: ${imageUrl}`);
-      }
+      if (!response.ok) throw new Error(`Failed to fetch image: ${imageUrl}`);
       buffer = Buffer.from(await response.arrayBuffer());
       const pathname = new URL(imageUrl).pathname;
       mime = this.mimeFromExtension(extname(pathname));
@@ -219,15 +334,9 @@ export class AiService {
       try {
         dbTemplate = await promptTemplateDelegate.findUnique({
           where: {
-            key_scene: {
-              key: binding.key,
-              scene: binding.scene,
-            },
+            key_scene: { key: binding.key, scene: binding.scene },
           },
-          select: {
-            content: true,
-            enabled: true,
-          },
+          select: { content: true, enabled: true },
         });
       } catch {
         dbTemplate = null;
@@ -245,9 +354,7 @@ export class AiService {
   private renderTemplate(template: string, variables: Record<string, unknown>): string {
     return template.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (_match, variableName: string) => {
       const value = variables[variableName];
-      if (value === undefined || value === null) {
-        return '';
-      }
+      if (value === undefined || value === null) return '';
       if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
         return String(value);
       }
@@ -313,7 +420,7 @@ export class AiService {
           messages,
           response_format: { type: 'json_object' },
           temperature: generationConfig.temperature ?? 0.2,
-          max_tokens: generationConfig.maxOutputTokens ?? 128,
+          max_tokens: generationConfig.maxOutputTokens ?? 256,
         }),
       });
 
@@ -404,7 +511,6 @@ export class AiService {
     }
     messages.push({ role: 'user', content: prompt });
 
-    // DeepSeek reasoning model needs extra tokens for internal reasoning
     const maxTokens = Math.max(generationConfig.maxOutputTokens || 1024, 2048);
 
     const response = await fetch(`${baseUrl}/chat/completions`, {
