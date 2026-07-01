@@ -46,3 +46,6 @@ AGENT_HANDOFF_*.md
 # Large source-data artifacts that should not be committed by default
 frontend/data/bilibili-videos/
 *.m4a
+
+# Local image-generation test outputs (may contain personal body photos)
+scripts/output/

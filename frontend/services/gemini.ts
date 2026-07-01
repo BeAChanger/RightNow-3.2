@@ -87,6 +87,47 @@ export interface GeminiMultimodalMediaInput {
 }
 const SAFE_BG_PROMPT = 'Use a clean dark charcoal gray seamless background without gradients, noise, or shadows.';
 
+// Shared realism rules for every ideal-body prompt (tarot + generateIdealBody fallbacks).
+// - POSE_LOCK: Image 1 defines the pose; Image 2 (if any) is only a physique-level reference — do not copy its stance.
+// - SKELETAL_LOCK: bones do not change with training; only postural correction may make the subject look taller.
+// - SKIN_UNIFICATION: face skin tone stays at Image 1's Fitzpatrick level; body tone is brought into agreement with the face, not the other way around.
+// - WARDROBE_MATCH: match Image 1's clothing state so the before/after physique comparison stays valid.
+const POSE_LOCK =
+  " POSE & COMPOSITION RULES (critical — do NOT copy the reference pose):" +
+  " - Image 1 (current body) defines the POSE, POSTURE, CAMERA ANGLE, FRAMING, HEAD TILT and LIMB POSITIONS. Preserve them exactly." +
+  " - Image 2 (reference physique) is ONLY a sample of the target body shape — body-fat level, muscle mass, proportions, definition. Do NOT copy its pose, gesture, stance, hand position, leg position, facial expression or camera angle." +
+  " - If Image 1 shows a front-facing torso-crop portrait, the output must be a front-facing torso-crop portrait." +
+  " - If there is only one image, treat that image as defining the pose.";
+
+const SKELETAL_LOCK =
+  " SKELETAL & PROPORTION RULES (anatomically hard constraints):" +
+  " - Overall body height, head size, neck length, torso length, arm length, forearm length, thigh length, shin length, and hand/foot size MUST equal Image 1 exactly. Bones do not change with training." +
+  " - Shoulder width is bounded by clavicle length — you may add deltoid muscle THICKNESS but must NOT widen the shoulder joint beyond Image 1's clavicular endpoints." +
+  " - Hip width, wrist, elbow, knee and ankle joint POSITIONS in the frame must equal Image 1. Do not stretch or lengthen limbs." +
+  " - The ONLY way the subject can look taller is through POSTURAL CORRECTION: fix kyphosis (rounded upper back) → upright thoracic spine; fix rounded/forward shoulders → shoulder blades retracted and depressed; fix anterior pelvic tilt → neutral pelvis; lengthened neck via cervical retraction." +
+  " - Muscle mass may increase (chest depth, back thickness, arm circumference, thigh circumference) but joint centers and bone endpoints stay at Image 1's coordinates." +
+  " - Do NOT copy Image 2's height, limb ratios, or skeletal frame — Image 2 is only a fat-loss and muscle-mass reference.";
+
+const SKIN_UNIFICATION =
+  " SKIN & IDENTITY RULES (critical for realism):" +
+  " - Identity lock means locking BONE STRUCTURE, FACIAL FEATURES (eye shape, nose, mouth, brow, jaw), HAIRSTYLE and BEARD — NOT skin color, tone, or brightness." +
+  " - BASELINE: the face skin tone must stay at the SAME Fitzpatrick level as Image 1's face — do NOT tan, do NOT darken, do NOT add outdoor sun exposure. The output face must NOT look noticeably darker than Image 1." +
+  " - Torso/neck/arm skin tone must be brought INTO AGREEMENT with the Image 1 face tone — unify by matching the body to the face, not the face to the body." +
+  " - Allowed subtle adjustments only: very slight healthy flush from active blood circulation (a hint of pink on cheeks), faint natural skin sheen (not oily), slightly higher clarity — nothing that changes the base hue or Fitzpatrick level." +
+  " - Global color temperature and white balance across face and torso must match within 100K; same key light direction." +
+  " - Explicit negatives: NOT tanned, NOT sun-kissed, NOT bronzed, NOT darker than Image 1, NOT waxy, NOT pale, NOT washed-out.";
+
+const WARDROBE_MATCH =
+  " Wardrobe: match the clothing state of Image 1 exactly — if Image 1 is shirtless, the output must also be shirtless with a bare torso for physique comparison; if Image 1 wears a shirt, the output wears the same shirt. Below the waist, wear black athletic training shorts. This is a fitness before/after physique comparison in the style of Sports Illustrated / Men's Health magazine — non-explicit, PG-13, no nudity below waist, no genitalia visible, anatomical fitness reference only.";
+
+// Full realism suffix for prompts that have at least one image.
+const IDEAL_REALISM_SUFFIX = POSE_LOCK + SKELETAL_LOCK + SKIN_UNIFICATION + WARDROBE_MATCH;
+
+// Lightweight suffix for text-only prompts — no source image to lock against.
+const IDEAL_TEXT_ONLY_SUFFIX =
+  " Non-explicit, PG-13, Sports Illustrated / Men's Health magazine style. Wear a fitted athletic tank top and knee-length black training shorts. Realistic anatomy with natural proportions — no exaggerated shoulders, no elongated limbs, no unrealistic height.";
+
+
 type ManagedPromptCode =
   | 'training.extract_data'
   | 'training.generate_feedback'
@@ -1347,52 +1388,57 @@ export async function generateIdealBody(params: {
   if (params.refinement && hasImage && hasReferenceImage) {
     prompt = await resolveManagedPrompt(
       'image.generate_ideal_body.with_refinement_and_reference',
-      'Image 1 is current body and image 2 is face reference. Blend face traits from image 2 into image 1 while preserving body posture. {{safeIdentityInstruction}} Additional adjustment: {{refinement}}. {{safePhotoStyle}}',
+      'Image 1 is the current body and image 2 is a physique reference. Re-render the person in Image 1 toward the physique level shown in Image 2. {{safeIdentityInstruction}} Additional adjustment: {{refinement}}. {{safePhotoStyle}}{{idealRealismSuffix}}',
       {
         safeIdentityInstruction,
         refinement: params.refinement,
         safePhotoStyle,
+        idealRealismSuffix: IDEAL_REALISM_SUFFIX,
       },
     );
   } else if (params.refinement && hasImage) {
     prompt = await resolveManagedPrompt(
       'image.generate_ideal_body.with_refinement_and_image',
-      "Adjust this person's body according to: {{refinement}}. Keep overall identity consistent. {{safeIdentityInstruction}} {{safePhotoStyle}}",
+      "Adjust this person's body according to: {{refinement}}. Keep overall identity consistent. {{safeIdentityInstruction}} {{safePhotoStyle}}{{idealRealismSuffix}}",
       {
         refinement: params.refinement,
         safeIdentityInstruction,
         safePhotoStyle,
+        idealRealismSuffix: IDEAL_REALISM_SUFFIX,
       },
     );
   } else if (params.refinement) {
     prompt = await resolveManagedPrompt(
       'image.generate_ideal_body.with_refinement_text_only',
-      'Generate a full-body {{genderLabel}} fitness photo with {{target}} body type. Extra requirement: {{refinement}}. {{safePhotoStyle}}',
+      'Generate a full-body {{genderLabel}} fitness photo with {{target}} body type. Extra requirement: {{refinement}}. {{safePhotoStyle}}{{idealTextOnlySuffix}}',
       {
         genderLabel,
         target,
         refinement: params.refinement,
         safePhotoStyle,
+        idealTextOnlySuffix: IDEAL_TEXT_ONLY_SUFFIX,
       },
     );
   } else if (hasImage) {
     prompt = await resolveManagedPrompt(
       'image.generate_ideal_body.with_image',
-      'Based on this person photo, transform body type toward {{target}}. Keep identity and improve body proportion naturally. {{safeIdentityInstruction}} {{safePhotoStyle}}',
+      'Based on this person photo, transform body type toward {{target}}. Keep identity and improve body proportion naturally. {{safeIdentityInstruction}} {{safePhotoStyle}}{{idealRealismSuffix}}',
       {
         target,
         safeIdentityInstruction,
         safePhotoStyle,
+        idealRealismSuffix: IDEAL_REALISM_SUFFIX,
       },
     );
   } else {
     prompt = await resolveManagedPrompt(
       'image.generate_ideal_body.text_only',
-      'Generate a realistic full-body {{genderLabel}} fitness photo with {{target}} body type. {{safePhotoStyle}}',
+      'Generate a realistic full-body {{genderLabel}} fitness photo with {{target}} body type. {{safePhotoStyle}}{{idealTextOnlySuffix}}',
       {
         genderLabel,
         target,
         safePhotoStyle,
+        idealTextOnlySuffix: IDEAL_TEXT_ONLY_SUFFIX,
       },
     );
   }
@@ -1421,12 +1467,35 @@ export async function generateIdealBody(params: {
 }
 
 // ── 3-variant ideal-body generation (tarot selection flow) ──────────────────
+// Shared realism constants (POSE_LOCK / SKELETAL_LOCK / SKIN_UNIFICATION / WARDROBE_MATCH / IDEAL_REALISM_SUFFIX)
+// are declared near the top of this file so both these tarot prompts and the generateIdealBody fallbacks can reuse them.
 
-const IDEAL_PROMPT_A = `You are the Master of Digital Refinement. Task: face-swap the user's face from the provided photo onto an ideal athletic body model. Workflow: 1) Align face keypoints precisely. 2) Transplant the user's facial identity traits onto the model's head, preserving original hairstyle. 3) Reconstruct lighting so the face naturally matches the body's environment. 4) Fix eye/mouth details for natural expression. Constraints: never alter the body's muscle definition, action, or background. The background must be a solid uniform color #030303 with no gradients, textures, objects, shadows, or patterns. Output: ultra-realistic 8K photo where the face is the user's and the body is perfect athletic form.`;
+const IDEAL_PROMPT_A =
+  "You are the Master of Digital Refinement. Task: take the person in Image 1 and re-render their body toward the physique level shown in Image 2, without changing pose or identity." +
+  " Workflow: 1) Lock the pose, camera angle and framing from Image 1. 2) Preserve the user's facial IDENTITY (bone structure, features, hairstyle, beard) from Image 1 — but re-render the skin so it matches the new body's tone and lighting." +
+  " 3) Reshape only the body proportions (fat loss, muscle definition, vascularity) to match the LEVEL of Image 2 — do NOT copy Image 2's pose, stance, gesture, or facial expression." +
+  " 4) Unify color temperature and skin tone across face, neck and torso. 5) Fix eye/mouth details for natural expression." +
+  " Constraints: the pose must equal Image 1; the physique level must equal Image 2; background must be solid uniform #030303 with no gradients, textures, objects, shadows, or patterns." +
+  " Output: ultra-realistic 8K photo of the SAME PERSON in the SAME POSE as Image 1, with an athletic body matching Image 2's level, unified skin tone." +
+  IDEAL_REALISM_SUFFIX;
 
-const IDEAL_PROMPT_B = `You are the Dimensions Manifestor. Task: keep the user's face from the provided photo unchanged, and reshape only the body to an ideal athletic state. Replace the original background with a solid uniform color #030303. Workflow: 1) Lock the face region so it is never modified. 2) Extract body pose skeleton and preserve the exact posture. 3) Map ideal muscle texture, body-fat percentage, and vascularity onto the body region. 4) Seamlessly blend reshaped body with the solid #030303 background. Constraints: never distort facial features; background must be solid uniform #030303 with no gradients, textures, objects, shadows, or patterns. Output: a photo that looks like the user after perfect athletic training — same face, same pose, solid #030303 background, ideal body.`;
+const IDEAL_PROMPT_B =
+  "You are the Dimensions Manifestor. Task: keep the user's facial IDENTITY and POSE from Image 1, and reshape the body toward the physique level of Image 2." +
+  " Replace the original background with a solid uniform color #030303. Workflow: 1) Lock the pose, camera angle, framing, head tilt and limb positions from Image 1. 2) Lock facial features and hairstyle from Image 1. Do NOT lock skin color — re-render face skin to match the new athletic body." +
+  " 3) Use Image 2 ONLY as a physique reference — target body-fat percentage, muscle mass, and proportions. Do NOT copy Image 2's pose, stance, gesture, or camera angle." +
+  " 4) Map ideal muscle texture and vascularity onto the body region within Image 1's original silhouette." +
+  " 5) Seamlessly blend reshaped body with the solid #030303 background and unify skin tone across face, neck, chest, arms. Constraints: never distort facial features; pose must match Image 1; background must be solid uniform #030303 with no gradients, textures, objects, shadows, or patterns." +
+  " Output: the SAME PERSON in the SAME POSE as Image 1, after perfect athletic training — same face identity, healthier skin tone, athletic body at Image 2's level." +
+  IDEAL_REALISM_SUFFIX;
 
-const IDEAL_PROMPT_C = `You are the Quantum Manifestation Mentor. Task: from the single provided photo, simultaneously extract the user's consciousness (face and eye expression) and superimpose an ideal body state. Workflow: 1) Observe the photo and extract unique facial features and spiritual aura. 2) Generate a new entity: same face without compromise, but neck-downward inherits a perfectly sculpted athletic physique with natural skin texture and muscle definition. 3) Collapse the new body into the original photo's posture. 4) Apply photo-realistic rendering — crisp texture, natural lighting. Constraints: do not merge two different people; user's face on an ideal body. The background must be a solid uniform color #030303 with no gradients, textures, objects, shadows, or patterns. Output: a stunning photo proving the power of manifestation.`;
+const IDEAL_PROMPT_C =
+  "You are the Quantum Manifestation Mentor. Task: from Image 1 extract the user's identity (face features, eye expression, hairstyle, beard) AND their pose; use Image 2 only as a physique-level reference." +
+  " Workflow: 1) Observe Image 1 and extract unique facial features, spiritual aura, and full pose/framing." +
+  " 2) Generate a new entity: same facial identity, same exact pose as Image 1, but neck-downward inherits a perfectly sculpted athletic physique at Image 2's fitness level, with natural skin texture and muscle definition." +
+  " 3) The new body must occupy Image 1's silhouette in Image 1's pose — do NOT adopt Image 2's stance, hand gesture, or camera angle. 4) Apply photo-realistic rendering — crisp texture, natural lighting, unified skin tone across face and body." +
+  " Constraints: do not merge two different people; user's face on an ideal body in the user's own pose. The background must be a solid uniform color #030303 with no gradients, textures, objects, shadows, or patterns." +
+  " Output: a stunning photo proving the power of manifestation — same person, same pose, elevated physique." +
+  IDEAL_REALISM_SUFFIX;
 
 export async function generateIdealBodyAll3(params: {
   currentImageBase64?: string;
